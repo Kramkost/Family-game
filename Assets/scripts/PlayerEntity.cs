@@ -116,27 +116,65 @@ public class PlayerEntity : NetworkBehaviour
         characterController.Move(move * moveSpeed * Time.deltaTime);
     }
 
-    private void OnInteractPerformed(InputAction.CallbackContext context)
+private void OnInteractPerformed(InputAction.CallbackContext context)
     {
-        if (cameraTransform == null) return;
+        if (cameraTransform == null)
+        {
+            Debug.LogError("ОШИБКА: Поле Camera Transform пустое! Перетащите камеру игрока в скрипт PlayerEntity.");
+            return;
+        }
 
+        
+        Debug.DrawRay(cameraTransform.position, cameraTransform.forward * interactRange, Color.red, 2f);
+
+       
         if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange))
         {
-            if (hit.collider.TryGetComponent(out NetworkIdentity targetIdentity))
+            Debug.Log($"[Интеракция] Луч попал в объект: {hit.collider.name}");
+
+            
+            NetworkIdentity targetIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
+
+            if (targetIdentity != null)
             {
+                Debug.Log($"[Интеракция] NetworkIdentity найден! Отправляем команду на сервер...");
                 CmdInteract(targetIdentity);
             }
+            else
+            {
+                Debug.LogWarning($"[Интеракция] На объекте {hit.collider.name} НЕТ NetworkIdentity!");
+            }
+        }
+        else
+        {
+            Debug.Log("[Интеракция] Луч ушел в пустоту. Объект слишком далеко или на нем нет Collider.");
         }
     }
+
 
     [Command]
     private void CmdInteract(NetworkIdentity target)
     {
-        if (target == null) return;
-
-        if (target.TryGetComponent(out IInteractable interactable))
+        if (target == null)
         {
+            Debug.LogWarning("[Сервер] Пришла команда взаимодействия, но target == null!");
+            return;
+        }
+
+        Debug.Log($"[Сервер] Игрок пытается взаимодействовать с объектом: {target.name}");
+
+        
+        IInteractable interactable = target.GetComponentInChildren<IInteractable>();
+
+        if (interactable != null)
+        {
+            Debug.Log($"[Сервер] Скрипт логики найден на {target.name}! Выполняем ServerInteract...");
             interactable.ServerInteract(this);
+        }
+        else
+        {
+          
+            Debug.LogError($"[Сервер] ОШИБКА: На объекте {target.name} (или его детях) НЕТ скрипта с интерфейсом IInteractable (например, JerryCan или GasTank)!");
         }
     }
 }

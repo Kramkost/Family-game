@@ -5,11 +5,12 @@ using Mirror;
 public class CarHybridSystem : NetworkBehaviour
 {
     [Header("Integration")]
-    [Tooltip("Ссылка на менеджер ресурсов (висит на этом же объекте)")]
     [SerializeField] private CarResourceManager resourceManager;
     [SerializeField] private Transform worldContainer;
     
     [Header("Settings")]
+    [Tooltip("Включить иллюзию беговой дорожки. Выключи для честной GTA-подобной физики.")]
+    [SerializeField] private bool useRoadMill = false; // По умолчанию выключено!
     [SerializeField] private float virtualSpeed = 20f;
     [SyncVar] public int playersInCar = 0;
 
@@ -31,6 +32,19 @@ public class CarHybridSystem : NetworkBehaviour
     public void UpdatePassengerCount(int amount)
     {
         playersInCar += amount;
+        CheckMode();
+    }
+
+    [Server]
+    private void CheckMode()
+    {
+        // Если тумблер выключен — никогда не включаем беговую дорожку
+        if (!useRoadMill)
+        {
+            if (isRoadMillMode) isRoadMillMode = false;
+            return;
+        }
+
         int totalPlayers = NetworkServer.connections.Count;
         if (totalPlayers == 0) return;
 
@@ -64,7 +78,6 @@ public class CarHybridSystem : NetworkBehaviour
 
     private void FixedUpdate()
     {
-        // 1. АНТИ-ПРИЗРАК: Если мы вышли из машины, жестко обнуляем инпут
         if (!isOwned)
         {
             currentAccel = 0f;
@@ -74,7 +87,6 @@ public class CarHybridSystem : NetworkBehaviour
 
         if (isRoadMillMode) return;
 
-        // 2. ИММОБИЛАЙЗЕР: Если бензина нет, сбрасываем газ в ноль
         if (resourceManager != null && resourceManager.gasoline <= 0)
         {
             currentAccel = 0f;

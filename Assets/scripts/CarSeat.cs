@@ -1,3 +1,4 @@
+using Kotenkoff;
 using UnityEngine;
 using Mirror;
 
@@ -15,7 +16,7 @@ public class CarSeat : NetworkBehaviour, IInteractable
     [SyncVar] public NetworkIdentity occupant;
 
     [Server]
-    public void ServerInteract(PlayerEntity player)
+    public void ServerInteract(PlayerEntity player, PlayerInventory inventory)
     {
         Debug.Log($"[Сервер-Сиденье] Начинаем посадку игрока {player.name}...");
 

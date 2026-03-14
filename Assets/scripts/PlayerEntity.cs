@@ -1,3 +1,4 @@
+using Kotenkoff;
 using UnityEngine;
 using Mirror;
 using UnityEngine.InputSystem;
@@ -28,6 +29,9 @@ public class PlayerEntity : NetworkBehaviour
     private float xRotation = 0f; 
     
     [SyncVar] public NetworkIdentity heldItem;
+    
+    [Header("Inventory")]
+    [SerializeField] private PlayerInventory inventory;
 
     private void Awake()
     {
@@ -174,7 +178,7 @@ public class PlayerEntity : NetworkBehaviour
                 if (child.TryGetComponent(out IInteractable interactable))
                 {
                     Debug.Log($"[Сервер] УСПЕХ! Деталь '{targetName}' найдена. Выполняем действие!");
-                    interactable.ServerInteract(this);
+                    interactable.ServerInteract(this, inventory);
                     return;
                 }
             }

@@ -1,3 +1,4 @@
+using Kotenkoff;
 using UnityEngine;
 using Mirror;
 
@@ -12,7 +13,7 @@ public class GasTank : NetworkBehaviour, IInteractable
     [SerializeField] private float refuelAmount = 25f;
 
     [Server]
-    public void ServerInteract(PlayerEntity player)
+    public void ServerInteract(PlayerEntity player, PlayerInventory inventory)
     {
         Debug.Log($"[Бензобак] Игрок пытается заправиться. Держит предмет: {(player.heldItem != null ? player.heldItem.name : "Ничего")}");
 
@@ -38,7 +39,7 @@ public class GasTank : NetworkBehaviour, IInteractable
             
             Debug.Log($"[Бензобак] УСПЕХ! Бензин залит: {oldGas} -> {carManager.gasoline}");
             
-            
+            can.RemoveFromInventory(inventory);
             NetworkServer.Destroy(can.gameObject);
             
             

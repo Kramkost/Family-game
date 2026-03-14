@@ -1,3 +1,4 @@
+using Kotenkoff;
 using UnityEngine;
 using Mirror;
 /// <summary>
@@ -6,12 +7,14 @@ using Mirror;
 public class JerryCan : NetworkBehaviour, IInteractable
 {
     [Server]
-    public void ServerInteract(PlayerEntity player)
+    public void ServerInteract(PlayerEntity player, PlayerInventory inventory)
     {
         if (player.heldItem == null)
         {
             // Логика взятия предмета в руки
             player.heldItem = this.netIdentity;
+            
+            inventory.AddItem(gameObject);
             
             // В реальном проекте здесь вы прикрепите объект к руке игрока 
             // через ClientRpc или изменение иерархии (Server -> Client)
@@ -25,5 +28,11 @@ public class JerryCan : NetworkBehaviour, IInteractable
         // Простая визуальная привязка канистры
         transform.SetParent(playerIdentity.transform);
         transform.localPosition = new Vector3(0.5f, 0.5f, 1f); 
+    }
+
+    [Server]
+    public void RemoveFromInventory(PlayerInventory inventory)
+    {
+        inventory.RemoveItem(gameObject);
     }
 }

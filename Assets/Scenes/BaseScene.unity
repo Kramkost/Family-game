@@ -1343,10 +1343,6 @@ PrefabInstance:
       propertyPath: sceneId
       value: 2765210828
       objectReference: {fileID: 0}
-    - target: {fileID: 2264193679135247277, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: inventory.Array.size
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.464

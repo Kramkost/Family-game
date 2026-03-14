@@ -31,7 +31,8 @@ public class PlayerEntity : NetworkBehaviour
     [SyncVar] public NetworkIdentity heldItem;
     
     [Header("Inventory")]
-    [SerializeField] private PlayerInventory inventory;
+    [SerializeField, Tooltip("Ссылка на инвентарь игрока")]
+    private PlayerInventory inventory;
 
     private void Awake()
     {

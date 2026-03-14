@@ -389,6 +389,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &898670041
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 898670043}
+  - component: {fileID: 898670042}
+  m_Layer: 0
+  m_Name: Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &898670042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 898670041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee6aae0267825ef95b3d122aeb26554b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ConveyorChunkManager
+  worldContainer: {fileID: 1778708696}
+  carTransform: {fileID: 1415336429}
+  forestChunkPrefab: {fileID: 175929675422647410, guid: b465635b52282638e94e734d923ebba9, type: 3}
+  desertChunkPrefab: {fileID: 175929675422647410, guid: 26372bf3c448de965b10adba83b13dfd, type: 3}
+  townChunkPrefab: {fileID: 175929675422647410, guid: d3ad76a8971077dc6b67065eeec321b6, type: 3}
+  seed: 1337
+  chunkSize: 50
+  chunksVisibleAhead: 5
+  chunkDespawnZ: -50
+--- !u!4 &898670043
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 898670041}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.93814, y: 0, z: -5.00446}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1302904027
 GameObject:
   m_ObjectHideFlags: 0
@@ -402,6 +455,7 @@ GameObject:
   - component: {fileID: 1302904031}
   - component: {fileID: 1302904030}
   - component: {fileID: 1302904029}
+  - component: {fileID: 1302904034}
   m_Layer: 0
   m_Name: CarSeat
   m_TagString: Untagged
@@ -459,7 +513,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -522,6 +576,24 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1302904027}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1302904034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1302904027}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb637ba68f79fd99888095aca780a1a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarSeat
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  isDriverSeat: 1
+  carSystem: {fileID: 1415336431}
+  occupant: {fileID: 0}
 --- !u!1 &1415336423
 GameObject:
   m_ObjectHideFlags: 0
@@ -535,7 +607,9 @@ GameObject:
   - component: {fileID: 1415336427}
   - component: {fileID: 1415336426}
   - component: {fileID: 1415336425}
+  - component: {fileID: 1415336431}
   - component: {fileID: 1415336424}
+  - component: {fileID: 1415336430}
   m_Layer: 0
   m_Name: Car
   m_TagString: Untagged
@@ -558,13 +632,11 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  isDriving: 0
+  hybridSystem: {fileID: 1415336431}
   gasoline: 100
   water: 100
   engineOil: 100
   gasConsumeRate: 1
-  waterConsumeRate: 0.2
-  oilConsumeRate: 0.1
 --- !u!114 &1415336425
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -676,6 +748,55 @@ Transform:
   - {fileID: 1302904028}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!54 &1415336430
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1415336423}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &1415336431
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1415336423}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89eed87a5a2eba89999fdcc34546fb9f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarHybridSystem
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  resourceManager: {fileID: 1415336424}
+  worldContainer: {fileID: 1778708696}
+  virtualSpeed: 20
+  playersInCar: 0
+  motorForce: 1500
+  steerForce: 100
+  isRoadMillMode: 0
 --- !u!1 &1507173549
 GameObject:
   m_ObjectHideFlags: 0
@@ -784,6 +905,37 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1778708695
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1778708696}
+  m_Layer: 0
+  m_Name: WorldContainer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1778708696
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1778708695}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -8.61628, y: -5.07886, z: -3.77634}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1108,3 +1260,5 @@ SceneRoots:
   - {fileID: 1902944449}
   - {fileID: 3019766223134171230}
   - {fileID: 30864254}
+  - {fileID: 1778708696}
+  - {fileID: 898670043}

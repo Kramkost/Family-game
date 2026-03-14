@@ -2,12 +2,14 @@ using UnityEngine;
 using Mirror;
 
 /// <summary>
-/// Серверный менеджер состояния автомобиля. Контролирует расход жидкостей.
+/// Автономный менеджер ресурсов. Замеряет реальную скорость и жжет топливо.
 /// </summary>
+[RequireComponent(typeof(Rigidbody))]
 public class CarResourceManager : NetworkBehaviour
 {
-    [Header("Car State")]
-    [SyncVar] public bool isDriving;
+    [Header("Integration")]
+    [Tooltip("Ссылка на скрипт передвижения для проверки режима беговой дорожки")]
+    [SerializeField] private CarHybridSystem hybridSystem;
 
     [Header("Resources (Max 100)")]
     [SyncVar] public float gasoline = 100f;
@@ -16,31 +18,34 @@ public class CarResourceManager : NetworkBehaviour
 
     [Header("Consumption Rates (Per Second)")]
     [SerializeField] private float gasConsumeRate = 1f;
-    [SerializeField] private float waterConsumeRate = 0.2f;
-    [SerializeField] private float oilConsumeRate = 0.1f;
+
+    private Rigidbody rb;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+    }
 
     [ServerCallback]
     private void Update()
     {
-        // Тратим ресурсы только если машина заведена/едет
-        if (isDriving)
+        if (hybridSystem == null) return;
+
+        // Машина тратит ресурсы, если включена беговая дорожка ИЛИ ее физическая скорость выше 0.5 юнитов
+        bool isMoving = hybridSystem.isRoadMillMode || rb.linearVelocity.magnitude > 0.5f;
+
+        if (isMoving && gasoline > 0)
         {
             gasoline = Mathf.Clamp(gasoline - gasConsumeRate * Time.deltaTime, 0, 100);
-            water = Mathf.Clamp(water - waterConsumeRate * Time.deltaTime, 0, 100);
-            engineOil = Mathf.Clamp(engineOil - oilConsumeRate * Time.deltaTime, 0, 100);
-
-            // Если бензин закончился — глохнем
+            
             if (gasoline <= 0)
             {
-                isDriving = false;
-                // Тут можно добавить вызов RPC для звука заглохшего мотора
+                Debug.LogWarning("[CarResources] Бак пуст. Машина заглохла.");
+                // Вызов RPC звука глохнущего мотора
             }
         }
     }
 
-    /// <summary>
-    /// Метод для заправки машины. Вызывается сервером.
-    /// </summary>
     [Server]
     public void Refuel(float amount)
     {

@@ -3,30 +3,28 @@ using Mirror;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Отвечает за локальное передвижение игрока, управление камерой и отправку команд взаимодействия.
+/// Отвечает за локальное передвижение игрока, управление камерой, посадку в авто и взаимодействие.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerEntity : NetworkBehaviour
 {
     [Header("Movement & Look Settings")]
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float lookSensitivity = 0.5f; // Чувствительность мыши
+    [SerializeField] private float lookSensitivity = 0.5f; 
     [SerializeField] private float interactRange = 3f;
     [SerializeField] private Transform cameraTransform;
+    [SerializeField] private LayerMask interactLayerMask = ~0;
 
     [Header("Input Actions")]
-    [Tooltip("Ссылка на действие передвижения (Action Type: Value, Control Type: Vector2)")]
     [SerializeField] private InputActionReference moveAction;
-    
-    [Tooltip("Ссылка на вращение камеры (Action Type: Value, Control Type: Vector2)")]
     [SerializeField] private InputActionReference lookAction;
-    
-    [Tooltip("Ссылка на действие взаимодействия (Action Type: Button)")]
     [SerializeField] private InputActionReference interactAction;
 
+    [Header("Vehicle State")]
+    private CarSeat currentSeat;
+    private bool isSitting = false;
+
     private CharacterController characterController;
-    
-    // Накопительная переменная для ограничения наклона головы (чтобы не сломать шею)
     private float xRotation = 0f; 
     
     [SyncVar] public NetworkIdentity heldItem;
@@ -36,12 +34,8 @@ public class PlayerEntity : NetworkBehaviour
         characterController = GetComponent<CharacterController>();
     }
 
-    /// <summary>
-    /// Включаем инпут и прячем курсор только для локального игрока.
-    /// </summary>
     public override void OnStartLocalPlayer()
     {
-        // Прячем курсор и блокируем его в центре окна игры
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -55,9 +49,6 @@ public class PlayerEntity : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Очищаем подписки и освобождаем курсор при отключении/уничтожении.
-    /// </summary>
     public override void OnStopLocalPlayer()
     {
         Cursor.lockState = CursorLockMode.None;
@@ -77,31 +68,46 @@ public class PlayerEntity : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
+        // Если игрок сидит в машине
+        if (isSitting)
+        {
+            HandleDriving();
+            
+            // ВАЖНО: Выход на Пробел.
+            if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
+                CmdLeaveSeat();
+            }
+            return; // Блокируем передвижение пешком
+        }
+
         HandleLook();
         HandleMovement();
     }
 
-    /// <summary>
-    /// Вращает самого игрока влево/вправо и наклоняет камеру вверх/вниз.
-    /// </summary>
+    private void HandleDriving()
+    {
+        if (currentSeat != null && currentSeat.isDriverSeat && currentSeat.carSystem != null)
+        {
+            Vector2 inputDir = moveAction.action.ReadValue<Vector2>();
+            currentSeat.carSystem.LocalDrive(inputDir.x, inputDir.y);
+        }
+    }
+
+    // --- ВОССТАНОВЛЕННЫЕ МЕТОДЫ ПЕШЕХОДА ---
+
     private void HandleLook()
     {
         if (lookAction == null || cameraTransform == null) return;
 
-        // Считываем смещение мыши (Delta)
         Vector2 lookInput = lookAction.action.ReadValue<Vector2>();
-        
         float mouseX = lookInput.x * lookSensitivity;
         float mouseY = lookInput.y * lookSensitivity;
 
-        // Вычисляем наклон камеры (Pitch) и ограничиваем его
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-        // Применяем наклон только к камере (локальная ось X)
         cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-        
-        // Поворачиваем всё тело игрока влево/вправо (глобальная ось Y)
         transform.Rotate(Vector3.up * mouseX);
     }
 
@@ -110,71 +116,128 @@ public class PlayerEntity : NetworkBehaviour
         if (moveAction == null) return;
 
         Vector2 inputDir = moveAction.action.ReadValue<Vector2>();
-
-        // Двигаемся относительно текущего поворота тела
         Vector3 move = transform.right * inputDir.x + transform.forward * inputDir.y;
         characterController.Move(move * moveSpeed * Time.deltaTime);
     }
 
-private void OnInteractPerformed(InputAction.CallbackContext context)
+/// <summary>
+    /// Локальный луч. Находит корневой объект и ИМЯ детали, на которую мы смотрим.
+    /// Это обходит любые баги сетевой сериализации.
+    /// </summary>
+    private void OnInteractPerformed(InputAction.CallbackContext context)
     {
-        if (cameraTransform == null)
+        if (isSitting || cameraTransform == null) return;
+
+        Debug.DrawRay(cameraTransform.position, cameraTransform.forward * interactRange, Color.magenta, 2f);
+
+        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange, interactLayerMask))
         {
-            Debug.LogError("ОШИБКА: Поле Camera Transform пустое! Перетащите камеру игрока в скрипт PlayerEntity.");
-            return;
-        }
+            NetworkIdentity rootIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
+            IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
 
-        
-        Debug.DrawRay(cameraTransform.position, cameraTransform.forward * interactRange, Color.red, 2f);
-
-       
-        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange))
-        {
-            Debug.Log($"[Интеракция] Луч попал в объект: {hit.collider.name}");
-
-            
-            NetworkIdentity targetIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
-
-            if (targetIdentity != null)
+            if (rootIdentity != null && interactable != null)
             {
-                Debug.Log($"[Интеракция] NetworkIdentity найден! Отправляем команду на сервер...");
-                CmdInteract(targetIdentity);
+                // Берем точное имя объекта, на котором висит скрипт логики (например, "DriverSeat")
+                string targetName = ((Component)interactable).gameObject.name;
+                
+                Debug.Log($"[Клиент] Навел на '{targetName}'. Отправляем запрос на сервер...");
+                
+                // Передаем корень машины и имя детали
+                CmdInteract(rootIdentity, targetName);
             }
             else
             {
-                Debug.LogWarning($"[Интеракция] На объекте {hit.collider.name} НЕТ NetworkIdentity!");
+                Debug.LogWarning($"[Клиент] Объект {hit.collider.name} не интерактивный.");
             }
-        }
-        else
-        {
-            Debug.Log("[Интеракция] Луч ушел в пустоту. Объект слишком далеко или на нем нет Collider.");
         }
     }
 
+    /// <summary>
+    /// Сервер получает корень машины и имя детали, находит деталь внутри префаба и активирует.
+    /// </summary>
+    [Command]
+    private void CmdInteract(NetworkIdentity rootIdentity, string targetName)
+    {
+        // Если клиент прислал пустоту (например, читер) — игнорируем
+        if (rootIdentity == null || string.IsNullOrEmpty(targetName)) return;
+
+        Debug.Log($"[Сервер] Ищем деталь '{targetName}' внутри машины {rootIdentity.name}...");
+
+        // Ищем объект с таким же именем внутри всей иерархии машины
+        Transform[] allChildren = rootIdentity.GetComponentsInChildren<Transform>();
+        
+        foreach (Transform child in allChildren)
+        {
+            if (child.name == targetName)
+            {
+                // Проверяем, есть ли на найденном объекте наш интерфейс
+                if (child.TryGetComponent(out IInteractable interactable))
+                {
+                    Debug.Log($"[Сервер] УСПЕХ! Деталь '{targetName}' найдена. Выполняем действие!");
+                    interactable.ServerInteract(this);
+                    return;
+                }
+            }
+        }
+
+        Debug.LogError($"[Сервер] ОШИБКА: Не смогли найти интерактивный объект с именем '{targetName}' внутри машины!");
+    }
+
+// --- СЕТЕВОЕ УПРАВЛЕНИЕ ПОСАДКОЙ ---
 
     [Command]
-    private void CmdInteract(NetworkIdentity target)
+    private void CmdLeaveSeat()
     {
-        if (target == null)
+        if (currentSeat != null)
         {
-            Debug.LogWarning("[Сервер] Пришла команда взаимодействия, но target == null!");
+            currentSeat.ServerLeave(this);
+        }
+    }
+
+    [TargetRpc]
+    public void TargetEnterSeat(NetworkIdentity carIdentity, string seatName)
+    {
+        Debug.Log($"[Клиент] Получена команда на посадку! Машина: {carIdentity}, Место: {seatName}");
+
+        if (carIdentity == null) return;
+
+        // Ищем ИМЕННО то кресло, на которое нажал игрок
+        CarSeat[] seats = carIdentity.GetComponentsInChildren<CarSeat>();
+        CarSeat targetSeat = null;
+        
+        foreach (CarSeat s in seats)
+        {
+            if (s.gameObject.name == seatName)
+            {
+                targetSeat = s;
+                break;
+            }
+        }
+
+        if (targetSeat == null)
+        {
+            Debug.LogError($"[Клиент] КРИТИЧЕСКАЯ ОШИБКА: Кресло '{seatName}' не найдено в машине!");
             return;
         }
 
-        Debug.Log($"[Сервер] Игрок пытается взаимодействовать с объектом: {target.name}");
-
+        isSitting = true;
+        currentSeat = targetSeat;
         
-        IInteractable interactable = target.GetComponentInChildren<IInteractable>();
+        characterController.enabled = false;
+        transform.SetParent(targetSeat.transform);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+    }
 
-        if (interactable != null)
-        {
-            Debug.Log($"[Сервер] Скрипт логики найден на {target.name}! Выполняем ServerInteract...");
-            interactable.ServerInteract(this);
-        }
-        else
-        {
-          
-            Debug.LogError($"[Сервер] ОШИБКА: На объекте {target.name} (или его детях) НЕТ скрипта с интерфейсом IInteractable (например, JerryCan или GasTank)!");
-        }
+    [TargetRpc]
+    public void TargetLeaveSeat()
+    {
+        isSitting = false;
+        currentSeat = null;
+        
+        transform.SetParent(null);
+        transform.position += transform.right * 2f; 
+        
+        characterController.enabled = true;
     }
 }

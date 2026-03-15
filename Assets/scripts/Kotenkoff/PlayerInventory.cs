@@ -8,7 +8,7 @@ namespace Kotenkoff
     {
         [SerializeField, Tooltip("Это инвентарь игрока. Добавляй или убирай элементы, чтобы менять количество слотов")]
         private InventoryItem[] inventory;
-        
+
         [Server] // Добавляем предмет в слот
         public void AddItem(GameObject item)
         {

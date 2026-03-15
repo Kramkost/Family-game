@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using Mirror;
 
@@ -15,6 +16,8 @@ public class CarResourceManager : NetworkBehaviour
     [SyncVar] public float gasoline = 100f;
     [SyncVar] public float water = 100f;
     [SyncVar] public float engineOil = 100f;
+    
+    private bool isMoving;
 
     [Header("Consumption Rates (Per Second)")]
     [SerializeField] private float gasConsumeRate = 1f;
@@ -36,7 +39,7 @@ public class CarResourceManager : NetworkBehaviour
         if (hybridSystem == null) return;
 
         // Машина тратит ресурсы, если включена беговая дорожка ИЛИ ее физическая скорость выше 0.5 юнитов
-        bool isMoving = hybridSystem.isRoadMillMode || rb.linearVelocity.magnitude > 0.5f;
+        isMoving = hybridSystem.isRoadMillMode || rb.linearVelocity.magnitude > 0.5f;
 
         if (isMoving && gasoline > 0)
         {
@@ -49,15 +52,28 @@ public class CarResourceManager : NetworkBehaviour
             }
         }
 
-        if (!isMoving || gasoline <= 0 && !tractorIsMoving)
+        
+    }
+    
+    [Server]
+    private void FixedUpdate()
+    {
+        if (!isMoving || gasoline <= 0)
         {
-            TractorMoving(true);
-            tractorIsMoving = true;
+            if (!tractorIsMoving)
+            {
+               TractorMoving(true);
+                tractorIsMoving = true; 
+            }
         }
-        else if (tractorIsMoving && gasoline > 0)
+        
+        if (tractorIsMoving && gasoline > 0)
         {
-            TractorMoving(false);
-            tractorIsMoving = false;
+            if (isMoving)
+            {
+               TractorMoving(false);
+               tractorIsMoving = false; 
+            }
         }
     }
 

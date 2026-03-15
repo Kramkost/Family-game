@@ -17,10 +17,10 @@ namespace Kotenkoff
         
         [Space]
         
-        [Tooltip("Время между шагами"), SerializeField]
+        [Tooltip("Время между шагами (сек.)"), SerializeField]
         private float timeBetweenSteps = 1;
         [Tooltip("Расстояние, которое пройдёт Тягач за один шаг"), SerializeField]
-        private float stepRange = 1;
+        private float stepRange = 1f;
         
         
         
@@ -45,7 +45,7 @@ namespace Kotenkoff
             }
             else
             {
-                StopCoroutine(Moving());
+                StopAllCoroutines();
             }
         }
 

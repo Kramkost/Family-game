@@ -586,7 +586,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   isMoving: 0
-  distanceToTractor: 0
+  distanceToTractor: 5000
   timeBetweenSteps: 1
   stepRange: 1
 --- !u!4 &837819899

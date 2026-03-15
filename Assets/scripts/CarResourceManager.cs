@@ -20,6 +20,10 @@ public class CarResourceManager : NetworkBehaviour
     [SerializeField] private float gasConsumeRate = 1f;
 
     private Rigidbody rb;
+    
+    public delegate void TractorIsMoving(bool isMoving);
+    public static event TractorIsMoving OnTractorIsMoving;
+    private bool tractorIsMoving;
 
     private void Awake()
     {
@@ -44,11 +48,28 @@ public class CarResourceManager : NetworkBehaviour
                 // Вызов RPC звука глохнущего мотора
             }
         }
+
+        if (!isMoving || gasoline <= 0 && !tractorIsMoving)
+        {
+            TractorMoving(true);
+            tractorIsMoving = true;
+        }
+        else if (tractorIsMoving && gasoline > 0)
+        {
+            TractorMoving(false);
+            tractorIsMoving = false;
+        }
     }
 
     [Server]
     public void Refuel(float amount)
     {
         gasoline = Mathf.Clamp(gasoline + amount, 0, 100);
+    }
+    
+    [Server]
+    public void TractorMoving(bool move)
+    {
+        OnTractorIsMoving?.Invoke(move);
     }
 }

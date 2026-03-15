@@ -76,6 +76,7 @@ public class PlayerEntity : NetworkBehaviour
         // Если игрок сидит в машине
         if (isSitting)
         {
+            HandleLook();
             HandleDriving();
             
             // ВАЖНО: Выход на Пробел.

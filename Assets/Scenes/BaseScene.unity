@@ -382,12 +382,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 89431200}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.5253, y: 1.063, z: 1.777}
-  m_LocalScale: {x: 0.2192263, y: 0.2866186, z: 0.13889013}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.309, y: 0.206, z: -0.50259435}
+  m_LocalScale: {x: 0.22469103, y: 0.2069, z: 0.0838}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1415336429}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &898670041
 GameObject:
@@ -472,8 +472,8 @@ Transform:
   m_GameObject: {fileID: 1302904027}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.33341, y: 0.49, z: -0.0261}
-  m_LocalScale: {x: 0.23376063, y: 0.2003, z: 0.7695612}
+  m_LocalPosition: {x: 0.0089, y: 0.49, z: 0.3775}
+  m_LocalScale: {x: 0.6146342, y: 0.2003, z: 0.1745233}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1415336429}
@@ -741,11 +741,12 @@ Transform:
   m_GameObject: {fileID: 1415336423}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.5, y: 0.82, z: 2.61}
-  m_LocalScale: {x: 3.0288, y: 1.3853, z: 1.6574}
+  m_LocalPosition: {x: 1.4378, y: 0.82, z: 3.1313}
+  m_LocalScale: {x: 1.153367, y: 1.3853, z: 2.7000704}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1302904028}
+  - {fileID: 89431206}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &1415336430
@@ -797,6 +798,14 @@ MonoBehaviour:
   playersInCar: 0
   motorForce: 1500
   steerForce: 100
+  carModel: {fileID: 0}
+  pitchMultiplier: 3
+  rollMultiplier: 4
+  tiltLerpSpeed: 5
+  minFOV: 60
+  maxFOV: 85
+  speedForMaxFOV: 25
+  fovLerpSpeed: 3
   isRoadMillMode: 0
 --- !u!1 &1464071443
 GameObject:
@@ -1399,7 +1408,6 @@ SceneRoots:
   - {fileID: 2017821357}
   - {fileID: 1507173553}
   - {fileID: 1415336429}
-  - {fileID: 89431206}
   - {fileID: 1902944449}
   - {fileID: 1464071449}
   - {fileID: 3019766223134171230}

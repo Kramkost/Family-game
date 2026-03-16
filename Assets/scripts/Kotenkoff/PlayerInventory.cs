@@ -40,7 +40,7 @@ namespace Kotenkoff
     }
 
     [System.Serializable]
-    internal sealed class InventoryItem
+    public sealed class InventoryItem
     {
         [SerializeField, Tooltip("Занят ли этот слот")]
         private bool isClimed;

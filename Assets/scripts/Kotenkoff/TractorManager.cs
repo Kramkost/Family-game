@@ -9,13 +9,12 @@ namespace Kotenkoff
         [Tooltip("В движении ли Тягач?"), SerializeField]
         private bool isMoving;
         
-        [Space]
-        
+        //[Space]
         
         [Tooltip("Расстояние до Тягача"), SerializeField]
         private float distanceToTractor = 5000;
         
-        [Space]
+        //[Space]
         
         [Tooltip("Время между шагами (сек.)"), SerializeField]
         private float timeBetweenSteps = 1;

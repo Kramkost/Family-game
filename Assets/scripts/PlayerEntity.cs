@@ -246,4 +246,13 @@ public class PlayerEntity : NetworkBehaviour
         
         characterController.enabled = true;
     }
+
+    [Command]
+    public void CmdFixBreakdown(NetworkIdentity carIdentity)
+    {
+        if (carIdentity != null && carIdentity.TryGetComponent(out BreakdownManager breakdownManager))
+        {
+            breakdownManager.RepairBreakdown();
+        }
+    }
 }

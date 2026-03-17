@@ -761,14 +761,14 @@ MonoBehaviour:
     - prefab: {fileID: 8441531600042750799, guid: ea811fcaad2106242a27c2f14a55eea6, type: 3}
       weight: 25
       requiresSocket: 0
-    - prefab: {fileID: 8441531600042750799, guid: ea811fcaad2106242a27c2f14a55eea6, type: 3}
-      weight: 25
+    - prefab: {fileID: 5375729295833575412, guid: 9f9e45c4d85a7a3b790ef9b224fb682d, type: 3}
+      weight: 85
       requiresSocket: 0
-    - prefab: {fileID: 8441531600042750799, guid: ea811fcaad2106242a27c2f14a55eea6, type: 3}
-      weight: 25
+    - prefab: {fileID: 582546537655969084, guid: 42359788ed7eff75f9466d0b23c047ee, type: 3}
+      weight: 75
       requiresSocket: 0
-    - prefab: {fileID: 8441531600042750799, guid: ea811fcaad2106242a27c2f14a55eea6, type: 3}
-      weight: 25
+    - prefab: {fileID: 809790520745386096, guid: e7937ec3190b1a6e4af75020aa92617c, type: 3}
+      weight: 90
       requiresSocket: 0
   - biomeType: 1
     props: []

@@ -200,53 +200,51 @@ public class PlayerEntity : NetworkBehaviour
         }
     }
 
-    [TargetRpc]
-    public void TargetEnterSeat(NetworkIdentity carIdentity, string seatName)
-    {
-        Debug.Log($"[Клиент] Получена команда на посадку! Машина: {carIdentity}, Место: {seatName}");
+[TargetRpc]
+public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath)
+{
+    
+    GameObject seatObj = GameObject.Find(seatPath);
+    if (seatObj == null) return;
+    
+    currentSeat = seatObj.GetComponent<CarSeat>();
+    if (currentSeat == null) return;
 
-        if (carIdentity == null) return;
+    
+    characterController.enabled = false; 
+    isSitting = true; 
 
-        // Ищем ИМЕННО то кресло, на которое нажал игрок
-        CarSeat[] seats = carIdentity.GetComponentsInChildren<CarSeat>();
-        CarSeat targetSeat = null;
-        
-        foreach (CarSeat s in seats)
-        {
-            if (s.gameObject.name == seatName)
-            {
-                targetSeat = s;
-                break;
-            }
-        }
+    
+    transform.SetParent(currentSeat.viewPoint);
+    transform.localPosition = Vector3.zero;
+    transform.localRotation = Quaternion.identity;
 
-        if (targetSeat == null)
-        {
-            Debug.LogError($"[Клиент] КРИТИЧЕСКАЯ ОШИБКА: Кресло '{seatName}' не найдено в машине!");
-            return;
-        }
 
-        isSitting = true;
-        currentSeat = targetSeat;
-        
-        characterController.enabled = false;
-        transform.SetParent(targetSeat.transform);
-        transform.localPosition = Vector3.zero;
-        transform.localRotation = Quaternion.identity;
-    }
+    cameraTransform.SetParent(currentSeat.viewPoint);
+    cameraTransform.localPosition = Vector3.zero;
+    cameraTransform.localRotation = Quaternion.identity;
+    
+    Debug.Log($"[Клиент] Сел в {seatPath}. Смотрю из точки viewPoint.");
+}
+[TargetRpc]
+public void TargetLeaveSeat()
+{
+    isSitting = false;
+    
+    
+    cameraTransform.SetParent(this.transform);
+    cameraTransform.localPosition = new Vector3(0, 0.8f, 0); 
+    cameraTransform.localRotation = Quaternion.identity;
 
-    [TargetRpc]
-    public void TargetLeaveSeat()
-    {
-        isSitting = false;
-        currentSeat = null;
-        
-        transform.SetParent(null);
-        transform.position += transform.right * 2f; 
-        
-        characterController.enabled = true;
-    }
 
+    transform.SetParent(null);
+    
+
+    transform.position += transform.right * 1.5f; 
+    
+    currentSeat = null;
+    characterController.enabled = true;
+}
     [Command]
     public void CmdFixBreakdown(NetworkIdentity carIdentity)
     {

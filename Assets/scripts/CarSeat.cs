@@ -15,6 +15,8 @@ public class CarSeat : NetworkBehaviour, IInteractable
 
     [SyncVar] public NetworkIdentity occupant;
 
+    public Transform viewPoint; 
+
     [Server]
     public void ServerInteract(PlayerEntity player, PlayerInventory inventory)
     {

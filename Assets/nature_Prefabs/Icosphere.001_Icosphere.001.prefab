@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3961322724488074915}
   - component: {fileID: 902986079612105837}
   - component: {fileID: 6769705376603437183}
+  - component: {fileID: -3422412919373048270}
   m_Layer: 0
   m_Name: Icosphere.001_Icosphere.001
   m_TagString: Untagged
@@ -112,3 +113,21 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.235204, y: 2.012023, z: 2.395649}
   m_Center: {x: -0.526428, y: 1.3144574, z: -34.22605}
+--- !u!114 &-3422412919373048270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5375729295833575412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fea29bb7c508c244a1f805a5fd3fc4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Outline
+  outlineMode: 0
+  outlineColor: {r: 0, g: 0, b: 0, a: 1}
+  outlineWidth: 3
+  precomputeOutline: 0
+  bakeKeys: []
+  bakeValues: []

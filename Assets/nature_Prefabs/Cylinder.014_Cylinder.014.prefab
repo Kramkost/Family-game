@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5482812623319061020}
   - component: {fileID: 6419594012643921987}
   - component: {fileID: 1142205036127632312}
+  - component: {fileID: -3399559874567243061}
   m_Layer: 0
   m_Name: Cylinder.014_Cylinder.014
   m_TagString: Untagged
@@ -67,7 +68,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1515346610610302756, guid: fa4e787f14cb10bf2bd17dde7ad063bd, type: 3}
+  - {fileID: 2100000, guid: 20ed8fac0714938878473e8c4effe0d0, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -112,3 +113,21 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.6419029, y: 6.785786, z: 1.5911555}
   m_Center: {x: 0.25038317, y: 3.2920206, z: -25.31504}
+--- !u!114 &-3399559874567243061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2889294654405656353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fea29bb7c508c244a1f805a5fd3fc4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Outline
+  outlineMode: 0
+  outlineColor: {r: 0, g: 0, b: 0, a: 1}
+  outlineWidth: 3
+  precomputeOutline: 0
+  bakeKeys: []
+  bakeValues: []

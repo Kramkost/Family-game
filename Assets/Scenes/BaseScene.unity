@@ -119,6 +119,11 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &12793004 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2384379186827316235, guid: da4fba9205557464e99bd67199076e6c, type: 3}
+  m_PrefabInstance: {fileID: 5186527002897132851}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &30864252
 GameObject:
   m_ObjectHideFlags: 0
@@ -571,6 +576,24 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3052548363768370865, guid: da4fba9205557464e99bd67199076e6c, type: 3}
   m_PrefabInstance: {fileID: 5186527002897132851}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &617475605
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 12793004}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fea29bb7c508c244a1f805a5fd3fc4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Outline
+  outlineMode: 0
+  outlineColor: {r: 0, g: 0, b: 0, a: 1}
+  outlineWidth: 3
+  precomputeOutline: 0
+  bakeKeys: []
+  bakeValues: []
 --- !u!1 &625619361
 GameObject:
   m_ObjectHideFlags: 0
@@ -744,13 +767,13 @@ MonoBehaviour:
     prefabs:
     - {fileID: 8441531600042750799, guid: ea811fcaad2106242a27c2f14a55eea6, type: 3}
   propContainer: {fileID: 237212785}
-  propsPerChunk: 500
-  propSpawnArea: {x: 40, y: 40}
-  roadWidth: 55
-  propScaleRange: {x: 0.8, y: 1.5}
+  propsPerChunk: 65
+  propSpawnArea: {x: 150, y: 150}
+  roadWidth: 20
+  propScaleRange: {x: 0.8, y: 1.1}
   globalSeed: 1337
-  chunkSize: 100
-  biomeScale: 0.03
+  chunkSize: 200
+  biomeScale: 1
   viewDistanceAhead: 5
   viewDistanceBehind: 3
 --- !u!4 &898670043
@@ -2193,6 +2216,9 @@ PrefabInstance:
     - {fileID: 5641784566952377458, guid: da4fba9205557464e99bd67199076e6c, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2384379186827316235, guid: da4fba9205557464e99bd67199076e6c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 617475605}
     - targetCorrespondingSourceObject: {fileID: 2286731738997579810, guid: da4fba9205557464e99bd67199076e6c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5186527002897132859}

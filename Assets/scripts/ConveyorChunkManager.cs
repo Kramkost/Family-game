@@ -4,13 +4,19 @@ using System.Collections.Generic;
 public enum BiomeType { Forest, Desert, Town }
 
 /// <summary>
-/// Персистентный менеджер чанков. 
-/// Поддерживает движение вперед/назад и сохраняет одинаковую генерацию по сиду.
+/// Высокооптимизированный менеджер генерации мира.
+/// Поддерживает безопасные зоны для дороги, масштаб биомов и органичный скейл пропсов.
 /// </summary>
 public class ConveyorChunkManager : MonoBehaviour
 {
-    [Header("References")]
-    [Tooltip("Контейнер, который двигает CarHybridSystem")]
+    [System.Serializable]
+    public struct BiomeProps
+    {
+        public BiomeType biomeType;
+        public GameObject[] prefabs;
+    }
+
+    [Header("Core References")]
     [SerializeField] private Transform worldContainer;
     [SerializeField] private Transform carTransform;
 
@@ -19,86 +25,217 @@ public class ConveyorChunkManager : MonoBehaviour
     [SerializeField] private GameObject desertChunkPrefab;
     [SerializeField] private GameObject townChunkPrefab;
 
-    [Header("Settings & Persistence")]
-    [SerializeField] private int globalSeed = 1337; // Одинаковый для всех клиентов!
+    [Header("Prop Configuration")]
+    [SerializeField] private BiomeProps[] biomePropsConfigs;
+    [SerializeField] private Transform propContainer;
+    
+    [Tooltip("Сколько объектов спавнить на ОДИН чанк")]
+    [SerializeField] private int propsPerChunk = 40; 
+    
+    [Tooltip("Общая зона спавна (Ширина X, Длина Z)")]
+    [SerializeField] private Vector2 propSpawnArea = new Vector2(60f, 50f);
+    
+    [Tooltip("Ширина чистой зоны в центре (Дорога). Сюда деревья не залезут!")]
+    [SerializeField] private float roadWidth = 12f;
+
+    [Tooltip("Разброс размера пропсов (min, max) для естественности")]
+    [SerializeField] private Vector2 propScaleRange = new Vector2(0.8f, 1.5f);
+
+    [Header("Biome & World Settings")]
+    [SerializeField] private int globalSeed = 1337;
     [SerializeField] private float chunkSize = 50f;
     
-    [Tooltip("Сколько чанков прорисовывать спереди")]
-    [SerializeField] private int viewDistanceAhead = 5;
+    [Tooltip("Чем МЕНЬШЕ значение (напр. 0.02), тем БОЛЬШЕ размер одного биома.")]
+    [SerializeField] private float biomeScale = 0.03f; 
     
-    [Tooltip("Сколько чанков оставлять позади (для движения задним ходом)")]
+    [SerializeField] private int viewDistanceAhead = 5;
     [SerializeField] private int viewDistanceBehind = 2;
 
-    // Пул объектов: Тип Биома -> Очередь неактивных чанков
-    private Dictionary<BiomeType, Queue<GameObject>> chunkPool = new Dictionary<BiomeType, Queue<GameObject>>();
-    
-    // Активные чанки на сцене. Ключ — это абсолютный индекс чанка.
-    private Dictionary<int, GameObject> activeChunks = new Dictionary<int, GameObject>();
+    // --- Архитектура Zero GC & O(1) ---
+    private Dictionary<BiomeType, Queue<GameObject>> chunkPool;
+    private Dictionary<GameObject, BiomeType> chunkInstanceToTypeMap;
+    private Dictionary<GameObject, Queue<GameObject>> propPool;
+    private Dictionary<GameObject, GameObject> propInstanceToPrefabMap;
+    private Dictionary<BiomeType, GameObject[]> biomeToPrefabsMap;
+    private Dictionary<int, GameObject> activeChunks;
+    private Dictionary<int, List<GameObject>> activePropsMap;
+    private Stack<List<GameObject>> listPool;
+    private List<int> keysToRemoveCache = new List<int>();
 
     private void Start()
     {
-        if (worldContainer == null || carTransform == null) 
-        {
-            Debug.LogError("ОШИБКА: Не назначены ссылки в ConveyorChunkManager!");
-            return;
-        }
-        
-        InitializePool();
+        InitializeStructures();
+        ForceUpdateChunks(); 
     }
 
     private void Update()
     {
+        ForceUpdateChunks();
+    }
+
+    private void ForceUpdateChunks()
+    {
         if (carTransform == null || worldContainer == null) return;
 
-        // Универсальная виртуальная дистанция (работает и для физики, и для RoadMill)
         float virtualDistance = carTransform.position.z - worldContainer.position.z;
-        
-        // Вычисляем, в каком чанке сейчас находится машина
         int currentChunkIndex = Mathf.FloorToInt(virtualDistance / chunkSize);
 
-        // Определяем "окно видимости"
         int startIndex = currentChunkIndex - viewDistanceBehind;
         int endIndex = currentChunkIndex + viewDistanceAhead;
 
         ManageChunks(startIndex, endIndex);
     }
 
-    private void InitializePool()
+    private void InitializeStructures()
     {
-        chunkPool.Add(BiomeType.Forest, new Queue<GameObject>());
-        chunkPool.Add(BiomeType.Desert, new Queue<GameObject>());
-        chunkPool.Add(BiomeType.Town, new Queue<GameObject>());
+        chunkPool = new Dictionary<BiomeType, Queue<GameObject>>()
+        {
+            { BiomeType.Forest, new Queue<GameObject>() },
+            { BiomeType.Desert, new Queue<GameObject>() },
+            { BiomeType.Town, new Queue<GameObject>() }
+        };
+
+        chunkInstanceToTypeMap = new Dictionary<GameObject, BiomeType>();
+        propPool = new Dictionary<GameObject, Queue<GameObject>>();
+        propInstanceToPrefabMap = new Dictionary<GameObject, GameObject>();
+        biomeToPrefabsMap = new Dictionary<BiomeType, GameObject[]>();
+        
+        activeChunks = new Dictionary<int, GameObject>();
+        activePropsMap = new Dictionary<int, List<GameObject>>();
+        listPool = new Stack<List<GameObject>>();
+
+        foreach (var config in biomePropsConfigs)
+        {
+            if (config.prefabs != null && config.prefabs.Length > 0)
+            {
+                biomeToPrefabsMap[config.biomeType] = config.prefabs;
+            }
+        }
     }
 
-    /// <summary>
-    /// Управляет включением и выключением чанков на основе скользящего окна.
-    /// </summary>
     private void ManageChunks(int startIndex, int endIndex)
     {
-        // 1. Деспавним чанки, которые вышли за пределы видимости (слишком далеко сзади или спереди)
-        List<int> keysToRemove = new List<int>();
+        keysToRemoveCache.Clear();
+
         foreach (var kvp in activeChunks)
         {
             if (kvp.Key < startIndex || kvp.Key > endIndex)
             {
-                DespawnChunk(kvp.Value);
-                keysToRemove.Add(kvp.Key);
+                DespawnChunk(kvp.Key);
+                keysToRemoveCache.Add(kvp.Key);
             }
         }
 
-        // Очищаем словарь от удаленных чанков
-        foreach (int key in keysToRemove)
+        foreach (int key in keysToRemoveCache)
         {
             activeChunks.Remove(key);
         }
 
-        // 2. Спавним недостающие чанки внутри окна видимости
         for (int i = startIndex; i <= endIndex; i++)
         {
             if (!activeChunks.ContainsKey(i))
             {
                 SpawnChunk(i);
             }
+        }
+    }
+
+    private void SpawnChunk(int index)
+    {
+        // Умножаем индекс на biomeScale. Чем меньше biomeScale, тем дольше держится один биом.
+        float noiseValue = Mathf.PerlinNoise(globalSeed + (index * biomeScale), globalSeed);
+        BiomeType nextBiome = DetermineBiome(noiseValue);
+
+        GameObject chunk = GetChunkFromPool(nextBiome);
+        float exactZ = index * chunkSize;
+        
+        chunk.transform.SetLocalPositionAndRotation(new Vector3(0, 0, exactZ), Quaternion.identity);
+        activeChunks.Add(index, chunk);
+        
+        List<GameObject> chunkProps = GetListFromPool();
+        activePropsMap.Add(index, chunkProps);
+
+        SpawnProps(index, nextBiome, exactZ, chunkProps);
+    }
+
+    private void SpawnProps(int chunkIndex, BiomeType biome, float baseZ, List<GameObject> targetList)
+    {
+        if (!biomeToPrefabsMap.TryGetValue(biome, out GameObject[] prefabs)) return;
+
+        UnityEngine.Random.InitState(globalSeed + chunkIndex);
+
+        for (int i = 0; i < propsPerChunk; i++)
+        {
+            GameObject selectedPrefab = prefabs[UnityEngine.Random.Range(0, prefabs.Length)];
+            GameObject prop = GetPropFromPool(selectedPrefab);
+
+            // ЛОГИКА БЕЗОПАСНОЙ ДОРОГИ
+            float randX;
+            float halfRoad = roadWidth / 2f;
+            float halfArea = propSpawnArea.x / 2f;
+
+            // С вероятностью 50% кидаем дерево НАПРАВО, иначе НАЛЕВО от дороги
+            if (UnityEngine.Random.value > 0.5f)
+            {
+                randX = UnityEngine.Random.Range(halfRoad, halfArea); // Справа
+            }
+            else
+            {
+                randX = UnityEngine.Random.Range(-halfArea, -halfRoad); // Слева
+            }
+
+            float randZ = UnityEngine.Random.Range(-propSpawnArea.y * 0.5f, propSpawnArea.y * 0.5f);
+            
+            Vector3 localPos = new Vector3(randX, 0, baseZ + randZ);
+            Quaternion localRot = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
+
+            // Органичный скейл деревьев
+            float randomScale = UnityEngine.Random.Range(propScaleRange.x, propScaleRange.y);
+            prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale);
+
+            prop.transform.SetLocalPositionAndRotation(localPos, localRot);
+            prop.SetActive(true);
+
+            targetList.Add(prop);
+        }
+    }
+
+    private GameObject GetPropFromPool(GameObject prefab)
+    {
+        if (!propPool.ContainsKey(prefab)) propPool[prefab] = new Queue<GameObject>();
+
+        GameObject prop;
+        if (propPool[prefab].Count > 0)
+        {
+            prop = propPool[prefab].Dequeue();
+        }
+        else
+        {
+            prop = Instantiate(prefab, propContainer);
+            propInstanceToPrefabMap[prop] = prefab; 
+        }
+        return prop;
+    }
+
+    private void DespawnChunk(int index)
+    {
+        GameObject chunk = activeChunks[index];
+        chunk.SetActive(false);
+
+        BiomeType type = chunkInstanceToTypeMap[chunk];
+        chunkPool[type].Enqueue(chunk);
+
+        if (activePropsMap.TryGetValue(index, out List<GameObject> props))
+        {
+            foreach (GameObject prop in props)
+            {
+                prop.SetActive(false);
+                GameObject originalPrefab = propInstanceToPrefabMap[prop];
+                propPool[originalPrefab].Enqueue(prop);
+            }
+            
+            ReturnListToPool(props); 
+            activePropsMap.Remove(index);
         }
     }
 
@@ -111,7 +248,7 @@ public class ConveyorChunkManager : MonoBehaviour
             return chunk;
         }
 
-        GameObject prefabToSpawn = type switch
+        GameObject prefab = type switch
         {
             BiomeType.Forest => forestChunkPrefab,
             BiomeType.Desert => desertChunkPrefab,
@@ -119,67 +256,44 @@ public class ConveyorChunkManager : MonoBehaviour
             _ => forestChunkPrefab
         };
 
-        GameObject newChunk = Instantiate(prefabToSpawn, worldContainer);
+        GameObject newChunk = Instantiate(prefab, worldContainer);
         newChunk.name = $"{type}_Chunk";
+        chunkInstanceToTypeMap[newChunk] = type; 
+        
         return newChunk;
     }
 
-    private void SpawnChunk(int index)
+    private BiomeType DetermineBiome(float noise)
     {
-        // Определяем биом детерминированно по индексу
-        float noiseValue = Mathf.PerlinNoise(globalSeed + (index * 0.1f), globalSeed);
-        
-        BiomeType nextBiome;
-        if (noiseValue < 0.33f) nextBiome = BiomeType.Desert;
-        else if (noiseValue < 0.66f) nextBiome = BiomeType.Forest;
-        else nextBiome = BiomeType.Town;
-
-        GameObject chunk = GetChunkFromPool(nextBiome);
-        
-        // Позиция чанка строго привязана к его математическому индексу
-        float exactZ = index * chunkSize;
-        chunk.transform.localPosition = new Vector3(0, 0, exactZ);
-        
-        activeChunks.Add(index, chunk);
-
-        // Наполняем чанк объектами
-        SpawnProps(chunk, index);
+        if (noise < 0.33f) return BiomeType.Desert;
+        if (noise < 0.66f) return BiomeType.Forest;
+        return BiomeType.Town;
     }
 
-    private void DespawnChunk(GameObject chunk)
-    {
-        chunk.SetActive(false);
-        
-        // Определяем тип биома по имени для возврата в правильный пул
-        if (chunk.name.Contains("Forest")) chunkPool[BiomeType.Forest].Enqueue(chunk);
-        else if (chunk.name.Contains("Desert")) chunkPool[BiomeType.Desert].Enqueue(chunk);
-        else if (chunk.name.Contains("Town")) chunkPool[BiomeType.Town].Enqueue(chunk);
-    }
+    private List<GameObject> GetListFromPool() => listPool.Count > 0 ? listPool.Pop() : new List<GameObject>(propsPerChunk);
+    private void ReturnListToPool(List<GameObject> list) { list.Clear(); listPool.Push(list); }
 
-    /// <summary>
-    /// Рандомизация пропсов (растения, дома).
-    /// Гарантирует, что при возвращении назад объекты останутся на своих местах.
-    /// </summary>
-    private void SpawnProps(GameObject chunk, int index)
+#if UNITY_EDITOR
+    private void OnDrawGizmos()
     {
-        // Инициализируем рандом уникальным ключом (общий сид + индекс куска карты)
-        Random.InitState(globalSeed + index);
+        if (worldContainer == null) return;
 
-        int childCount = chunk.transform.childCount;
-        for (int i = 0; i < childCount; i++)
+        if (Application.isPlaying)
         {
-            Transform prop = chunk.transform.GetChild(i);
-            
-            // Тег "Road" защищает основание дороги от случайного удаления
-            if (!prop.CompareTag("Road"))
+            foreach (var kvp in activeChunks)
             {
-                // Шанс появления объекта 50%
-                bool isVisible = Random.value > 0.5f; 
-                prop.gameObject.SetActive(isVisible);
+                float zPos = kvp.Key * chunkSize;
+                Vector3 center = worldContainer.TransformPoint(new Vector3(0, 0, zPos));
                 
-                // Здесь можно добавить вращение:
-                // prop.localRotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
+                // Рисуем общую зону (зеленая)
+                Gizmos.color = new Color(0, 1, 0, 0.1f);
+                Gizmos.DrawCube(center, new Vector3(propSpawnArea.x, 0.1f, propSpawnArea.y));
+
+                // Рисуем чистую дорогу (красная)
+                Gizmos.color = new Color(1, 0, 0, 0.3f);
+                Gizmos.DrawCube(center, new Vector3(roadWidth, 0.2f, propSpawnArea.y));
             }
         }
     }
+#endif
 }

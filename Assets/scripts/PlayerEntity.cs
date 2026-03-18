@@ -4,9 +4,10 @@ using Mirror;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Отвечает за локальное передвижение игрока, управление камерой, посадку в авто и взаимодействие.
+/// Отвечает за локальное передвижение игрока, управление камерой, посадку в авто, взаимодействие и синхронизацию анимаций.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(NetworkAnimator))]
 public class PlayerEntity : NetworkBehaviour
 {
     [Header("Movement & Look Settings")]
@@ -26,23 +27,55 @@ public class PlayerEntity : NetworkBehaviour
     private bool isSitting = false;
 
     private CharacterController characterController;
+    
+    // Переменные для вращения головы
     private float xRotation = 0f; 
+    private float yRotation = 0f; 
     
     [SyncVar] public NetworkIdentity heldItem;
     
     [Header("Inventory")]
-    [SerializeField, Tooltip("Ссылка на инвентарь игрока")]
-    private PlayerInventory inventory;
+    [SerializeField] private PlayerInventory inventory;
+
+    [Header("Visuals & Animation")]
+    [SerializeField] private Animator animator; 
+    private NetworkAnimator networkAnimator;
+
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
+    private static readonly int IsSittingHash = Animator.StringToHash("IsSitting");
+    private static readonly int InteractTriggerHash = Animator.StringToHash("Interact");
+    private static readonly int SitTriggerHash = Animator.StringToHash("Sit");
+    private static readonly int StandTriggerHash = Animator.StringToHash("Stand");
 
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
+        networkAnimator = GetComponent<NetworkAnimator>();
+        if (animator == null) animator = GetComponentInChildren<Animator>(); 
+
+        if (cameraTransform != null)
+        {
+            Camera cam = cameraTransform.GetComponent<Camera>();
+            if (cam != null) cam.enabled = false;
+
+            AudioListener listener = cameraTransform.GetComponent<AudioListener>();
+            if (listener != null) listener.enabled = false;
+        }
     }
 
     public override void OnStartLocalPlayer()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        if (cameraTransform != null)
+        {
+            Camera cam = cameraTransform.GetComponent<Camera>();
+            if (cam != null) cam.enabled = true;
+
+            AudioListener listener = cameraTransform.GetComponent<AudioListener>();
+            if (listener != null) listener.enabled = true;
+        }
 
         if (moveAction != null) moveAction.action.Enable();
         if (lookAction != null) lookAction.action.Enable();
@@ -73,18 +106,16 @@ public class PlayerEntity : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        // Если игрок сидит в машине
         if (isSitting)
         {
             HandleLook();
             HandleDriving();
             
-            // ВАЖНО: Выход на Пробел.
             if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame)
             {
                 CmdLeaveSeat();
             }
-            return; // Блокируем передвижение пешком
+            return; 
         }
 
         HandleLook();
@@ -100,8 +131,6 @@ public class PlayerEntity : NetworkBehaviour
         }
     }
 
-    // --- ВОССТАНОВЛЕННЫЕ МЕТОДЫ ПЕШЕХОДА ---
-
     private void HandleLook()
     {
         if (lookAction == null || cameraTransform == null) return;
@@ -110,11 +139,27 @@ public class PlayerEntity : NetworkBehaviour
         float mouseX = lookInput.x * lookSensitivity;
         float mouseY = lookInput.y * lookSensitivity;
 
+        // Вверх/Вниз (одинаково для пешехода и водителя)
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-        cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-        transform.Rotate(Vector3.up * mouseX);
+        if (isSitting)
+        {
+            // --- РЕЖИМ ВОДИТЕЛЯ ---
+            // Крутим ТОЛЬКО камеру (голову) влево/вправо. Тело неподвижно.
+            yRotation += mouseX;
+            yRotation = Mathf.Clamp(yRotation, -110f, 110f); // Ограничитель шеи
+            
+            cameraTransform.localRotation = Quaternion.Euler(xRotation, yRotation, 0f);
+        }
+        else
+        {
+            // --- РЕЖИМ ПЕШЕХОДА ---
+            // Горизонтальное вращение сбрасывается для головы, крутим всё тело.
+            yRotation = 0f;
+            cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+            transform.Rotate(Vector3.up * mouseX);
+        }
     }
 
     private void HandleMovement()
@@ -124,17 +169,22 @@ public class PlayerEntity : NetworkBehaviour
         Vector2 inputDir = moveAction.action.ReadValue<Vector2>();
         Vector3 move = transform.right * inputDir.x + transform.forward * inputDir.y;
         characterController.Move(move * moveSpeed * Time.deltaTime);
+
+        if (animator != null)
+        {
+            float horizontalSpeed = new Vector3(characterController.velocity.x, 0, characterController.velocity.z).magnitude;
+            animator.SetFloat(SpeedHash, horizontalSpeed, 0.1f, Time.deltaTime);
+        }
     }
 
-/// <summary>
-    /// Локальный луч. Находит корневой объект и ИМЯ детали, на которую мы смотрим.
-    /// Это обходит любые баги сетевой сериализации.
-    /// </summary>
     private void OnInteractPerformed(InputAction.CallbackContext context)
     {
         if (isSitting || cameraTransform == null) return;
 
-        Debug.DrawRay(cameraTransform.position, cameraTransform.forward * interactRange, Color.magenta, 2f);
+        if (networkAnimator != null)
+        {
+            animator.SetTrigger(InteractTriggerHash);
+        }
 
         if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange, interactLayerMask))
         {
@@ -143,53 +193,31 @@ public class PlayerEntity : NetworkBehaviour
 
             if (rootIdentity != null && interactable != null)
             {
-                // Берем точное имя объекта, на котором висит скрипт логики (например, "DriverSeat")
                 string targetName = ((Component)interactable).gameObject.name;
-                
-                Debug.Log($"[Клиент] Навел на '{targetName}'. Отправляем запрос на сервер...");
-                
-                // Передаем корень машины и имя детали
                 CmdInteract(rootIdentity, targetName);
-            }
-            else
-            {
-                Debug.LogWarning($"[Клиент] Объект {hit.collider.name} не интерактивный.");
             }
         }
     }
 
-    /// <summary>
-    /// Сервер получает корень машины и имя детали, находит деталь внутри префаба и активирует.
-    /// </summary>
     [Command]
     private void CmdInteract(NetworkIdentity rootIdentity, string targetName)
     {
-        // Если клиент прислал пустоту (например, читер) — игнорируем
         if (rootIdentity == null || string.IsNullOrEmpty(targetName)) return;
 
-        Debug.Log($"[Сервер] Ищем деталь '{targetName}' внутри машины {rootIdentity.name}...");
-
-        // Ищем объект с таким же именем внутри всей иерархии машины
         Transform[] allChildren = rootIdentity.GetComponentsInChildren<Transform>();
         
         foreach (Transform child in allChildren)
         {
             if (child.name == targetName)
             {
-                // Проверяем, есть ли на найденном объекте наш интерфейс
                 if (child.TryGetComponent(out IInteractable interactable))
                 {
-                    Debug.Log($"[Сервер] УСПЕХ! Деталь '{targetName}' найдена. Выполняем действие!");
                     interactable.ServerInteract(this, inventory);
                     return;
                 }
             }
         }
-
-        Debug.LogError($"[Сервер] ОШИБКА: Не смогли найти интерактивный объект с именем '{targetName}' внутри машины!");
     }
-
-// --- СЕТЕВОЕ УПРАВЛЕНИЕ ПОСАДКОЙ ---
 
     [Command]
     private void CmdLeaveSeat()
@@ -200,51 +228,66 @@ public class PlayerEntity : NetworkBehaviour
         }
     }
 
-[TargetRpc]
-public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath)
-{
-    
-    GameObject seatObj = GameObject.Find(seatPath);
-    if (seatObj == null) return;
-    
-    currentSeat = seatObj.GetComponent<CarSeat>();
-    if (currentSeat == null) return;
+    [TargetRpc]
+    public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath)
+    {
+        GameObject seatObj = GameObject.Find(seatPath);
+        if (seatObj == null) return;
+        
+        currentSeat = seatObj.GetComponent<CarSeat>();
+        if (currentSeat == null) return;
 
-    
-    characterController.enabled = false; 
-    isSitting = true; 
+        characterController.enabled = false; 
+        isSitting = true; 
 
-    
-    transform.SetParent(currentSeat.viewPoint);
-    transform.localPosition = Vector3.zero;
-    transform.localRotation = Quaternion.identity;
+        if (animator != null)
+        {
+            animator.SetBool(IsSittingHash, true);
+            animator.SetTrigger(SitTriggerHash);
+        }
 
+        // Мы сажаем только ИГРОКА. Камера поедет за ним сама, так как она его ребенок!
+        Transform targetTransform = currentSeat.viewPoint != null ? currentSeat.viewPoint : currentSeat.transform;
 
-    cameraTransform.SetParent(currentSeat.viewPoint);
-    cameraTransform.localPosition = Vector3.zero;
-    cameraTransform.localRotation = Quaternion.identity;
-    
-    Debug.Log($"[Клиент] Сел в {seatPath}. Смотрю из точки viewPoint.");
-}
-[TargetRpc]
-public void TargetLeaveSeat()
-{
-    isSitting = false;
-    
-    
-    cameraTransform.SetParent(this.transform);
-    cameraTransform.localPosition = new Vector3(0, 0.8f, 0); 
-    cameraTransform.localRotation = Quaternion.identity;
+        transform.SetParent(targetTransform);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
 
+        // Сбрасываем взгляд прямо перед собой
+        xRotation = 0f;
+        yRotation = 0f;
+        cameraTransform.localRotation = Quaternion.identity;
+    }
 
-    transform.SetParent(null);
-    
+    [TargetRpc]
+    public void TargetLeaveSeat()
+    {
+        isSitting = false;
+        
+        if (animator != null)
+        {
+            animator.SetBool(IsSittingHash, false);
+            animator.SetTrigger(StandTriggerHash);
+        }
 
-    transform.position += transform.right * 1.5f; 
-    
-    currentSeat = null;
-    characterController.enabled = true;
-}
+        // Выходим из машины: отвязываем игрока
+        transform.SetParent(null);
+        
+        // Гарантируем, что игрок стоит ровно, а не завален набок из-за крена машины
+        transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+
+        // Хак высадки: чуть вбок
+        transform.position += transform.right * 1.5f; 
+
+        // Сбрасываем шею и взгляд
+        xRotation = 0f;
+        yRotation = 0f;
+        cameraTransform.localRotation = Quaternion.identity;
+        
+        currentSeat = null;
+        characterController.enabled = true;
+    }
+
     [Command]
     public void CmdFixBreakdown(NetworkIdentity carIdentity)
     {

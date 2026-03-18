@@ -271,7 +271,7 @@ Transform:
   m_GameObject: {fileID: 237212784}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.98, y: -0.98, z: 21.92}
+  m_LocalPosition: {x: -0.98, y: -3, z: 21.92}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -595,47 +595,61 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ConveyorChunkManager
   worldContainer: {fileID: 1778708696}
   carTransform: {fileID: 617475600}
-  forestChunkPrefab: {fileID: 175929675422647410, guid: b465635b52282638e94e734d923ebba9, type: 3}
-  desertChunkPrefab: {fileID: 175929675422647410, guid: 26372bf3c448de965b10adba83b13dfd, type: 3}
-  townChunkPrefab: {fileID: 175929675422647410, guid: d3ad76a8971077dc6b67065eeec321b6, type: 3}
-  biomePropsConfigs:
-  - biomeType: 0
+  propContainer: {fileID: 237212785}
+  biomes:
+  - biomeName: Forest
+    chunkPrefab: {fileID: 175929675422647410, guid: b465635b52282638e94e734d923ebba9, type: 3}
     props:
-    - prefab: {fileID: 6891835267694705205, guid: 19fedaa4c86c37de1a29ecec6b36752f, type: 3}
-      weight: 100
-      requiresSocket: 0
     - prefab: {fileID: 2300804585300708753, guid: 876bec1583d808faba2e3c9d603230d3, type: 3}
-      weight: 100
+      weight: 125
+      requiresSocket: 0
+    - prefab: {fileID: 6891835267694705205, guid: 19fedaa4c86c37de1a29ecec6b36752f, type: 3}
+      weight: 125
       requiresSocket: 0
     - prefab: {fileID: 2889294654405656353, guid: d67516e974ff60ef7a034b8d258728f4, type: 3}
-      weight: 100
-      requiresSocket: 0
-    - prefab: {fileID: 8441531600042750799, guid: ea811fcaad2106242a27c2f14a55eea6, type: 3}
-      weight: 25
+      weight: 125
       requiresSocket: 0
     - prefab: {fileID: 5375729295833575412, guid: 9f9e45c4d85a7a3b790ef9b224fb682d, type: 3}
-      weight: 85
+      weight: 100
       requiresSocket: 0
     - prefab: {fileID: 582546537655969084, guid: 42359788ed7eff75f9466d0b23c047ee, type: 3}
-      weight: 75
+      weight: 100
       requiresSocket: 0
     - prefab: {fileID: 809790520745386096, guid: e7937ec3190b1a6e4af75020aa92617c, type: 3}
-      weight: 90
+      weight: 100
       requiresSocket: 0
-  - biomeType: 1
-    props: []
-  - biomeType: 2
-    props: []
-  propContainer: {fileID: 237212785}
-  propsPerChunk: 65
-  propSpawnArea: {x: 150, y: 150}
-  roadWidth: 20
-  propScaleRange: {x: 0.8, y: 1.1}
+    - prefab: {fileID: 6500595941915624001, guid: be88d21f11fc99f49bb65f512b518deb, type: 3}
+      weight: 165
+      requiresSocket: 0
+    - prefab: {fileID: 8441531600042750799, guid: ea811fcaad2106242a27c2f14a55eea6, type: 3}
+      weight: 50
+      requiresSocket: 0
+  - biomeName: Desert
+    chunkPrefab: {fileID: 175929675422647410, guid: 26372bf3c448de965b10adba83b13dfd, type: 3}
+    props:
+    - prefab: {fileID: 4513138266279266556, guid: e9382a900fafd00279dbee3a98203591, type: 3}
+      weight: 100
+      requiresSocket: 0
+    - prefab: {fileID: 3285007310647896238, guid: 1b4bad89460c3feee808d5dc32964223, type: 3}
+      weight: 100
+      requiresSocket: 0
+  - biomeName: Town
+    chunkPrefab: {fileID: 175929675422647410, guid: d3ad76a8971077dc6b67065eeec321b6, type: 3}
+    props:
+    - prefab: {fileID: 8441531600042750799, guid: ea811fcaad2106242a27c2f14a55eea6, type: 3}
+      weight: 150
+      requiresSocket: 0
   globalSeed: 1337
   chunkSize: 200
   biomeScale: 1
   viewDistanceAhead: 5
   viewDistanceBehind: 3
+  propsPerChunk: 65
+  propSpawnArea: {x: 150, y: 150}
+  roadWidth: 20
+  propScaleRange: {x: 0.8, y: 1.1}
+  minPropDistance: 2.5
+  maxSpawnAttempts: 5
 --- !u!4 &898670043
 Transform:
   m_ObjectHideFlags: 0
@@ -1609,67 +1623,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.02096372, y: 0.027920894, z: 0.0042851637}
   m_Center: {x: 0, y: 0.0530086, z: -0.038571786}
---- !u!1001 &3019766223134171230
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1033379872116864874, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: sceneId
-      value: 3691235528
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1.464
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1.028
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -2.936
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5897158252592431131, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8113474687368866636, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
-      propertyPath: m_Name
-      value: PlayerTest
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: a5a0881c610392f90bbc67f595cb45a2, type: 3}
 --- !u!1001 &5186527002897132851
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2033,7 +1986,6 @@ SceneRoots:
   - {fileID: 1902944449}
   - {fileID: 1464071449}
   - {fileID: 324360071}
-  - {fileID: 3019766223134171230}
   - {fileID: 30864254}
   - {fileID: 1778708696}
   - {fileID: 898670043}

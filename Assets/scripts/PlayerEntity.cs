@@ -16,6 +16,16 @@ public class PlayerEntity : NetworkBehaviour
     [SerializeField] private float interactRange = 3f;
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private LayerMask interactLayerMask = ~0;
+    
+    [Header("Physics Settings")]
+    [SerializeField] private float gravity = -9.81f;
+    private float velocityY = 0f;
+
+    [Header("Camera Bobbing")]
+    [SerializeField] private float bobbingSpeed = 14f;
+    [SerializeField] private float bobbingAmount = 0.05f;
+    private float defaultCameraY;
+    private float timer = 0f;
 
     [Header("Input Actions")]
     [SerializeField] private InputActionReference moveAction;
@@ -28,7 +38,6 @@ public class PlayerEntity : NetworkBehaviour
 
     private CharacterController characterController;
     
-    // Переменные для вращения головы
     private float xRotation = 0f; 
     private float yRotation = 0f; 
     
@@ -55,6 +64,7 @@ public class PlayerEntity : NetworkBehaviour
 
         if (cameraTransform != null)
         {
+            defaultCameraY = cameraTransform.localPosition.y;
             Camera cam = cameraTransform.GetComponent<Camera>();
             if (cam != null) cam.enabled = false;
 
@@ -120,6 +130,8 @@ public class PlayerEntity : NetworkBehaviour
 
         HandleLook();
         HandleMovement();
+        ApplyGravity();
+        HandleCameraBobbing();
     }
 
     private void HandleDriving()
@@ -139,23 +151,17 @@ public class PlayerEntity : NetworkBehaviour
         float mouseX = lookInput.x * lookSensitivity;
         float mouseY = lookInput.y * lookSensitivity;
 
-        // Вверх/Вниз (одинаково для пешехода и водителя)
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
         if (isSitting)
         {
-            // --- РЕЖИМ ВОДИТЕЛЯ ---
-            // Крутим ТОЛЬКО камеру (голову) влево/вправо. Тело неподвижно.
             yRotation += mouseX;
-            yRotation = Mathf.Clamp(yRotation, -110f, 110f); // Ограничитель шеи
-            
+            yRotation = Mathf.Clamp(yRotation, -110f, 110f); 
             cameraTransform.localRotation = Quaternion.Euler(xRotation, yRotation, 0f);
         }
         else
         {
-            // --- РЕЖИМ ПЕШЕХОДА ---
-            // Горизонтальное вращение сбрасывается для головы, крутим всё тело.
             yRotation = 0f;
             cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
             transform.Rotate(Vector3.up * mouseX);
@@ -168,12 +174,47 @@ public class PlayerEntity : NetworkBehaviour
 
         Vector2 inputDir = moveAction.action.ReadValue<Vector2>();
         Vector3 move = transform.right * inputDir.x + transform.forward * inputDir.y;
+        
         characterController.Move(move * moveSpeed * Time.deltaTime);
 
         if (animator != null)
         {
             float horizontalSpeed = new Vector3(characterController.velocity.x, 0, characterController.velocity.z).magnitude;
             animator.SetFloat(SpeedHash, horizontalSpeed, 0.1f, Time.deltaTime);
+        }
+    }
+
+    private void ApplyGravity()
+    {
+        if (characterController.isGrounded)
+        {
+            velocityY = -2f; // Прижимаем к земле
+        }
+        else
+        {
+            velocityY += gravity * Time.deltaTime;
+        }
+
+        characterController.Move(new Vector3(0, velocityY, 0) * Time.deltaTime);
+    }
+
+    private void HandleCameraBobbing()
+    {
+        if (cameraTransform == null) return;
+
+        float speed = new Vector3(characterController.velocity.x, 0, characterController.velocity.z).magnitude;
+
+        if (speed > 0.1f && characterController.isGrounded)
+        {
+            timer += Time.deltaTime * bobbingSpeed;
+            float newY = defaultCameraY + Mathf.Sin(timer) * bobbingAmount;
+            cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, newY, cameraTransform.localPosition.z);
+        }
+        else
+        {
+            timer = 0f;
+            float newY = Mathf.Lerp(cameraTransform.localPosition.y, defaultCameraY, Time.deltaTime * bobbingSpeed);
+            cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, newY, cameraTransform.localPosition.z);
         }
     }
 
@@ -246,14 +287,12 @@ public class PlayerEntity : NetworkBehaviour
             animator.SetTrigger(SitTriggerHash);
         }
 
-        // Мы сажаем только ИГРОКА. Камера поедет за ним сама, так как она его ребенок!
         Transform targetTransform = currentSeat.viewPoint != null ? currentSeat.viewPoint : currentSeat.transform;
 
         transform.SetParent(targetTransform);
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
 
-        // Сбрасываем взгляд прямо перед собой
         xRotation = 0f;
         yRotation = 0f;
         cameraTransform.localRotation = Quaternion.identity;
@@ -270,19 +309,25 @@ public class PlayerEntity : NetworkBehaviour
             animator.SetTrigger(StandTriggerHash);
         }
 
-        // Выходим из машины: отвязываем игрока
         transform.SetParent(null);
-        
-        // Гарантируем, что игрок стоит ровно, а не завален набок из-за крена машины
         transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
 
-        // Хак высадки: чуть вбок
-        transform.position += transform.right * 1.5f; 
+        // --- УЛУЧШЕННАЯ ВЫСАДКА ---
+        if (currentSeat != null && currentSeat.exitPoint != null)
+        {
+            transform.position = currentSeat.exitPoint.position;
+        }
+        else
+        {
+            transform.position += transform.right * 1.5f; 
+        }
 
-        // Сбрасываем шею и взгляд
         xRotation = 0f;
         yRotation = 0f;
+        
+        // Сброс камеры
         cameraTransform.localRotation = Quaternion.identity;
+        cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, defaultCameraY, cameraTransform.localPosition.z);
         
         currentSeat = null;
         characterController.enabled = true;
@@ -291,6 +336,7 @@ public class PlayerEntity : NetworkBehaviour
     [Command]
     public void CmdFixBreakdown(NetworkIdentity carIdentity)
     {
+        // Твой старый код без изменений
         if (carIdentity != null && carIdentity.TryGetComponent(out BreakdownManager breakdownManager))
         {
             breakdownManager.RepairBreakdown();

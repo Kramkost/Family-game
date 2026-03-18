@@ -15,7 +15,11 @@ public class CarSeat : NetworkBehaviour, IInteractable
 
     [SyncVar] public NetworkIdentity occupant;
 
+    [Tooltip("Точка, куда привязывается игрок (внутри машины)")]
     public Transform viewPoint; 
+    
+    [Tooltip("Точка, куда игрока телепортирует ПРИ ВЫХОДЕ (возле двери на улице)")]
+    public Transform exitPoint; 
 
     [Server]
     public void ServerInteract(PlayerEntity player, PlayerInventory inventory)
@@ -46,19 +50,13 @@ public class CarSeat : NetworkBehaviour, IInteractable
         if (isDriverSeat)
         {
             NetworkIdentity carNetId = carSystem.netIdentity;
-
             if (carNetId.connectionToClient != null && carNetId.connectionToClient != player.connectionToClient)
-            {
                 carNetId.RemoveClientAuthority();
-            }
             
             if (carNetId.connectionToClient != player.connectionToClient)
-            {
                 carNetId.AssignClientAuthority(player.connectionToClient);
-            }
         }
 
-        Debug.Log($"[Сервер-Сиденье] ВСЕ ОТЛИЧНО! Отправляем клиенту RPC сесть в {gameObject.name}");
         player.TargetEnterSeat(carSystem.netIdentity, gameObject.name);
     }
 

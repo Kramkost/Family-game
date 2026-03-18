@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using UnityEngine.InputSystem;
 /// <summary>
 /// Captures local audio from the microphone in chunks, applies Voice Activity Detection (VAD) or Push-To-Talk (PTT),
 /// and passes the raw float array to the VoiceNetworker.
@@ -7,7 +7,7 @@ using UnityEngine;
 [RequireComponent(typeof(VoiceNetworker))]
 public class VoiceRecorder : MonoBehaviour
 {
-    [SerializeField] private KeyCode pttKey = KeyCode.V;
+    [SerializeField] private string pttKeyName = "v"; 
     [SerializeField] private bool useVAD = true;
     [SerializeField] private float vadThreshold = 0.01f;
     [SerializeField] private int sampleRate = 24000;
@@ -25,23 +25,30 @@ public class VoiceRecorder : MonoBehaviour
     /// Initializes the microphone and pre-allocates the chunk buffer.
     /// </summary>
     private void Start()
+    {   
+    networker = GetComponent<VoiceNetworker>();
+    if (!networker.isLocalPlayer)
     {
-        networker = GetComponent<VoiceNetworker>();
-        if (!networker.isLocalPlayer)
-        {
-            enabled = false;
-            return;
-        }
-
-        chunkSize = sampleRate * chunkLengthMs / 1000;
-        chunkBuffer = new float[chunkSize];
-
-        if (Microphone.devices.Length > 0)
-        {
-            deviceName = Microphone.devices[0];
-            StartMicrophone();
-        }
+        enabled = false;
+        return;
     }
+
+    chunkSize = sampleRate * chunkLengthMs / 1000;
+    chunkBuffer = new float[chunkSize];
+
+    // Проверяем, есть ли устройства вообще
+    if (Microphone.devices.Length > 0)
+    {
+        // Передаем null — это заставит Unity использовать микрофон по умолчанию в системе
+        deviceName = null; 
+        Debug.Log("Попытка запуска микрофона по умолчанию...");
+        StartMicrophone();
+    }
+    else
+    {
+        Debug.LogError("КРИТИЧЕСКАЯ ОШИБКА: Микрофоны не найдены в системе!");
+    }
+    }   
 
     /// <summary>
     /// Starts the looping microphone recording.
@@ -79,7 +86,14 @@ public class VoiceRecorder : MonoBehaviour
     /// </summary>
     private void ProcessAndTransmitChunk()
     {
-        bool isPttPressed = Input.GetKey(pttKey);
+        
+        bool isPttPressed = false;
+
+        if (Keyboard.current != null)
+        {
+            
+            isPttPressed = Keyboard.current.vKey.isPressed; 
+        }
         
         if (!isPttPressed && !useVAD) return;
 
@@ -96,6 +110,7 @@ public class VoiceRecorder : MonoBehaviour
         }
 
         networker.TransmitAudio(chunkBuffer);
+        Debug.Log("Данные микрофона отправлены в сеть!");
     }
 
     /// <summary>

@@ -1,83 +1,96 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public enum BiomeType { Forest, Desert, Town }
-
 /// <summary>
-/// Высокооптимизированный менеджер процедурной генерации с поддержкой взвешенных пулов пропсов
-/// и типизированных сокетов (PropSockets) для размещения крупных структур (Houses) без коллизий.
+/// Процедурный генератор мира с динамическим количеством биомов, 
+/// весовым спавном пропсов, типизированными сокетами и пространственной фильтрацией (защитой от наложения).
 /// </summary>
 public class ConveyorChunkManager : MonoBehaviour
 {
-    /// <summary>
-    /// Конфигурация отдельного пропса с весом (Rarity).
-    /// </summary>
+    #region STRUCTS & CONFIGS
+
     [System.Serializable]
     public struct PropConfig
     {
         [Tooltip("Префаб объекта (Дерево, Дом, Камень)")]
         public GameObject prefab;
         
-        [Tooltip("Вероятность появления. Чем больше, тем чаще (Трава: 500, Дом: 10)")]
+        [Tooltip("Вес вероятности (например: Трава = 500, Куст = 100, Дом = 10)")]
         public int weight;
         
-        [Tooltip("Если True, спавнится ТОЛЬКО в спец. сокетах на чанке. Если False - в случайной зоне.")]
+        [Tooltip("Если True - ищет PropSocket на чанке. Если False - спавнится в случайной зоне.")]
         public bool requiresSocket;
     }
 
-    /// <summary>
-    /// Коллекция пропсов для конкретного биома.
-    /// </summary>
     [System.Serializable]
-    public struct BiomeProps
+    public struct BiomeConfig
     {
-        public BiomeType biomeType;
+        [Tooltip("Название для удобства в Инспекторе (Forest, Desert, Snow...)")]
+        public string biomeName;
+        
+        [Tooltip("Префаб платформы чанка")]
+        public GameObject chunkPrefab;
+        
+        [Tooltip("Список объектов, которые могут тут появиться")]
         public PropConfig[] props;
     }
+
+    #endregion
+
+    #region INSPECTOR VARIABLES
 
     [Header("Core References")]
     [SerializeField] private Transform worldContainer;
     [SerializeField] private Transform carTransform;
-
-    [Header("Chunk Prefabs")]
-    [Tooltip("Префаб чанка может содержать пустышки с тегом 'PropSocket' для спавна больших объектов.")]
-    [SerializeField] private GameObject forestChunkPrefab;
-    [SerializeField] private GameObject desertChunkPrefab;
-    [SerializeField] private GameObject townChunkPrefab;
-
-    [Header("Prop Configuration")]
-    [SerializeField] private BiomeProps[] biomePropsConfigs;
     [SerializeField] private Transform propContainer;
-    [SerializeField] private int propsPerChunk = 40; 
-    [SerializeField] private Vector2 propSpawnArea = new Vector2(60f, 50f);
-    [SerializeField] private float roadWidth = 12f;
-    [SerializeField] private Vector2 propScaleRange = new Vector2(0.8f, 1.5f);
 
-    [Header("Biome & World Settings")]
+    [Header("Biome Setup")]
+    [Tooltip("Добавь сюда любое количество биомов. Скрипт сам распределит их по миру.")]
+    [SerializeField] private BiomeConfig[] biomes;
+
+    [Header("Generation Settings")]
     [SerializeField] private int globalSeed = 1337;
     [SerializeField] private float chunkSize = 50f;
     [SerializeField] private float biomeScale = 0.03f; 
     [SerializeField] private int viewDistanceAhead = 5;
     [SerializeField] private int viewDistanceBehind = 2;
 
-    // --- Архитектура Zero GC & O(1) ---
-    private Dictionary<BiomeType, Queue<GameObject>> chunkPool;
-    private Dictionary<GameObject, BiomeType> chunkInstanceToTypeMap;
+    [Header("Prop Rules")]
+    [SerializeField] private int propsPerChunk = 40; 
+    [SerializeField] private Vector2 propSpawnArea = new Vector2(60f, 50f);
+    [SerializeField] private float roadWidth = 12f;
+    [SerializeField] private Vector2 propScaleRange = new Vector2(0.8f, 1.5f);
+
+    [Header("Spatial Clearance (Защита от наложения)")]
+    [Tooltip("Минимальное расстояние между обычными пропсами")]
+    [SerializeField] private float minPropDistance = 2.5f;
+    [Tooltip("Сколько раз пытаться найти свободное место, прежде чем сдаться")]
+    [SerializeField] private int maxSpawnAttempts = 5;
+
+    #endregion
+
+    #region INTERNAL CACHE (Zero GC)
+
+    // Пулы и маппинг по ИНДЕКСУ биома
+    private Dictionary<int, Queue<GameObject>> chunkPool;
+    private Dictionary<GameObject, int> chunkInstanceToBiomeIndexMap;
     private Dictionary<GameObject, Queue<GameObject>> propPool;
     private Dictionary<GameObject, GameObject> propInstanceToPrefabMap;
     
-    // Кэш для взвешенного рандома и сокетов
-    private Dictionary<BiomeType, PropConfig[]> biomeToPropsMap;
-    private Dictionary<BiomeType, int> biomeTotalWeightMap;
-    
-    // Кэш сокетов для каждого инстанса чанка
+    private Dictionary<int, int> biomeTotalWeightMap;
     private Dictionary<GameObject, List<Transform>> chunkSocketsMap;
 
     private Dictionary<int, GameObject> activeChunks;
     private Dictionary<int, List<GameObject>> activePropsMap;
+    
     private Stack<List<GameObject>> listPool;
     private List<int> keysToRemoveCache = new List<int>();
     private List<Transform> usedSocketsCache = new List<Transform>();
+    
+    // Кэш позиций для проверки дистанции (чтобы объекты не слипались)
+    private List<Vector2> placedPositionsCache = new List<Vector2>();
+
+    #endregion
 
     private void Start()
     {
@@ -92,7 +105,7 @@ public class ConveyorChunkManager : MonoBehaviour
 
     private void ForceUpdateChunks()
     {
-        if (carTransform == null || worldContainer == null) return;
+        if (carTransform == null || worldContainer == null || biomes.Length == 0) return;
 
         float virtualDistance = carTransform.position.z - worldContainer.position.z;
         int currentChunkIndex = Mathf.FloorToInt(virtualDistance / chunkSize);
@@ -105,36 +118,29 @@ public class ConveyorChunkManager : MonoBehaviour
 
     private void InitializeStructures()
     {
-        chunkPool = new Dictionary<BiomeType, Queue<GameObject>>()
-        {
-            { BiomeType.Forest, new Queue<GameObject>() },
-            { BiomeType.Desert, new Queue<GameObject>() },
-            { BiomeType.Town, new Queue<GameObject>() }
-        };
-
-        chunkInstanceToTypeMap = new Dictionary<GameObject, BiomeType>();
+        chunkPool = new Dictionary<int, Queue<GameObject>>();
+        chunkInstanceToBiomeIndexMap = new Dictionary<GameObject, int>();
         propPool = new Dictionary<GameObject, Queue<GameObject>>();
         propInstanceToPrefabMap = new Dictionary<GameObject, GameObject>();
-        biomeToPropsMap = new Dictionary<BiomeType, PropConfig[]>();
-        biomeTotalWeightMap = new Dictionary<BiomeType, int>();
+        biomeTotalWeightMap = new Dictionary<int, int>();
         chunkSocketsMap = new Dictionary<GameObject, List<Transform>>();
         
         activeChunks = new Dictionary<int, GameObject>();
         activePropsMap = new Dictionary<int, List<GameObject>>();
         listPool = new Stack<List<GameObject>>();
 
-        foreach (var config in biomePropsConfigs)
+        for (int i = 0; i < biomes.Length; i++)
         {
-            if (config.props != null && config.props.Length > 0)
+            chunkPool[i] = new Queue<GameObject>();
+            
+            if (biomes[i].props != null && biomes[i].props.Length > 0)
             {
-                biomeToPropsMap[config.biomeType] = config.props;
-                
                 int totalWeight = 0;
-                foreach (var prop in config.props)
+                foreach (var prop in biomes[i].props)
                 {
                     totalWeight += prop.weight;
                 }
-                biomeTotalWeightMap[config.biomeType] = totalWeight;
+                biomeTotalWeightMap[i] = totalWeight;
             }
         }
     }
@@ -169,9 +175,9 @@ public class ConveyorChunkManager : MonoBehaviour
     private void SpawnChunk(int index)
     {
         float noiseValue = Mathf.PerlinNoise(globalSeed + (index * biomeScale), globalSeed);
-        BiomeType nextBiome = DetermineBiome(noiseValue);
+        int nextBiomeIndex = DetermineBiomeIndex(noiseValue);
 
-        GameObject chunk = GetChunkFromPool(nextBiome);
+        GameObject chunk = GetChunkFromPool(nextBiomeIndex);
         float exactZ = index * chunkSize;
         
         chunk.transform.SetLocalPositionAndRotation(new Vector3(0, 0, exactZ), Quaternion.identity);
@@ -180,43 +186,41 @@ public class ConveyorChunkManager : MonoBehaviour
         List<GameObject> chunkProps = GetListFromPool();
         activePropsMap.Add(index, chunkProps);
 
-        SpawnProps(index, nextBiome, exactZ, chunk, chunkProps);
+        SpawnProps(index, nextBiomeIndex, exactZ, chunk, chunkProps);
     }
 
-/// <summary>
-    /// Интеллектуальный спавн с учетом сокетов чанка и взвешенной редкости объектов.
+    /// <summary>
+    /// Интеллектуальный спавн с учетом сокетов, весов и защитой от наложения (Spatial Clearance).
     /// </summary>
-    private void SpawnProps(int chunkIndex, BiomeType biome, float baseZ, GameObject chunk, List<GameObject> targetList)
+    private void SpawnProps(int chunkIndex, int biomeIndex, float baseZ, GameObject chunk, List<GameObject> targetList)
     {
-        if (!biomeToPropsMap.TryGetValue(biome, out PropConfig[] propConfigs)) return;
-        if (!biomeTotalWeightMap.TryGetValue(biome, out int totalWeight)) return;
+        if (!biomeTotalWeightMap.TryGetValue(biomeIndex, out int totalWeight)) return;
 
         UnityEngine.Random.InitState(globalSeed + chunkIndex);
 
-        // Получаем доступные сокеты для этого конкретного чанка
         List<Transform> availableSockets = chunkSocketsMap[chunk];
         
-        // Очищаем наш глобальный кэш перед спавном (Zero GC)
         usedSocketsCache.Clear();
+        placedPositionsCache.Clear();
+
+        PropConfig[] currentProps = biomes[biomeIndex].props;
+        float sqrMinDist = minPropDistance * minPropDistance; // Оптимизация: избегаем Vector2.Distance (Sqrt)
 
         for (int i = 0; i < propsPerChunk; i++)
         {
-            PropConfig selectedConfig = GetWeightedRandomProp(propConfigs, totalWeight);
+            PropConfig selectedConfig = GetWeightedRandomProp(currentProps, totalWeight);
             GameObject prop = GetPropFromPool(selectedConfig.prefab);
 
             Vector3 localPos = Vector3.zero;
             Quaternion localRot = Quaternion.identity;
-            bool spawnSuccess = true;
+            bool spawnSuccess = false;
 
             if (selectedConfig.requiresSocket)
             {
-                // Логика спавна Домов/Крупных объектов
                 Transform selectedSocket = null;
-                
-                // Ищем свободный сокет детерминированно
                 foreach (Transform socket in availableSockets)
                 {
-                    if (!usedSocketsCache.Contains(socket)) // <--- ИСПОЛЬЗУЕМ КЭШ
+                    if (!usedSocketsCache.Contains(socket)) 
                     {
                         selectedSocket = socket;
                         break;
@@ -225,38 +229,52 @@ public class ConveyorChunkManager : MonoBehaviour
 
                 if (selectedSocket != null)
                 {
-                    usedSocketsCache.Add(selectedSocket); // <--- ИСПОЛЬЗУЕМ КЭШ
-                    // Сокеты имеют локальную позицию относительно чанка
+                    usedSocketsCache.Add(selectedSocket); 
                     localPos = new Vector3(selectedSocket.localPosition.x, selectedSocket.localPosition.y, baseZ + selectedSocket.localPosition.z);
                     localRot = selectedSocket.localRotation;
-                    
                     prop.transform.localScale = Vector3.one; 
-                }
-                else
-                {
-                    // Сокетов нет, отменяем спавн этого редкого объекта, возвращаем в пул
-                    ReturnPropToPool(prop, selectedConfig.prefab);
-                    spawnSuccess = false;
+                    spawnSuccess = true;
                 }
             }
             else
             {
-
-                // Логика спавна случайной Природы
-                float randX;
+                // Логика спавна с проверкой наложения
                 float halfRoad = roadWidth / 2f;
                 float halfArea = propSpawnArea.x / 2f;
 
-                if (UnityEngine.Random.value > 0.5f) randX = UnityEngine.Random.Range(halfRoad, halfArea); 
-                else randX = UnityEngine.Random.Range(-halfArea, -halfRoad); 
+                for (int attempt = 0; attempt < maxSpawnAttempts; attempt++)
+                {
+                    float randX = UnityEngine.Random.value > 0.5f 
+                        ? UnityEngine.Random.Range(halfRoad, halfArea) 
+                        : UnityEngine.Random.Range(-halfArea, -halfRoad); 
 
-                float randZ = UnityEngine.Random.Range(-propSpawnArea.y * 0.5f, propSpawnArea.y * 0.5f);
-                
-                localPos = new Vector3(randX, 0, baseZ + randZ);
-                localRot = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
+                    float randZ = UnityEngine.Random.Range(-propSpawnArea.y * 0.5f, propSpawnArea.y * 0.5f);
+                    Vector2 testPos2D = new Vector2(randX, randZ);
 
-                float randomScale = UnityEngine.Random.Range(propScaleRange.x, propScaleRange.y);
-                prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale);
+                    // Проверяем дистанцию до уже поставленных в этом чанке объектов
+                    bool hasClearance = true;
+                    for (int p = 0; p < placedPositionsCache.Count; p++)
+                    {
+                        if ((placedPositionsCache[p] - testPos2D).sqrMagnitude < sqrMinDist)
+                        {
+                            hasClearance = false;
+                            break;
+                        }
+                    }
+
+                    if (hasClearance)
+                    {
+                        placedPositionsCache.Add(testPos2D);
+                        localPos = new Vector3(randX, 0, baseZ + randZ);
+                        localRot = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
+                        
+                        float randomScale = UnityEngine.Random.Range(propScaleRange.x, propScaleRange.y);
+                        prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale);
+                        
+                        spawnSuccess = true;
+                        break; // Выходим из цикла попыток
+                    }
+                }
             }
 
             if (spawnSuccess)
@@ -265,12 +283,14 @@ public class ConveyorChunkManager : MonoBehaviour
                 prop.SetActive(true);
                 targetList.Add(prop);
             }
+            else
+            {
+                // Не нашли место - возвращаем в пул
+                propPool[selectedConfig.prefab].Enqueue(prop);
+            }
         }
     }
 
-    /// <summary>
-    /// Выбор префаба на основе весового распределения.
-    /// </summary>
     private PropConfig GetWeightedRandomProp(PropConfig[] configs, int totalWeight)
     {
         int randomWeight = UnityEngine.Random.Range(0, totalWeight);
@@ -284,29 +304,18 @@ public class ConveyorChunkManager : MonoBehaviour
                 return config;
             }
         }
-        return configs[0]; // Fallback
+        return configs[0]; 
     }
 
     private GameObject GetPropFromPool(GameObject prefab)
     {
         if (!propPool.ContainsKey(prefab)) propPool[prefab] = new Queue<GameObject>();
 
-        GameObject prop;
-        if (propPool[prefab].Count > 0)
-        {
-            prop = propPool[prefab].Dequeue();
-        }
-        else
-        {
-            prop = Instantiate(prefab, propContainer);
-            propInstanceToPrefabMap[prop] = prefab; 
-        }
+        if (propPool[prefab].Count > 0) return propPool[prefab].Dequeue();
+        
+        GameObject prop = Instantiate(prefab, propContainer);
+        propInstanceToPrefabMap[prop] = prefab; 
         return prop;
-    }
-
-    private void ReturnPropToPool(GameObject prop, GameObject prefab)
-    {
-        propPool[prefab].Enqueue(prop);
     }
 
     private void DespawnChunk(int index)
@@ -314,8 +323,8 @@ public class ConveyorChunkManager : MonoBehaviour
         GameObject chunk = activeChunks[index];
         chunk.SetActive(false);
 
-        BiomeType type = chunkInstanceToTypeMap[chunk];
-        chunkPool[type].Enqueue(chunk);
+        int typeIndex = chunkInstanceToBiomeIndexMap[chunk];
+        chunkPool[typeIndex].Enqueue(chunk);
 
         if (activePropsMap.TryGetValue(index, out List<GameObject> props))
         {
@@ -326,55 +335,49 @@ public class ConveyorChunkManager : MonoBehaviour
                 propPool[originalPrefab].Enqueue(prop);
             }
             
-            ReturnListToPool(props); 
+            props.Clear();
+            listPool.Push(props); 
             activePropsMap.Remove(index);
         }
     }
 
-    private GameObject GetChunkFromPool(BiomeType type)
+    private GameObject GetChunkFromPool(int biomeIndex)
     {
-        if (chunkPool[type].Count > 0)
+        if (chunkPool[biomeIndex].Count > 0)
         {
-            GameObject chunk = chunkPool[type].Dequeue();
+            GameObject chunk = chunkPool[biomeIndex].Dequeue();
             chunk.SetActive(true);
             return chunk;
         }
 
-        GameObject prefab = type switch
-        {
-            BiomeType.Forest => forestChunkPrefab,
-            BiomeType.Desert => desertChunkPrefab,
-            BiomeType.Town => townChunkPrefab,
-            _ => forestChunkPrefab
-        };
-
+        GameObject prefab = biomes[biomeIndex].chunkPrefab;
         GameObject newChunk = Instantiate(prefab, worldContainer);
-        newChunk.name = $"{type}_Chunk";
-        chunkInstanceToTypeMap[newChunk] = type; 
+        newChunk.name = $"{biomes[biomeIndex].biomeName}_Chunk";
+        chunkInstanceToBiomeIndexMap[newChunk] = biomeIndex; 
         
-        // Кэшируем сокеты при инстанциации
         List<Transform> sockets = new List<Transform>();
         foreach (Transform child in newChunk.transform)
         {
-            if (child.CompareTag("PropSocket"))
-            {
-                sockets.Add(child);
-            }
+            if (child.CompareTag("PropSocket")) sockets.Add(child);
         }
         chunkSocketsMap[newChunk] = sockets;
 
         return newChunk;
     }
 
-    private BiomeType DetermineBiome(float noise)
+    /// <summary>
+    /// Математическое распределение биомов по Индексу.
+    /// </summary>
+    private int DetermineBiomeIndex(float noise)
     {
-        if (noise < 0.33f) return BiomeType.Desert;
-        if (noise < 0.66f) return BiomeType.Forest;
-        return BiomeType.Town;
+        int count = biomes.Length;
+        if (count == 0) return 0;
+
+        int index = Mathf.FloorToInt(noise * count);
+        return Mathf.Clamp(index, 0, count - 1);
     }
 
     private List<GameObject> GetListFromPool() => listPool.Count > 0 ? listPool.Pop() : new List<GameObject>(propsPerChunk);
-    private void ReturnListToPool(List<GameObject> list) { list.Clear(); listPool.Push(list); }
 
 #if UNITY_EDITOR
     private void OnDrawGizmos()
@@ -388,10 +391,10 @@ public class ConveyorChunkManager : MonoBehaviour
                 float zPos = kvp.Key * chunkSize;
                 Vector3 center = worldContainer.TransformPoint(new Vector3(0, 0, zPos));
                 
-                Gizmos.color = new Color(0, 1, 0, 0.1f);
+                Gizmos.color = new Color(0, 1, 0, 0.05f);
                 Gizmos.DrawCube(center, new Vector3(propSpawnArea.x, 0.1f, propSpawnArea.y));
 
-                Gizmos.color = new Color(1, 0, 0, 0.3f);
+                Gizmos.color = new Color(1, 0, 0, 0.2f);
                 Gizmos.DrawCube(center, new Vector3(roadWidth, 0.2f, propSpawnArea.y));
             }
         }

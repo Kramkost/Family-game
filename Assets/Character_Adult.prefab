@@ -221,10 +221,27 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2980080618095081211}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2663088102589046834}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4512920610189212557}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6963022057656730045}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 76923274015164687}
     - targetCorrespondingSourceObject: {fileID: 3026522392604817644, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2521755913875551809}
   m_SourcePrefab: {fileID: 100100000, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}
+--- !u!4 &802113955519292821 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1866928295027076933, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}
+  m_PrefabInstance: {fileID: 1353620860021934800}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1532277744003968315 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}
@@ -319,6 +336,9 @@ MonoBehaviour:
   interactLayerMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  gravity: -9.81
+  bobbingSpeed: 14
+  bobbingAmount: 0.05
   moveAction: {fileID: -1680190386980627800, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   lookAction: {fileID: -5630151704836100654, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   interactAction: {fileID: 1781555164194001046, guid: 289c1b55c9541489481df5cc06664110, type: 3}
@@ -415,6 +435,154 @@ MonoBehaviour:
   rotationSensitivity: 0.01
   positionPrecision: 0.01
   scalePrecision: 0.01
+--- !u!82 &2663088102589046834
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164101469142759297}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &4512920610189212557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164101469142759297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 620c2d485e21843b8877741b637dd0ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VoiceNetworker
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &6963022057656730045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164101469142759297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22a3f875c969d846f8750f08cbd0bd8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VoiceRecorder
+  pttKeyName: v
+  useVAD: 0
+  vadThreshold: 0.001
+  sampleRate: 24000
+  chunkLengthMs: 40
+--- !u!114 &76923274015164687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164101469142759297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e15802b9cac1fa1bb8acfbda876e8666, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JawSyncer
+  targetSource: {fileID: 2663088102589046834}
+  jawBone: {fileID: 802113955519292821}
+  restRotation: {x: 0, y: 0, z: 0}
+  maxOpenRotation: {x: 0, y: 0, z: 0}
+  rmsMultiplier: 15
+  smoothingSpeed: 10
+  sampleWindow: 256
 --- !u!1 &4091899681726214716 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3026522392604817644, guid: 860a53f82bdb1219bb04346035faf58b, type: 3}

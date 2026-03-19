@@ -1,5 +1,7 @@
 using Kotenkoff;
 using Mirror;
+using UnityEngine;
+
 /// <summary>
 /// Канистра, которую можно взять в руки.
 /// </summary>
@@ -8,25 +10,17 @@ public class JerryCan : NetworkBehaviour, IInteractable
     [Server]
     public void ServerInteract(PlayerEntity player, PlayerInventory inventory)
     {
+        // Проверяем, что руки у игрока свободны
         if (player.heldItem == null)
         {
-            // Логика взятия предмета в руки
-            player.heldItem = netIdentity;
-            
+            // 1. Добавляем предмет в логический инвентарь
             inventory.AddItem(gameObject);
             
-            // В реальном проекте здесь вы прикрепите объект к руке игрока 
-            // через ClientRpc или изменение иерархии (Server -> Client)
-            RpcAttachToPlayer(player);
+            // 2. Передаем предмет в руку игрока!
+            // Этот метод внутри PlayerEntity обновит SyncVar, и магия Mirror 
+            // автоматически прикрепит канистру к кости руки у ВСЕХ клиентов на сервере.
+            player.ServerEquipItem(this.netIdentity);
         }
-    }
-
-    [ClientRpc]
-    private void RpcAttachToPlayer(PlayerEntity player)
-    {
-        // Простая визуальная привязка канистры
-        transform.SetParent(player.heldItemProxy);
-        transform.localPosition = player.heldItemProxy.transform.localPosition; 
     }
 
     [Server]

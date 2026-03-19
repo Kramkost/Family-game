@@ -1,5 +1,4 @@
 using Kotenkoff;
-using UnityEngine;
 using Mirror;
 /// <summary>
 /// Канистра, которую можно взять в руки.
@@ -12,22 +11,22 @@ public class JerryCan : NetworkBehaviour, IInteractable
         if (player.heldItem == null)
         {
             // Логика взятия предмета в руки
-            player.heldItem = this.netIdentity;
+            player.heldItem = netIdentity;
             
             inventory.AddItem(gameObject);
             
             // В реальном проекте здесь вы прикрепите объект к руке игрока 
             // через ClientRpc или изменение иерархии (Server -> Client)
-            RpcAttachToPlayer(player.netIdentity);
+            RpcAttachToPlayer(player);
         }
     }
 
     [ClientRpc]
-    private void RpcAttachToPlayer(NetworkIdentity playerIdentity)
+    private void RpcAttachToPlayer(PlayerEntity player)
     {
         // Простая визуальная привязка канистры
-        transform.SetParent(playerIdentity.transform);
-        transform.localPosition = new Vector3(0.5f, 0.5f, 1f); 
+        transform.SetParent(player.heldItemProxy);
+        transform.localPosition = player.heldItemProxy.transform.localPosition; 
     }
 
     [Server]

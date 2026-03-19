@@ -4,7 +4,8 @@ using System.Collections.Generic;
 public enum BiomeType { Forest, Desert, Town }
 
 /// <summary>
-/// Оптимизированный менеджер чанков с пулом объектов на основе словаря.
+/// Персистентный менеджер чанков. 
+/// Поддерживает движение вперед/назад и сохраняет одинаковую генерацию по сиду.
 /// </summary>
 public class ConveyorChunkManager : MonoBehaviour
 {
@@ -13,53 +14,53 @@ public class ConveyorChunkManager : MonoBehaviour
     [SerializeField] private Transform worldContainer;
     [SerializeField] private Transform carTransform;
 
-    [Header("Chunk Prefabs (Кириллу на заметку: оптимизировать меши!)")]
+    [Header("Chunk Prefabs")]
     [SerializeField] private GameObject forestChunkPrefab;
     [SerializeField] private GameObject desertChunkPrefab;
     [SerializeField] private GameObject townChunkPrefab;
 
-    [Header("Settings")]
-    [SerializeField] private int seed = 1337; // Одинаковый для всех клиентов!
+    [Header("Settings & Persistence")]
+    [SerializeField] private int globalSeed = 1337; // Одинаковый для всех клиентов!
     [SerializeField] private float chunkSize = 50f;
-    [SerializeField] private int chunksVisibleAhead = 5;
-    [SerializeField] private float chunkDespawnZ = -50f; // Где удалять чанк позади машины
+    
+    [Tooltip("Сколько чанков прорисовывать спереди")]
+    [SerializeField] private int viewDistanceAhead = 5;
+    
+    [Tooltip("Сколько чанков оставлять позади (для движения задним ходом)")]
+    [SerializeField] private int viewDistanceBehind = 2;
 
     // Пул объектов: Тип Биома -> Очередь неактивных чанков
     private Dictionary<BiomeType, Queue<GameObject>> chunkPool = new Dictionary<BiomeType, Queue<GameObject>>();
     
-    // Активные чанки на сцене
-    private List<GameObject> activeChunks = new List<GameObject>();
-    
-    private float spawnZ = 0f;
+    // Активные чанки на сцене. Ключ — это абсолютный индекс чанка.
+    private Dictionary<int, GameObject> activeChunks = new Dictionary<int, GameObject>();
 
     private void Start()
     {
-        if (worldContainer == null) Debug.LogError("ОШИБКА: Не назначен World Container!");
+        if (worldContainer == null || carTransform == null) 
+        {
+            Debug.LogError("ОШИБКА: Не назначены ссылки в ConveyorChunkManager!");
+            return;
+        }
         
         InitializePool();
-        
-        // Спавним стартовые чанки
-        for (int i = 0; i < chunksVisibleAhead; i++)
-        {
-            SpawnNextChunk();
-        }
     }
 
     private void Update()
     {
-        if (activeChunks.Count == 0) return;
+        if (carTransform == null || worldContainer == null) return;
 
-        // Проверяем самый старый (первый) чанк в списке. Если он уехал далеко назад — в пул его.
-        GameObject oldestChunk = activeChunks[0];
+        // Универсальная виртуальная дистанция (работает и для физики, и для RoadMill)
+        float virtualDistance = carTransform.position.z - worldContainer.position.z;
         
-        // Вычисляем позицию чанка относительно машины
-        float relativeZ = oldestChunk.transform.position.z - carTransform.position.z;
+        // Вычисляем, в каком чанке сейчас находится машина
+        int currentChunkIndex = Mathf.FloorToInt(virtualDistance / chunkSize);
 
-        if (relativeZ < chunkDespawnZ)
-        {
-            DespawnChunk(oldestChunk);
-            SpawnNextChunk();
-        }
+        // Определяем "окно видимости"
+        int startIndex = currentChunkIndex - viewDistanceBehind;
+        int endIndex = currentChunkIndex + viewDistanceAhead;
+
+        ManageChunks(startIndex, endIndex);
     }
 
     private void InitializePool()
@@ -70,8 +71,37 @@ public class ConveyorChunkManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Вытаскивает чанк из пула или инстанцирует новый, если пул пуст.
+    /// Управляет включением и выключением чанков на основе скользящего окна.
     /// </summary>
+    private void ManageChunks(int startIndex, int endIndex)
+    {
+        // 1. Деспавним чанки, которые вышли за пределы видимости (слишком далеко сзади или спереди)
+        List<int> keysToRemove = new List<int>();
+        foreach (var kvp in activeChunks)
+        {
+            if (kvp.Key < startIndex || kvp.Key > endIndex)
+            {
+                DespawnChunk(kvp.Value);
+                keysToRemove.Add(kvp.Key);
+            }
+        }
+
+        // Очищаем словарь от удаленных чанков
+        foreach (int key in keysToRemove)
+        {
+            activeChunks.Remove(key);
+        }
+
+        // 2. Спавним недостающие чанки внутри окна видимости
+        for (int i = startIndex; i <= endIndex; i++)
+        {
+            if (!activeChunks.ContainsKey(i))
+            {
+                SpawnChunk(i);
+            }
+        }
+    }
+
     private GameObject GetChunkFromPool(BiomeType type)
     {
         if (chunkPool[type].Count > 0)
@@ -89,17 +119,15 @@ public class ConveyorChunkManager : MonoBehaviour
             _ => forestChunkPrefab
         };
 
-        // ВАЖНО: Чанки спавнятся ВНУТРИ WorldContainer, чтобы двигаться вместе с ним
         GameObject newChunk = Instantiate(prefabToSpawn, worldContainer);
         newChunk.name = $"{type}_Chunk";
         return newChunk;
     }
 
-    private void SpawnNextChunk()
+    private void SpawnChunk(int index)
     {
-        // Используем PerlinNoise с нашим Seed для детерминированного выбора биома
-        // Делим spawnZ на 200f для плавности переходов (масштаб шума)
-        float noiseValue = Mathf.PerlinNoise(seed + (spawnZ / 200f), seed);
+        // Определяем биом детерминированно по индексу
+        float noiseValue = Mathf.PerlinNoise(globalSeed + (index * 0.1f), globalSeed);
         
         BiomeType nextBiome;
         if (noiseValue < 0.33f) nextBiome = BiomeType.Desert;
@@ -108,51 +136,49 @@ public class ConveyorChunkManager : MonoBehaviour
 
         GameObject chunk = GetChunkFromPool(nextBiome);
         
-        // Ставим чанк. Позиция локальная относительно WorldContainer!
-        chunk.transform.localPosition = new Vector3(0, 0, spawnZ);
-        activeChunks.Add(chunk);
+        // Позиция чанка строго привязана к его математическому индексу
+        float exactZ = index * chunkSize;
+        chunk.transform.localPosition = new Vector3(0, 0, exactZ);
+        
+        activeChunks.Add(index, chunk);
 
-        // Распределяем пропсы (дома, деревья) внутри чанка по сиду
-        DistributeProps(chunk, nextBiome, spawnZ);
-
-        Debug.Log($"[ChunkManager] Заспавнен {nextBiome} на Z:{spawnZ}. Значение шума: {noiseValue:F2}");
-
-        spawnZ += chunkSize;
+        // Наполняем чанк объектами
+        SpawnProps(chunk, index);
     }
 
     private void DespawnChunk(GameObject chunk)
     {
         chunk.SetActive(false);
-        activeChunks.RemoveAt(0);
         
-        // Определяем тип биома по имени (грубо, но работает для KISS)
+        // Определяем тип биома по имени для возврата в правильный пул
         if (chunk.name.Contains("Forest")) chunkPool[BiomeType.Forest].Enqueue(chunk);
         else if (chunk.name.Contains("Desert")) chunkPool[BiomeType.Desert].Enqueue(chunk);
         else if (chunk.name.Contains("Town")) chunkPool[BiomeType.Town].Enqueue(chunk);
     }
 
     /// <summary>
-    /// Простая сид-базированная расстановка объектов внутри чанка.
-    /// Гарантирует, что у всех игроков дома и елки будут стоять в одних и тех же координатах.
+    /// Рандомизация пропсов (растения, дома).
+    /// Гарантирует, что при возвращении назад объекты останутся на своих местах.
     /// </summary>
-    private void DistributeProps(GameObject chunk, BiomeType type, float zOffset)
+    private void SpawnProps(GameObject chunk, int index)
     {
-        // Инициализируем рандом с жестким сидом для этого конкретного куска карты
-        Random.InitState(seed + (int)zOffset);
+        // Инициализируем рандом уникальным ключом (общий сид + индекс куска карты)
+        Random.InitState(globalSeed + index);
 
-        // Пример: отключаем/включаем случайные дочерние объекты-пропсы
-        // Предполагается, что Кирилл заранее расставит в префабе 10 деревьев, а мы включим только часть из них
         int childCount = chunk.transform.childCount;
         for (int i = 0; i < childCount; i++)
         {
             Transform prop = chunk.transform.GetChild(i);
             
-            // Если это не основание дороги (предположим, дорога имеет тег "Road")
+            // Тег "Road" защищает основание дороги от случайного удаления
             if (!prop.CompareTag("Road"))
             {
-                // 50% шанс, что пропс появится
+                // Шанс появления объекта 50%
                 bool isVisible = Random.value > 0.5f; 
                 prop.gameObject.SetActive(isVisible);
+                
+                // Здесь можно добавить вращение:
+                // prop.localRotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
             }
         }
     }

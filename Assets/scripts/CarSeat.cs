@@ -24,19 +24,22 @@ public class CarSeat : NetworkBehaviour, IInteractable
     [Server]
     public void ServerInteract(PlayerEntity player, PlayerInventory inventory)
     {
-        Debug.Log($"[Сервер-Сиденье] Начинаем посадку игрока {player.name}...");
-
-        // --- РАСШИРЕННАЯ ДИАГНОСТИКА ---
         if (carSystem == null)
         {
             Debug.LogError("[Сервер-Сиденье] ОТКАЗ: Потеряна ссылка на CarHybridSystem! Проверь Инспектор кресла.");
             return;
         }
+
+        // --- УМНАЯ ПРОВЕРКА ЗАНЯТОСТИ ---
         if (occupant != null)
         {
-            Debug.LogWarning($"[Сервер-Сиденье] ОТКАЗ: Место уже занято объектом {occupant.name}! (Возможно это баг прошлого теста)");
+            // Если место занято ЭТИМ ЖЕ игроком (двойной клик) - просто молча выходим
+            if (occupant == player.netIdentity) return; 
+
+            Debug.LogWarning($"[Сервер-Сиденье] ОТКАЗ: Место уже занято объектом {occupant.name}!");
             return;
         }
+
         if (player.heldItem != null)
         {
             Debug.LogWarning("[Сервер-Сиденье] ОТКАЗ: Игрок держит предмет в руках!");

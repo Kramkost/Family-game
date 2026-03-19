@@ -27,6 +27,8 @@ public class PlayerEntity : NetworkBehaviour
     private float defaultCameraY;
     private float timer = 0f;
 
+    private float lastInteractTime = 0f;
+
     [Header("Input Actions")]
     [SerializeField] private InputActionReference moveAction;
     [SerializeField] private InputActionReference lookAction;
@@ -67,6 +69,7 @@ public class PlayerEntity : NetworkBehaviour
         networkAnimator = GetComponent<NetworkAnimator>();
         if (animator == null) animator = GetComponentInChildren<Animator>(); 
 
+        // Ищем кость руки, если она не задана
         if (rightHandSocket == null)
         {
             foreach (Transform child in GetComponentsInChildren<Transform>(true))
@@ -79,6 +82,7 @@ public class PlayerEntity : NetworkBehaviour
             }
         }
 
+        // Отключаем камеру по умолчанию для клонов
         if (cameraTransform != null)
         {
             defaultCameraY = cameraTransform.localPosition.y;
@@ -163,8 +167,14 @@ public class PlayerEntity : NetworkBehaviour
         HandleCameraBobbing();
     }
 
-    // --- ОСТАЛЬНЫЕ МЕТОДЫ ДВИЖЕНИЯ (БЕЗ ИЗМЕНЕНИЙ) ---
-    private void HandleDriving() { /* ... */ }
+    private void HandleDriving()
+    {
+        if (currentSeat != null && currentSeat.isDriverSeat && currentSeat.carSystem != null)
+        {
+            Vector2 inputDir = moveAction.action.ReadValue<Vector2>();
+            currentSeat.carSystem.LocalDrive(inputDir.x, inputDir.y);
+        }
+    }
     
     private void HandleLook()
     {
@@ -213,13 +223,33 @@ public class PlayerEntity : NetworkBehaviour
         characterController.Move(new Vector3(0, velocityY, 0) * Time.deltaTime);
     }
 
-    private void HandleCameraBobbing() { /* ... старый код ...*/ }
+    private void HandleCameraBobbing()
+    {
+        if (cameraTransform == null) return;
 
-    // --- ВЗАИМОДЕЙСТВИЕ И ИНВЕНТАРЬ ---
+        float speed = new Vector3(characterController.velocity.x, 0, characterController.velocity.z).magnitude;
+
+        if (speed > 0.1f && characterController.isGrounded)
+        {
+            timer += Time.deltaTime * bobbingSpeed;
+            float newY = defaultCameraY + Mathf.Sin(timer) * bobbingAmount;
+            cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, newY, cameraTransform.localPosition.z);
+        }
+        else
+        {
+            timer = 0f;
+            float newY = Mathf.Lerp(cameraTransform.localPosition.y, defaultCameraY, Time.deltaTime * bobbingSpeed);
+            cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, newY, cameraTransform.localPosition.z);
+        }
+    }
 
     private void OnInteractPerformed(InputAction.CallbackContext context)
     {
         if (isSitting || cameraTransform == null) return;
+
+        // Анти-спам
+        if (Time.time < lastInteractTime + 0.5f) return;
+        lastInteractTime = Time.time;
 
         if (networkAnimator != null) animator.SetTrigger(InteractTriggerHash);
 
@@ -272,22 +302,14 @@ public class PlayerEntity : NetworkBehaviour
         itemToDrop.transform.position = cameraTransform.position + cameraTransform.forward * 1.5f;
     }
 
-    /// <summary>
-    /// Этот метод вызывает сервер (например, из скрипта JerryCan), чтобы дать предмет в руку игроку.
-    /// </summary>
     [Server]
     public void ServerEquipItem(NetworkIdentity item)
     {
-        heldItem = item; // Это вызовет Hook у всех клиентов!
+        heldItem = item; 
     }
 
-    /// <summary>
-    /// Срабатывает у ВСЕХ игроков (клиентов) при изменении heldItem.
-    /// Занимается ТОЛЬКО визуалом (прикрепить к кости, отключить физику).
-    /// </summary>
     private void OnHeldItemChanged(NetworkIdentity oldItem, NetworkIdentity newItem)
     {
-        // 1. Выбрасываем старый предмет
         if (oldItem != null)
         {
             oldItem.transform.SetParent(null);
@@ -296,23 +318,94 @@ public class PlayerEntity : NetworkBehaviour
             foreach (var col in oldItem.GetComponents<Collider>()) col.enabled = true;
         }
 
-        // 2. Берем новый предмет
         if (newItem != null && rightHandSocket != null)
         {
             newItem.transform.SetParent(rightHandSocket);
             newItem.transform.localPosition = Vector3.zero;
-            
             newItem.transform.localRotation = Quaternion.identity; 
 
-            
             if (newItem.TryGetComponent(out Rigidbody rb)) rb.isKinematic = true;
             foreach (var col in newItem.GetComponents<Collider>()) col.enabled = false;
         }
     }
 
-    
-    [Command] private void CmdLeaveSeat() { /* ... */ }
-    [TargetRpc] public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath) { /* ... */ }
-    [TargetRpc] public void TargetLeaveSeat() { /* ... */ }
-    [Command] public void CmdFixBreakdown(NetworkIdentity carIdentity) { /* ... */ }
+    [Command]
+    private void CmdLeaveSeat()
+    {
+        if (currentSeat != null)
+        {
+            currentSeat.ServerLeave(this);
+        }
+    }
+
+    [TargetRpc]
+    public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath)
+    {
+        GameObject seatObj = GameObject.Find(seatPath);
+        if (seatObj == null) return;
+        
+        currentSeat = seatObj.GetComponent<CarSeat>();
+        if (currentSeat == null) return;
+
+        characterController.enabled = false; 
+        isSitting = true; 
+
+        if (animator != null)
+        {
+            animator.SetBool(IsSittingHash, true);
+            animator.SetTrigger(SitTriggerHash);
+        }
+
+        Transform targetTransform = currentSeat.viewPoint != null ? currentSeat.viewPoint : currentSeat.transform;
+
+        transform.SetParent(targetTransform);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+
+        xRotation = 0f;
+        yRotation = 0f;
+        cameraTransform.localRotation = Quaternion.identity;
+    }
+
+    [TargetRpc]
+    public void TargetLeaveSeat()
+    {
+        isSitting = false;
+        
+        if (animator != null)
+        {
+            animator.SetBool(IsSittingHash, false);
+            animator.SetTrigger(StandTriggerHash);
+        }
+
+        transform.SetParent(null);
+        transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+
+        if (currentSeat != null && currentSeat.exitPoint != null)
+        {
+            transform.position = currentSeat.exitPoint.position;
+        }
+        else
+        {
+            transform.position += transform.right * 1.5f; 
+        }
+
+        xRotation = 0f;
+        yRotation = 0f;
+        
+        cameraTransform.localRotation = Quaternion.identity;
+        cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, defaultCameraY, cameraTransform.localPosition.z);
+        
+        currentSeat = null;
+        characterController.enabled = true;
+    }
+
+    [Command]
+    public void CmdFixBreakdown(NetworkIdentity carIdentity)
+    {
+        if (carIdentity != null && carIdentity.TryGetComponent(out BreakdownManager breakdownManager))
+        {
+            breakdownManager.RepairBreakdown();
+        }
+    }
 }

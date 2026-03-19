@@ -19,13 +19,13 @@ public class PlayerEntity : NetworkBehaviour
     
     [Header("Physics Settings")]
     [SerializeField] private float gravity = -9.81f;
-    private float velocityY = 0f;
+    private float velocityY;
 
     [Header("Camera Bobbing")]
     [SerializeField] private float bobbingSpeed = 14f;
     [SerializeField] private float bobbingAmount = 0.05f;
     private float defaultCameraY;
-    private float timer = 0f;
+    private float timer;
 
     [Header("Input Actions")]
     [SerializeField] private InputActionReference moveAction;
@@ -34,14 +34,15 @@ public class PlayerEntity : NetworkBehaviour
 
     [Header("Vehicle State")]
     private CarSeat currentSeat;
-    private bool isSitting = false;
+    private bool isSitting;
 
     private CharacterController characterController;
     
-    private float xRotation = 0f; 
-    private float yRotation = 0f; 
+    private float xRotation; 
+    private float yRotation; 
     
     [SyncVar] public NetworkIdentity heldItem;
+    public Transform heldItemProxy;
     
     [Header("Inventory")]
     [SerializeField] private PlayerInventory inventory;
@@ -121,7 +122,7 @@ public class PlayerEntity : NetworkBehaviour
             HandleLook();
             HandleDriving();
             
-            if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame)
+            if (Keyboard.current.spaceKey.wasPressedThisFrame)
             {
                 CmdLeaveSeat();
             }

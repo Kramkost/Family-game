@@ -6,7 +6,6 @@ using System.Collections.Generic;
 /// Handles the compression, transmission, and decompression of voice data over the network.
 /// Plays incoming voice data dynamically using OnAudioFilterRead.
 /// </summary>
-[RequireComponent(typeof(AudioSource))]
 public class VoiceNetworker : NetworkBehaviour
 {
     private AudioSource playbackSource;
@@ -21,6 +20,8 @@ public class VoiceNetworker : NetworkBehaviour
         playbackSource.loop = true;
         playbackSource.clip = AudioClip.Create("StreamBuffer", 1024, 1, 24000, false);
         playbackSource.Play();
+        
+        if (playbackSource ==  null) Debug.LogError("[VoiceNetworker] No AudioSource found!");
     }
 
     /// <summary>

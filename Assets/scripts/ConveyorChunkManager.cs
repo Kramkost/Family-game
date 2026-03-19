@@ -1,9 +1,11 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Mirror; // Обязательно для NetworkTime
 
 /// <summary>
 /// Процедурный генератор мира с динамическим количеством биомов, 
-/// весовым спавном пропсов, типизированными сокетами и пространственной фильтрацией (защитой от наложения).
+/// весовым спавном пропсов, типизированными сокетами, защитой от наложения
+/// и системой Временных Ивентов (смена биома по таймеру сервера).
 /// </summary>
 public class ConveyorChunkManager : MonoBehaviour
 {
@@ -12,10 +14,10 @@ public class ConveyorChunkManager : MonoBehaviour
     [System.Serializable]
     public struct PropConfig
     {
-        [Tooltip("Префаб объекта (Дерево, Дом, Камень)")]
+        [Tooltip("Префаб объекта (Дерево, Камень, Пустышка-Дом)")]
         public GameObject prefab;
         
-        [Tooltip("Вес вероятности (например: Трава = 500, Куст = 100, Дом = 10)")]
+        [Tooltip("Вес вероятности внутри биома (например: Трава = 500, Дом = 10)")]
         public int weight;
         
         [Tooltip("Если True - ищет PropSocket на чанке. Если False - спавнится в случайной зоне.")]
@@ -25,11 +27,14 @@ public class ConveyorChunkManager : MonoBehaviour
     [System.Serializable]
     public struct BiomeConfig
     {
-        [Tooltip("Название для удобства в Инспекторе (Forest, Desert, Snow...)")]
+        [Tooltip("Название для удобства в Инспекторе (Forest, Desert, Town)")]
         public string biomeName;
         
         [Tooltip("Префаб платформы чанка")]
         public GameObject chunkPrefab;
+        
+        [Tooltip("Шанс генерации этого биома по сравнению с другими (например: Лес = 100, Пустыня = 30)")]
+        public int spawnWeight;
         
         [Tooltip("Список объектов, которые могут тут появиться")]
         public PropConfig[] props;
@@ -45,8 +50,18 @@ public class ConveyorChunkManager : MonoBehaviour
     [SerializeField] private Transform propContainer;
 
     [Header("Biome Setup")]
-    [Tooltip("Добавь сюда любое количество биомов. Скрипт сам распределит их по миру.")]
+    [Tooltip("Список биомов. Настрой им шансы (Spawn Weight)")]
     [SerializeField] private BiomeConfig[] biomes;
+
+    [Header("Time Events (Ивенты)")]
+    [Tooltip("Индекс биома (от 0), который будет появляться по таймеру (напр. 2 - Город)")]
+    [SerializeField] private int eventBiomeIndex = 2;
+    
+    [Tooltip("Каждые сколько минут реального времени запускать этот биом?")]
+    [SerializeField] private float eventIntervalMinutes = 15f;
+    
+    [Tooltip("Сколько минут длится ивент? (Например, 1 минута езды через город)")]
+    [SerializeField] private float eventDurationMinutes = 1f;
 
     [Header("Generation Settings")]
     [SerializeField] private int globalSeed = 1337;
@@ -71,7 +86,6 @@ public class ConveyorChunkManager : MonoBehaviour
 
     #region INTERNAL CACHE (Zero GC)
 
-    // Пулы и маппинг по ИНДЕКСУ биома
     private Dictionary<int, Queue<GameObject>> chunkPool;
     private Dictionary<GameObject, int> chunkInstanceToBiomeIndexMap;
     private Dictionary<GameObject, Queue<GameObject>> propPool;
@@ -87,8 +101,9 @@ public class ConveyorChunkManager : MonoBehaviour
     private List<int> keysToRemoveCache = new List<int>();
     private List<Transform> usedSocketsCache = new List<Transform>();
     
-    // Кэш позиций для проверки дистанции (чтобы объекты не слипались)
     private List<Vector2> placedPositionsCache = new List<Vector2>();
+
+    private int highestWeightBiomeIndex = 0; // Кэш для стартовой зоны
 
     #endregion
 
@@ -129,6 +144,8 @@ public class ConveyorChunkManager : MonoBehaviour
         activePropsMap = new Dictionary<int, List<GameObject>>();
         listPool = new Stack<List<GameObject>>();
 
+        int maxWeight = -1; 
+
         for (int i = 0; i < biomes.Length; i++)
         {
             chunkPool[i] = new Queue<GameObject>();
@@ -141,6 +158,13 @@ public class ConveyorChunkManager : MonoBehaviour
                     totalWeight += prop.weight;
                 }
                 biomeTotalWeightMap[i] = totalWeight;
+            }
+
+            // Запоминаем биом с самым большим весом для стартовой зоны
+            if (biomes[i].spawnWeight > maxWeight)
+            {
+                maxWeight = biomes[i].spawnWeight;
+                highestWeightBiomeIndex = i;
             }
         }
     }
@@ -175,7 +199,7 @@ public class ConveyorChunkManager : MonoBehaviour
     private void SpawnChunk(int index)
     {
         float noiseValue = Mathf.PerlinNoise(globalSeed + (index * biomeScale), globalSeed);
-        int nextBiomeIndex = DetermineBiomeIndex(noiseValue);
+        int nextBiomeIndex = DetermineBiomeIndex(noiseValue, index); // Передаем индекс чанка
 
         GameObject chunk = GetChunkFromPool(nextBiomeIndex);
         float exactZ = index * chunkSize;
@@ -189,9 +213,6 @@ public class ConveyorChunkManager : MonoBehaviour
         SpawnProps(index, nextBiomeIndex, exactZ, chunk, chunkProps);
     }
 
-    /// <summary>
-    /// Интеллектуальный спавн с учетом сокетов, весов и защитой от наложения (Spatial Clearance).
-    /// </summary>
     private void SpawnProps(int chunkIndex, int biomeIndex, float baseZ, GameObject chunk, List<GameObject> targetList)
     {
         if (!biomeTotalWeightMap.TryGetValue(biomeIndex, out int totalWeight)) return;
@@ -204,7 +225,7 @@ public class ConveyorChunkManager : MonoBehaviour
         placedPositionsCache.Clear();
 
         PropConfig[] currentProps = biomes[biomeIndex].props;
-        float sqrMinDist = minPropDistance * minPropDistance; // Оптимизация: избегаем Vector2.Distance (Sqrt)
+        float sqrMinDist = minPropDistance * minPropDistance; 
 
         for (int i = 0; i < propsPerChunk; i++)
         {
@@ -238,7 +259,6 @@ public class ConveyorChunkManager : MonoBehaviour
             }
             else
             {
-                // Логика спавна с проверкой наложения
                 float halfRoad = roadWidth / 2f;
                 float halfArea = propSpawnArea.x / 2f;
 
@@ -251,7 +271,6 @@ public class ConveyorChunkManager : MonoBehaviour
                     float randZ = UnityEngine.Random.Range(-propSpawnArea.y * 0.5f, propSpawnArea.y * 0.5f);
                     Vector2 testPos2D = new Vector2(randX, randZ);
 
-                    // Проверяем дистанцию до уже поставленных в этом чанке объектов
                     bool hasClearance = true;
                     for (int p = 0; p < placedPositionsCache.Count; p++)
                     {
@@ -272,7 +291,7 @@ public class ConveyorChunkManager : MonoBehaviour
                         prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale);
                         
                         spawnSuccess = true;
-                        break; // Выходим из цикла попыток
+                        break; 
                     }
                 }
             }
@@ -285,7 +304,6 @@ public class ConveyorChunkManager : MonoBehaviour
             }
             else
             {
-                // Не нашли место - возвращаем в пул
                 propPool[selectedConfig.prefab].Enqueue(prop);
             }
         }
@@ -293,6 +311,8 @@ public class ConveyorChunkManager : MonoBehaviour
 
     private PropConfig GetWeightedRandomProp(PropConfig[] configs, int totalWeight)
     {
+        if (totalWeight <= 0) return configs[0];
+
         int randomWeight = UnityEngine.Random.Range(0, totalWeight);
         int currentWeight = 0;
 
@@ -366,15 +386,58 @@ public class ConveyorChunkManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Математическое распределение биомов по Индексу.
+    /// Математическое распределение биомов: Safe Zone -> Таймер -> Веса.
     /// </summary>
-    private int DetermineBiomeIndex(float noise)
+    private int DetermineBiomeIndex(float noise, int chunkIndex)
     {
         int count = biomes.Length;
         if (count == 0) return 0;
 
-        int index = Mathf.FloorToInt(noise * count);
-        return Mathf.Clamp(index, 0, count - 1);
+        // --- 0. СТАРТОВАЯ ЗОНА (Safe Zone) 100% гарантия ---
+        // Если чанк находится в зоне начальной прорисовки (вокруг нуля), 
+        // мы ЖЕСТКО спавним самый частый биом.
+        if (Mathf.Abs(chunkIndex) <= viewDistanceAhead)
+        {
+            return highestWeightBiomeIndex;
+        }
+
+        // --- 1. ПРОВЕРКА ВРЕМЕННОГО ИВЕНТА ---
+        if (NetworkClient.active || NetworkServer.active)
+        {
+            float currentMinutes = (float)NetworkTime.time / 60f;
+            
+            // Защита от старта: Ивент не начнется на 0-й минуте. Только после первого интервала.
+            if (currentMinutes >= eventIntervalMinutes)
+            {
+                if (currentMinutes % eventIntervalMinutes < eventDurationMinutes)
+                {
+                    return Mathf.Clamp(eventBiomeIndex, 0, count - 1);
+                }
+            }
+        }
+
+        // --- 2. СТАНДАРТНАЯ ГЕНЕРАЦИЯ (По весам) ---
+        int totalWeight = 0;
+        for (int i = 0; i < count; i++)
+        {
+            totalWeight += biomes[i].spawnWeight;
+        }
+
+        if (totalWeight <= 0) return 0;
+
+        float targetWeight = noise * totalWeight;
+        int currentWeight = 0;
+
+        for (int i = 0; i < count; i++)
+        {
+            currentWeight += biomes[i].spawnWeight;
+            if (targetWeight <= currentWeight)
+            {
+                return i;
+            }
+        }
+
+        return 0; // Fallback
     }
 
     private List<GameObject> GetListFromPool() => listPool.Count > 0 ? listPool.Pop() : new List<GameObject>(propsPerChunk);

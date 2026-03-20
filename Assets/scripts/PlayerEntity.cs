@@ -4,7 +4,7 @@ using Mirror;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Отвечает за локальное передвижение, управление камерой, посадку в авто, взаимодействие и предметы в руках.
+/// Отвечает за локальное передвижение, прыжок, управление камерой, посадку в авто, взаимодействие, предметы и ЗВУКИ ШАГОВ.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(NetworkAnimator))]
@@ -12,13 +12,14 @@ public class PlayerEntity : NetworkBehaviour
 {
     [Header("Movement & Look Settings")]
     [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float jumpForce = 5f; 
     [SerializeField] private float lookSensitivity = 0.5f; 
     [SerializeField] private float interactRange = 3f;
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private LayerMask interactLayerMask = ~0;
     
     [Header("Physics Settings")]
-    [SerializeField] private float gravity = -9.81f;
+    [SerializeField] private float gravity = -19.62f; 
     private float velocityY = 0f;
 
     [Header("Camera Bobbing")]
@@ -27,6 +28,13 @@ public class PlayerEntity : NetworkBehaviour
     private float defaultCameraY;
     private float timer = 0f;
 
+    [Header("Audio & Footsteps")]
+    [SerializeField] private AudioSource footstepAudioSource;
+    [SerializeField] private AudioClip[] footstepSounds;
+    [SerializeField] private float footstepInterval = 0.4f; // Время между шагами при обычной ходьбе
+    private float footstepTimer = 0f;
+    private Vector3 lastPosition;
+
     private float lastInteractTime = 0f;
 
     [Header("Input Actions")]
@@ -34,9 +42,9 @@ public class PlayerEntity : NetworkBehaviour
     [SerializeField] private InputActionReference lookAction;
     [SerializeField] private InputActionReference interactAction;
     [SerializeField] private InputActionReference dropAction; 
+    [SerializeField] private InputActionReference jumpAction; 
 
     [Header("Hands & Items")]
-    [Tooltip("Кость руки. Если пусто, скрипт попытается найти дочерний объект с тегом 'Hand'")]
     [SerializeField] private Transform rightHandSocket;
     
     [SyncVar(hook = nameof(OnHeldItemChanged))] 
@@ -47,6 +55,8 @@ public class PlayerEntity : NetworkBehaviour
     private bool isSitting = false;
 
     private CharacterController characterController;
+    private Collider[] allColliders; 
+    
     private float xRotation = 0f; 
     private float yRotation = 0f; 
     
@@ -67,9 +77,10 @@ public class PlayerEntity : NetworkBehaviour
     {
         characterController = GetComponent<CharacterController>();
         networkAnimator = GetComponent<NetworkAnimator>();
+        allColliders = GetComponentsInChildren<Collider>(); 
+
         if (animator == null) animator = GetComponentInChildren<Animator>(); 
 
-        // Ищем кость руки, если она не задана
         if (rightHandSocket == null)
         {
             foreach (Transform child in GetComponentsInChildren<Transform>(true))
@@ -82,7 +93,6 @@ public class PlayerEntity : NetworkBehaviour
             }
         }
 
-        // Отключаем камеру по умолчанию для клонов
         if (cameraTransform != null)
         {
             defaultCameraY = cameraTransform.localPosition.y;
@@ -92,6 +102,8 @@ public class PlayerEntity : NetworkBehaviour
             AudioListener listener = cameraTransform.GetComponent<AudioListener>();
             if (listener != null) listener.enabled = false;
         }
+
+        lastPosition = transform.position;
     }
 
     public override void OnStartLocalPlayer()
@@ -122,6 +134,11 @@ public class PlayerEntity : NetworkBehaviour
             dropAction.action.Enable();
             dropAction.action.performed += OnDropPerformed;
         }
+
+        if (jumpAction != null)
+        {
+            jumpAction.action.Enable();
+        }
     }
 
     public override void OnStopLocalPlayer()
@@ -143,10 +160,19 @@ public class PlayerEntity : NetworkBehaviour
             dropAction.action.performed -= OnDropPerformed;
             dropAction.action.Disable();
         }
+
+        if (jumpAction != null)
+        {
+            jumpAction.action.Disable();
+        }
     }
 
     private void Update()
     {
+        // 1. Отрабатываем шаги ДЛЯ ВСЕХ игроков (чтобы слышать чужие)
+        HandleFootsteps();
+
+        // 2. Всё что ниже - только для нашего локального персонажа
         if (!isLocalPlayer) return;
 
         if (isSitting)
@@ -158,13 +184,64 @@ public class PlayerEntity : NetworkBehaviour
             {
                 CmdLeaveSeat();
             }
+            
+            if (currentSeat != null && currentSeat.isDriverSeat)
+            {
+                if (UnityEngine.InputSystem.Keyboard.current.fKey.wasPressedThisFrame || 
+                    UnityEngine.InputSystem.Keyboard.current.lKey.wasPressedThisFrame)
+                {
+                    currentSeat.carSystem.CmdToggleLights();
+                }
+            }
             return; 
         }
 
         HandleLook();
         HandleMovement();
-        ApplyGravity();
+        ApplyGravityAndJump();
         HandleCameraBobbing();
+    }
+
+    // --- ЛОГИКА ШАГОВ ---
+    private void HandleFootsteps()
+    {
+        if (footstepSounds == null || footstepSounds.Length == 0 || footstepAudioSource == null) return;
+
+        // Вычисляем горизонтальную скорость (чтобы звук не играл при падении в пропасть)
+        Vector3 horizontalMovement = new Vector3(transform.position.x - lastPosition.x, 0, transform.position.z - lastPosition.z);
+        float currentSpeed = horizontalMovement.magnitude / Time.deltaTime;
+        lastPosition = transform.position;
+
+        // Простой Raycast, чтобы проверить, стоит ли игрок на земле (Network Safe)
+        bool isGroundedNetworkSafe = Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.4f);
+
+        if (currentSpeed > 0.5f && isGroundedNetworkSafe && !isSitting)
+        {
+            footstepTimer += Time.deltaTime;
+            
+            // Если игрок бежит быстрее, шаги звучат чаще
+            float currentInterval = footstepInterval * (moveSpeed / Mathf.Max(currentSpeed, 1f));
+            currentInterval = Mathf.Clamp(currentInterval, 0.2f, footstepInterval);
+
+            if (footstepTimer >= currentInterval)
+            {
+                PlayRandomFootstep();
+                footstepTimer = 0f;
+            }
+        }
+        else
+        {
+            // Сбрасываем таймер, чтобы первый шаг всегда звучал сразу после начала движения
+            footstepTimer = footstepInterval; 
+        }
+    }
+
+    private void PlayRandomFootstep()
+    {
+        AudioClip clip = footstepSounds[Random.Range(0, footstepSounds.Length)];
+        // Небольшой рандом высоты звука для естественности
+        footstepAudioSource.pitch = Random.Range(0.85f, 1.15f); 
+        footstepAudioSource.PlayOneShot(clip);
     }
 
     private void HandleDriving()
@@ -216,10 +293,22 @@ public class PlayerEntity : NetworkBehaviour
         }
     }
 
-    private void ApplyGravity()
+    private void ApplyGravityAndJump()
     {
-        if (characterController.isGrounded) velocityY = -2f;
-        else velocityY += gravity * Time.deltaTime;
+        bool isGrounded = characterController.isGrounded;
+
+        if (isGrounded && velocityY < 0)
+        {
+           
+            velocityY = -0.1f; 
+        }
+
+        if (isGrounded && jumpAction != null && jumpAction.action.triggered)
+        {
+            velocityY = jumpForce;
+        }
+
+        velocityY += gravity * Time.deltaTime;
         characterController.Move(new Vector3(0, velocityY, 0) * Time.deltaTime);
     }
 
@@ -247,7 +336,6 @@ public class PlayerEntity : NetworkBehaviour
     {
         if (isSitting || cameraTransform == null) return;
 
-        // Анти-спам
         if (Time.time < lastInteractTime + 0.5f) return;
         lastInteractTime = Time.time;
 
@@ -294,11 +382,8 @@ public class PlayerEntity : NetworkBehaviour
         if (heldItem == null) return;
         
         GameObject itemToDrop = heldItem.gameObject;
-        
         if (inventory != null) inventory.RemoveItem(itemToDrop);
-
         heldItem = null; 
-
         itemToDrop.transform.position = cameraTransform.position + cameraTransform.forward * 1.5f;
     }
 
@@ -348,6 +433,8 @@ public class PlayerEntity : NetworkBehaviour
         if (currentSeat == null) return;
 
         characterController.enabled = false; 
+        foreach (var col in allColliders) if (col != null) col.enabled = false;
+
         isSitting = true; 
 
         if (animator != null)
@@ -397,6 +484,8 @@ public class PlayerEntity : NetworkBehaviour
         cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, defaultCameraY, cameraTransform.localPosition.z);
         
         currentSeat = null;
+
+        foreach (var col in allColliders) if (col != null) col.enabled = true;
         characterController.enabled = true;
     }
 

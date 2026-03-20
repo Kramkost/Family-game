@@ -56,6 +56,27 @@ public class CarHybridSystemEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("fovLerpSpeed"));
         EditorGUILayout.EndVertical();
 
+        // 5. НОВЫЙ БЛОК: Network Visuals (Фары, Звук, Салон)
+        EditorGUILayout.BeginVertical(GUI.skin.box);
+        GUILayout.Label("5. Network Visuals (Audio, Lights, Interior)", EditorStyles.boldLabel);
+        
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("engineAudio"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("idlePitch"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("maxPitch"));
+        EditorGUILayout.Space(5);
+        
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("headlights"), true); // true нужно для отрисовки массивов!
+        EditorGUILayout.Space(5);
+        
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("steeringWheel"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("maxSteeringAngle"));
+        EditorGUILayout.Space(5);
+        
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("gasPedal"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("brakePedal"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("pedalTravel"));
+        EditorGUILayout.EndVertical();
+
         serializedObject.ApplyModifiedProperties();
     }
 }

@@ -3,30 +3,31 @@ using Mirror;
 using System.Collections.Generic;
 
 /// <summary>
-/// Handles the compression, transmission, and decompression of voice data over the network.
-/// Plays incoming voice data dynamically using OnAudioFilterRead.
+/// Handles compression, transmission, and safe buffered playback to prevent audio stuttering.
 /// </summary>
 public class VoiceNetworker : NetworkBehaviour
 {
     private AudioSource playbackSource;
     private Queue<float> jitterBuffer = new Queue<float>();
+    
+   
+    private bool isBuffering = true;
+    private int minBufferSize;
 
-    /// <summary>
-    /// Initializes the AudioSource for procedural streaming.
-    /// </summary>
     private void Awake()
     {
+     
+        minBufferSize = (int)(AudioSettings.outputSampleRate * 0.1f);
+
         playbackSource = GetComponent<AudioSource>();
         playbackSource.loop = true;
-        playbackSource.clip = AudioClip.Create("StreamBuffer", 1024, 1, 24000, false);
+      
+        playbackSource.clip = AudioClip.Create("StreamBuffer", 1024, 1, AudioSettings.outputSampleRate, false);
         playbackSource.Play();
         
-        if (playbackSource ==  null) Debug.LogError("[VoiceNetworker] No AudioSource found!");
+        if (playbackSource == null) Debug.LogError("[VoiceNetworker] No AudioSource found!");
     }
 
-    /// <summary>
-    /// Entry point for local audio chunks. Compresses and sends to the server.
-    /// </summary>
     [ClientCallback]
     public void TransmitAudio(float[] rawAudio)
     {
@@ -36,9 +37,7 @@ public class VoiceNetworker : NetworkBehaviour
         CmdSendVoice(compressedData);
     }
 
-    /// <summary>
-    /// Placeholder wrapper for audio compression (e.g., Opus).
-    /// </summary>
+   
     private byte[] CompressAudio(float[] rawAudio)
     {
         byte[] dummyCompressed = new byte[rawAudio.Length];
@@ -49,9 +48,6 @@ public class VoiceNetworker : NetworkBehaviour
         return dummyCompressed;
     }
 
-    /// <summary>
-    /// Placeholder wrapper for audio decompression.
-    /// </summary>
     private float[] DecompressAudio(byte[] compressedAudio)
     {
         float[] dummyDecompressed = new float[compressedAudio.Length];
@@ -62,18 +58,12 @@ public class VoiceNetworker : NetworkBehaviour
         return dummyDecompressed;
     }
 
-    /// <summary>
-    /// Relays the compressed audio from the speaking client to the server via the unreliable channel.
-    /// </summary>
     [Command(channel = Channels.Unreliable)]
     private void CmdSendVoice(byte[] compressedData)
     {
         RpcReceiveVoice(compressedData);
     }
 
-    /// <summary>
-    /// Distributes the compressed audio from the server to all clients via the unreliable channel.
-    /// </summary>
     [ClientRpc(channel = Channels.Unreliable)]
     private void RpcReceiveVoice(byte[] compressedData)
     {
@@ -99,9 +89,21 @@ public class VoiceNetworker : NetworkBehaviour
 
         lock (jitterBuffer)
         {
+           
+            if (jitterBuffer.Count == 0)
+            {
+                isBuffering = true;
+            }
+          
+            else if (isBuffering && jitterBuffer.Count >= minBufferSize)
+            {
+                isBuffering = false;
+            }
+
             for (int i = 0; i < data.Length; i += channels)
             {
-                float sample = jitterBuffer.Count > 0 ? jitterBuffer.Dequeue() : 0f;
+                
+                float sample = (!isBuffering && jitterBuffer.Count > 0) ? jitterBuffer.Dequeue() : 0f;
                 
                 for (int c = 0; c < channels; c++)
                 {

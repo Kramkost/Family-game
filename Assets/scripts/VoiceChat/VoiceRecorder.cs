@@ -1,8 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+
 /// <summary>
-/// Captures local audio from the microphone in chunks, applies Voice Activity Detection (VAD) or Push-To-Talk (PTT),
-/// and passes the raw float array to the VoiceNetworker.
+/// Captures local audio from the microphone, perfectly matching system sample rate,
+/// applies VAD with a "hang time" to prevent stuttering, and safely packets data.
 /// </summary>
 [RequireComponent(typeof(VoiceNetworker))]
 public class VoiceRecorder : MonoBehaviour
@@ -10,8 +11,11 @@ public class VoiceRecorder : MonoBehaviour
     [SerializeField] private string pttKeyName = "v"; 
     [SerializeField] private bool useVAD = true;
     [SerializeField] private float vadThreshold = 0.01f;
-    [SerializeField] private int sampleRate = 24000;
-    [SerializeField] private int chunkLengthMs = 40;
+    [Tooltip("Сколько секунд продолжать запись после того, как голос стих (сглаживает прерывания)")]
+    [SerializeField] private float vadHangTime = 0.5f; 
+    
+    [Tooltip("20ms гарантирует, что размер пакета не превысит MTU лимит UDP")]
+    [SerializeField] private int chunkLengthMs = 20;
 
     private VoiceNetworker networker;
     private AudioClip micClip;
@@ -20,49 +24,44 @@ public class VoiceRecorder : MonoBehaviour
     private int chunkSize;
     private float[] chunkBuffer;
     private bool isRecording = false;
+    
+    private int systemSampleRate;
+    private float currentVadHangTimer = 0f;
 
-    /// <summary>
-    /// Initializes the microphone and pre-allocates the chunk buffer.
-    /// </summary>
     private void Start()
     {   
-    networker = GetComponent<VoiceNetworker>();
-    if (!networker.isLocalPlayer)
-    {
-        enabled = false;
-        return;
-    }
+        networker = GetComponent<VoiceNetworker>();
+        if (!networker.isLocalPlayer)
+        {
+            enabled = false;
+            return;
+        }
 
-    chunkSize = sampleRate * chunkLengthMs / 1000;
-    chunkBuffer = new float[chunkSize];
+        // 1. АВТО-ГЕРЦОВКА: Берем системную частоту (спасает от высокого "бурундучьего" питча)
+        systemSampleRate = AudioSettings.outputSampleRate;
 
-    // Проверяем, есть ли устройства вообще
-    if (Microphone.devices.Length > 0)
-    {
-        // Передаем null — это заставит Unity использовать микрофон по умолчанию в системе
-        deviceName = null; 
-        Debug.Log("Попытка запуска микрофона по умолчанию...");
-        StartMicrophone();
-    }
-    else
-    {
-        Debug.LogError("КРИТИЧЕСКАЯ ОШИБКА: Микрофоны не найдены в системе!");
-    }
+        chunkSize = systemSampleRate * chunkLengthMs / 1000;
+        chunkBuffer = new float[chunkSize];
+
+        if (Microphone.devices.Length > 0)
+        {
+            deviceName = null; 
+            Debug.Log($"[Voice] Запуск микрофона. Частота: {systemSampleRate}Hz, Размер чанка: {chunkSize} сэмплов.");
+            StartMicrophone();
+        }
+        else
+        {
+            Debug.LogError("КРИТИЧЕСКАЯ ОШИБКА: Микрофоны не найдены в системе!");
+        }
     }   
 
-    /// <summary>
-    /// Starts the looping microphone recording.
-    /// </summary>
     private void StartMicrophone()
     {
-        micClip = Microphone.Start(deviceName, true, 1, sampleRate);
+        micClip = Microphone.Start(deviceName, true, 1, systemSampleRate);
         lastMicPosition = Microphone.GetPosition(deviceName);
         isRecording = true;
     }
 
-    /// <summary>
-    /// Polls the microphone position and extracts data if a full chunk is ready.
-    /// </summary>
     private void Update()
     {
         if (!isRecording) return;
@@ -72,31 +71,23 @@ public class VoiceRecorder : MonoBehaviour
 
         if (diff < 0) diff += micClip.samples;
 
-        if (diff >= chunkSize)
+        // Отправляем чанки, если накопилось достаточно данных
+        while (diff >= chunkSize)
         {
             micClip.GetData(chunkBuffer, lastMicPosition);
             lastMicPosition = (lastMicPosition + chunkSize) % micClip.samples;
+            diff -= chunkSize;
 
             ProcessAndTransmitChunk();
         }
     }
 
-    /// <summary>
-    /// Evaluates PTT and VAD conditions before sending data to the networker.
-    /// </summary>
     private void ProcessAndTransmitChunk()
     {
-        
-        bool isPttPressed = false;
+        bool isPttPressed = Keyboard.current != null && Keyboard.current.vKey.isPressed;
+        bool isSpeaking = isPttPressed;
 
-        if (Keyboard.current != null)
-        {
-            
-            isPttPressed = Keyboard.current.vKey.isPressed; 
-        }
-        
-        if (!isPttPressed && !useVAD) return;
-
+        // Умный VAD с "хвостом"
         if (useVAD && !isPttPressed)
         {
             float maxVolume = 0f;
@@ -106,16 +97,24 @@ public class VoiceRecorder : MonoBehaviour
                 if (absVal > maxVolume) maxVolume = absVal;
             }
 
-            if (maxVolume < vadThreshold) return;
+            if (maxVolume >= vadThreshold)
+            {
+                isSpeaking = true;
+                currentVadHangTimer = vadHangTime; // Сбрасываем таймер удержания
+            }
+            else if (currentVadHangTimer > 0f)
+            {
+                // Голос стих, но мы продолжаем запись еще долю секунды
+                isSpeaking = true;
+                currentVadHangTimer -= (float)chunkLengthMs / 1000f; 
+            }
         }
 
+        if (!isSpeaking) return;
+
         networker.TransmitAudio(chunkBuffer);
-        Debug.Log("Данные микрофона отправлены в сеть!");
     }
 
-    /// <summary>
-    /// Safely stops the microphone when the script is disabled or destroyed.
-    /// </summary>
     private void OnDisable()
     {
         if (isRecording)

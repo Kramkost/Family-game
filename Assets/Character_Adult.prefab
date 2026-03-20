@@ -924,7 +924,7 @@ MonoBehaviour:
   pttKeyName: v
   useVAD: 0
   vadThreshold: 0.001
-  sampleRate: 24000
+  vadHangTime: 0.5
   chunkLengthMs: 40
 --- !u!114 &76923274015164687
 MonoBehaviour:
@@ -1669,6 +1669,7 @@ GameObject:
   - component: {fileID: 3834775611025923197}
   - component: {fileID: 3762507393151649599}
   - component: {fileID: 3671616773297462879}
+  - component: {fileID: 8186672873814920463}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -1763,6 +1764,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BreathingFogEffect
   fogMaterial: {fileID: 2100000, guid: a8da97c8b7d1c4974b2c7179e5d8a7c9, type: 2}
+--- !u!114 &8186672873814920463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6629517101996487750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fabef1061da6f85cdbbc954a4682f314, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PosterizeEffect
+  effectMaterial: {fileID: 2100000, guid: 8e57630923cfed43abd2980b1bd6b039, type: 2}
+  colorSteps: 64
 --- !u!1 &6738221292539901375
 GameObject:
   m_ObjectHideFlags: 0

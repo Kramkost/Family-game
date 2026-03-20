@@ -1,5 +1,31 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-8626858155573222369
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6050e2d5de785ce4d931e4dbdbf2d755, type: 3}
+  m_Name: ChromaticAberration
+  m_EditorClassIdentifier: Unity.Postprocessing.Runtime::UnityEngine.Rendering.PostProcessing.ChromaticAberration
+  active: 1
+  enabled:
+    overrideState: 1
+    value: 1
+  spectralLut:
+    overrideState: 0
+    value: {fileID: 0}
+    defaultState: 1
+  intensity:
+    overrideState: 1
+    value: 0.25
+  fastMode:
+    overrideState: 0
+    value: 0
 --- !u!114 &-6060373491729408087
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -43,10 +69,10 @@ MonoBehaviour:
     value: 1
   intensity:
     overrideState: 1
-    value: 0.052
+    value: 0.08
   size:
-    overrideState: 0
-    value: 1
+    overrideState: 1
+    value: 1.1
   lumContrib:
     overrideState: 0
     value: 0.8
@@ -67,6 +93,7 @@ MonoBehaviour:
   - {fileID: 4904508324467154590}
   - {fileID: -6060373491729408087}
   - {fileID: -5374865067840875261}
+  - {fileID: -8626858155573222369}
 --- !u!114 &4904508324467154590
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -91,8 +118,8 @@ MonoBehaviour:
     value: {fileID: 0}
     defaultState: 1
   tonemapper:
-    overrideState: 0
-    value: 0
+    overrideState: 1
+    value: 2
   toneCurveToeStrength:
     overrideState: 0
     value: 0
@@ -132,7 +159,7 @@ MonoBehaviour:
     value: 0
   saturation:
     overrideState: 1
-    value: 3
+    value: -20
   brightness:
     overrideState: 0
     value: 0
@@ -149,8 +176,8 @@ MonoBehaviour:
     overrideState: 0
     value: 0
   mixerRedOutBlueIn:
-    overrideState: 0
-    value: 0
+    overrideState: 1
+    value: 15
   mixerGreenOutRedIn:
     overrideState: 0
     value: 0
@@ -176,8 +203,8 @@ MonoBehaviour:
     overrideState: 0
     value: {x: 1, y: 1, z: 1, w: 0}
   gain:
-    overrideState: 0
-    value: {x: 1, y: 1, z: 1, w: 0}
+    overrideState: 1
+    value: {x: 0.93493766, y: 0.96346754, z: 1, w: 0}
   masterCurve:
     overrideState: 0
     value:
@@ -1405,10 +1432,10 @@ MonoBehaviour:
     value: {x: 0.5, y: 0.5}
   intensity:
     overrideState: 1
-    value: 0.25
+    value: 0.4
   smoothness:
     overrideState: 1
-    value: 1
+    value: 0.3
   roundness:
     overrideState: 0
     value: 1

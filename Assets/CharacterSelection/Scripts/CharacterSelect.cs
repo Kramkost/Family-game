@@ -12,7 +12,7 @@ namespace Mirror.CharacterSelection
         [SerializeField] private Transform characterPreviewParent = default;
         [SerializeField] private TMP_Text characterNameText = default;
         [SerializeField] private float turnSpeed = 90f;
-        [SerializeField] private Character[] characters = default;
+        [SerializeField] private Character[] characters;
 
         private int currentCharacterIndex = 0;
         private List<GameObject> characterInstances = new List<GameObject>();

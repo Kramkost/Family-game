@@ -30,6 +30,7 @@ public class JawSyncer : MonoBehaviour
     /// </summary>
     private void Update()
     {
+     
         if (targetSource == null || jawBone == null) return;
 
         float rms = CalculateRMS();

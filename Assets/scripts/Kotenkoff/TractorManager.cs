@@ -6,63 +6,89 @@ namespace Kotenkoff
 {
     public sealed class TractorManager : NetworkBehaviour
     {
-        [Tooltip("В движении ли Тягач?"), SerializeField]
-        private bool isMoving;
+        [Header("Настройки спавна")]
+        [Tooltip("Префаб физического тягача (с NetworkIdentity)")]
+        [SerializeField] private GameObject tractorPrefab;
+        [Tooltip("Дистанция, на которой физически появляется тягач (в метрах)")]
+        [SerializeField] private float spawnDistance = 150f;
         
-        //[Space]
-        
-        [Tooltip("Расстояние до Тягача"), SerializeField]
-        private float distanceToTractor = 5000;
-        
-        //[Space]
-        
-        [Tooltip("Время между шагами (сек.)"), SerializeField]
-        private float timeBetweenSteps = 1;
-        [Tooltip("Расстояние, которое пройдёт Тягач за один шаг"), SerializeField]
-        private float stepRange = 1f;
-        
-        
-        
+        [Header("Виртуальная симуляция")]
+        [Tooltip("Текущее расстояние до тягача")]
+        [SyncVar] public float distanceToTractor = 5000f;
+        [Tooltip("Сколько метров тягач проезжает за 1 секунду, пока его не видно")]
+        [SerializeField] private float virtualSpeed = 5f;
+
+        [SyncVar] private bool isMoving;
+        private bool hasSpawned = false;
+        private Coroutine moveCoroutine;
+
+    
+        [SerializeField] private Transform carTransform; 
+
         private void OnEnable()
         {
-            CarResourceManager.OnTractorIsMoving += TractorMoving;
+            CarResourceManager.OnTractorIsMoving += HandleTractorEvent;
         }
 
         private void OnDisable()
         {
-            CarResourceManager.OnTractorIsMoving -= TractorMoving;
+            CarResourceManager.OnTractorIsMoving -= HandleTractorEvent;
+        }
+
+        private void HandleTractorEvent(bool moving)
+        {
+            if (!NetworkServer.active) return; 
+            SetTractorMoving(moving);
         }
 
         [Server]
-        private void TractorMoving(bool moving)
+        private void SetTractorMoving(bool moving)
         {
             isMoving = moving;
 
-            if (isMoving)
+            if (isMoving && moveCoroutine == null && !hasSpawned)
             {
-                StartCoroutine(Moving());
+                moveCoroutine = StartCoroutine(MovingRoutine());
             }
-            else
+            else if (!isMoving && moveCoroutine != null)
             {
-                StopAllCoroutines();
+                StopCoroutine(moveCoroutine);
+                moveCoroutine = null;
             }
         }
 
         [Server]
-        private IEnumerator Moving()
+        private IEnumerator MovingRoutine()
         {
-            while (isMoving)
+            while (isMoving && !hasSpawned)
             {
-                distanceToTractor -= stepRange;
+                distanceToTractor -= virtualSpeed * Time.deltaTime;
+
+               
+                if (distanceToTractor <= spawnDistance)
+                {
+                    SpawnPhysicalTractor();
+                    yield break; 
+                }
                 
-                yield return new WaitForSeconds(timeBetweenSteps);
+                yield return null; 
             }
         }
 
         [Server]
-        public float GetDistanceToTractor()
+        private void SpawnPhysicalTractor()
         {
-            return distanceToTractor;
+            if (tractorPrefab == null || carTransform == null) return;
+
+            hasSpawned = true;
+
+            
+            Vector3 spawnPos = carTransform.position - (carTransform.forward * spawnDistance);
+            
+            GameObject tractorInstance = Instantiate(tractorPrefab, spawnPos, carTransform.rotation);
+            
+            
+            NetworkServer.Spawn(tractorInstance);
         }
     }
 }

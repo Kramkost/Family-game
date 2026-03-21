@@ -1,28 +1,41 @@
-using Kotenkoff;
 using UnityEditor;
 using UnityEngine;
+using Kotenkoff; 
 
 [CustomEditor(typeof(TractorManager))]
 public class TractorManagerEditor : Editor
 {
     public override void OnInspectorGUI()
     {
-        TractorManager tractor =  (TractorManager)target;
-        
+        TractorManager manager = (TractorManager)target;
+
+        EditorGUILayout.Space(5);
+        GUILayout.Label("🚛 Tractor Spawner System", new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, fontSize = 14, alignment = TextAnchor.MiddleCenter });
+        EditorGUILayout.Space(5);
+
         serializedObject.Update();
 
-        GUILayout.Label("Настройки:", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("isMoving"), new GUIContent("В движении?", "В движении ли Тягач"));
         
-        EditorGUILayout.Space(2.5f);
-        
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("distanceToTractor"), new GUIContent("Расстояние до Тягача", "Текущее расстояние до Тягача"));
-        
-        EditorGUILayout.Space(3);
-        
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("timeBetweenSteps"), new GUIContent("Время между шагами", "Время, которое пройдет после предыдущего шага"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("stepRange"), new GUIContent("Расстояние шага", "Расстояние, которое пройдёт Тягач за один шаг"));
-        
+        EditorGUILayout.BeginVertical(GUI.skin.box);
+        GUILayout.Label("1. Setup & References", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("tractorPrefab"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("carTransform"));
+        EditorGUILayout.EndVertical();
+
+       
+        EditorGUILayout.BeginVertical(GUI.skin.box);
+        GUILayout.Label("2. Virtual Simulation", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("spawnDistance"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("virtualSpeed"));
+        EditorGUILayout.EndVertical();
+
+        EditorGUILayout.BeginVertical(GUI.skin.box);
+        GUILayout.Label("3. Network State (Read Only)", EditorStyles.boldLabel);
+        GUI.enabled = false;
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("distanceToTractor"));
+        GUI.enabled = true;
+        EditorGUILayout.EndVertical();
+
         serializedObject.ApplyModifiedProperties();
     }
 }

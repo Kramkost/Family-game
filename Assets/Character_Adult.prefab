@@ -302,6 +302,7 @@ GameObject:
   - component: {fileID: 2392001768665577054}
   - component: {fileID: 7357050619590774606}
   - component: {fileID: 2859016909695254429}
+  - component: {fileID: 8633723713878187692}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -512,6 +513,27 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!65 &8633723713878187692
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1820972177330583732}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.016939603, y: 0.03360891, z: 0.15081474}
+  m_Center: {x: -0.0019658306, y: -0.08866779, z: 0.0055881497}
 --- !u!1 &2019170341362542758
 GameObject:
   m_ObjectHideFlags: 0
@@ -585,7 +607,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1532277744003968315}
-  - component: {fileID: 574833905327326002}
   - component: {fileID: 503767926053367193}
   - component: {fileID: 3407610635445141081}
   - component: {fileID: 8748327918552428277}
@@ -621,27 +642,6 @@ Transform:
   - {fileID: 7859408330955442929}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &574833905327326002
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2164101469142759297}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 3
-  m_Size: {x: 1.4701588, y: 13.879601, z: 2.8161795}
-  m_Center: {x: -1.5083948, y: 1.3506126, z: 8.23484}
 --- !u!114 &503767926053367193
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6419594012643921987}
   - component: {fileID: 1142205036127632312}
   - component: {fileID: -3399559874567243061}
+  - component: {fileID: 2233444402238167828}
   m_Layer: 0
   m_Name: Cylinder.014_Cylinder.014
   m_TagString: Untagged
@@ -131,3 +132,15 @@ MonoBehaviour:
   precomputeOutline: 0
   bakeKeys: []
   bakeValues: []
+--- !u!114 &2233444402238167828
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2889294654405656353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e64b44305bc0ebbf8999181c4d94daf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OptimizedMesh

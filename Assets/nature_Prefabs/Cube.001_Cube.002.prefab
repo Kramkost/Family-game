@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1085421476823302844}
   - component: {fileID: 3925506872976142511}
   - component: {fileID: 8312848822823642565}
+  - component: {fileID: 1802841911251887621}
   m_Layer: 0
   m_Name: Cube.001_Cube.002
   m_TagString: Untagged
@@ -109,3 +110,15 @@ MonoBehaviour:
   precomputeOutline: 0
   bakeKeys: []
   bakeValues: []
+--- !u!114 &1802841911251887621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6500595941915624001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e64b44305bc0ebbf8999181c4d94daf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OptimizedMesh

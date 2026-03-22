@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: -4503716578888781720}
   m_Layer: 0
   m_Name: Icosphere_Icosphere
-  m_TagString: Untagged
+  m_TagString: PropSocket
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

@@ -2082,6 +2082,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 633cbdea076845d10b930f344aaec87a, type: 2}
+    - target: {fileID: 5459203384318943105, guid: da4fba9205557464e99bd67199076e6c, type: 3}
+      propertyPath: viewPoint
+      value: 
+      objectReference: {fileID: 471568311}
     - target: {fileID: 5660452609972941328, guid: da4fba9205557464e99bd67199076e6c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 

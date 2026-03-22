@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: -5041423632781917307}
   m_Layer: 0
   m_Name: Cylinder.005_Cylinder.005
-  m_TagString: Untagged
+  m_TagString: PropSocket
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

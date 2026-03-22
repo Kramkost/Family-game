@@ -27,7 +27,6 @@ public class SteamLobby : MonoBehaviour
     
     //GameObject
     public GameObject HostButton;
-    public TMP_Text LobbyNameText;
 
     private void Start()
     {
@@ -69,9 +68,6 @@ public class SteamLobby : MonoBehaviour
         //Everyone
         HostButton.SetActive(false);
         CurrentLobbyID = callback.m_ulSteamIDLobby;
-        LobbyNameText.gameObject.SetActive(true);
-        LobbyNameText.text = SteamMatchmaking.GetLobbyData(new CSteamID(callback.m_ulSteamIDLobby), "name");
-        Debug.Log(LobbyNameText.text);
         
         //Client
         if (NetworkServer.active){ return; }

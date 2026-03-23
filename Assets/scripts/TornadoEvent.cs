@@ -4,7 +4,7 @@ using Mirror;
 namespace Kotenkoff
 {
     /// <summary>
-    /// Торнадо. Бродит по локации и физически засасывает все RigidBody вокруг себя.
+    /// Торнадо. Бродит по локации и засасывает игроков (CharacterController) и машины/пропсы (Rigidbody).
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class TornadoEvent : NetworkBehaviour
@@ -32,7 +32,6 @@ namespace Kotenkoff
 
         private void Update()
         {
-            
             if (tornadoMesh != null)
             {
                 tornadoMesh.Rotate(Vector3.up, spinSpeed * Time.deltaTime, Space.Self);
@@ -53,7 +52,6 @@ namespace Kotenkoff
             directionChangeTimer -= Time.fixedDeltaTime;
             if (directionChangeTimer <= 0)
             {
-               
                 moveDirection = Random.insideUnitCircle.normalized;
                 directionChangeTimer = Random.Range(3f, 6f);
             }
@@ -65,34 +63,52 @@ namespace Kotenkoff
         [Server]
         private void SuckObjects()
         {
- 
             Collider[] colliders = Physics.OverlapSphere(transform.position, pullRadius);
 
             foreach (var col in colliders)
             {
+                
+                Vector3 directionToTornado = transform.position - col.transform.position;
+                float distance = directionToTornado.magnitude;
+                
+              
+                if (distance < 0.1f) distance = 0.1f; 
+                
+                float forceMultiplier = 1f - (distance / pullRadius);
+
+                Vector3 pull = directionToTornado.normalized * pullForce * forceMultiplier;
+                Vector3 swirl = Vector3.Cross(directionToTornado.normalized, Vector3.up) * pullForce * forceMultiplier;
+                Vector3 lift = Vector3.up * liftForce * forceMultiplier;
+
+                Vector3 totalForce = (pull + swirl + lift) * Time.fixedDeltaTime;
+
+                // --- 1. ЕСЛИ ЭТО ИГРОК (CharacterController) ---
+                if (col.TryGetComponent(out CharacterController charController))
+                {
+                    charController.Move(totalForce);
+                    continue; 
+                }
+
+                // --- 2. ЕСЛИ ЭТО МАШИНА ИЛИ ФИЗИЧЕСКИЙ ПРОП (Rigidbody) ---
                 if (col.TryGetComponent(out Rigidbody targetRb))
                 {
-                  
-                    if (targetRb == rb || targetRb.isKinematic) continue;
+                    if (targetRb == rb) continue; 
 
                    
-                    Vector3 directionToTornado = transform.position - targetRb.position;
-                    float distance = directionToTornado.magnitude;
-                    
-                  
-                    float forceMultiplier = 1f - (distance / pullRadius);
+                    if (targetRb.isKinematic)
+                    {
+                       
+                        if (col.GetComponent<CarHybridSystem>())
+                        {
+                            targetRb.isKinematic = false; 
+                        }
+                        else
+                        {
+                            continue; 
+                        }
+                    }
 
-                 
-                    Vector3 pull = directionToTornado.normalized * pullForce * forceMultiplier;
-                    
-                    
-                    Vector3 swirl = Vector3.Cross(directionToTornado.normalized, Vector3.up) * pullForce * forceMultiplier;
-                    
-                    
-                    Vector3 lift = Vector3.up * liftForce * forceMultiplier;
-
-                    
-                    targetRb.AddForce((pull + swirl + lift) * Time.fixedDeltaTime, ForceMode.VelocityChange);
+                    targetRb.AddForce(totalForce, ForceMode.VelocityChange);
                 }
             }
         }

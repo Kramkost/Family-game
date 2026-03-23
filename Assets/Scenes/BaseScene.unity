@@ -1320,7 +1320,15 @@ MonoBehaviour:
   minInterval: 60
   maxInterval: 180
   referencePoint: {fileID: 7901260175048883074}
-  events: []
+  events:
+  - eventName: Tornado
+    eventPrefab: {fileID: 8496979840417753507, guid: 5711a9b4d036b5f699958343874af39a, type: 3}
+    spawnWeight: 5
+    duration: 60
+  - eventName: Rain DEF
+    eventPrefab: {fileID: 3143047609463255828, guid: fdcfece541d3012459c8d88e16598bbe, type: 3}
+    spawnWeight: 100
+    duration: 120
 --- !u!4 &1555828635
 Transform:
   m_ObjectHideFlags: 0
@@ -1616,6 +1624,14 @@ PrefabInstance:
       propertyPath: worldContainer
       value: 
       objectReference: {fileID: 1778708696}
+    - target: {fileID: 7199559695023031155, guid: 24383c8696704cbaab8592c39f108007, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 7199559695023031155, guid: 24383c8696704cbaab8592c39f108007, type: 3}
+      propertyPath: m_TagString
+      value: Untagged
+      objectReference: {fileID: 0}
     - target: {fileID: 8292456204325239269, guid: 24383c8696704cbaab8592c39f108007, type: 3}
       propertyPath: exitPoint
       value: 

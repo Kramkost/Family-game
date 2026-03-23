@@ -23,17 +23,13 @@ public class SteamLobby : MonoBehaviour
     //Variables
     public ulong CurrentLobbyID;
     private const string HostAddressKey = "HostAddress";
-    private NetworkManager manager;
-    
-    //GameObject
-    public GameObject HostButton;
-    public TMP_Text LobbyNameText;
+    private CustomNetworkManager manager;
 
     private void Start()
     {
         if (!SteamManager.Initialized) { return; }
         if (Instance == null) { Instance = this; }
-        manager = GetComponent<NetworkManager>();
+        manager = GetComponent<CustomNetworkManager>();
         
         LobbyCreated = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
         JoinRequest = Callback<GameLobbyJoinRequested_t>.Create(OnJoinRequest);
@@ -67,11 +63,7 @@ public class SteamLobby : MonoBehaviour
     private void OnLobbyEntered(LobbyEnter_t callback)
     {
         //Everyone
-        HostButton.SetActive(false);
         CurrentLobbyID = callback.m_ulSteamIDLobby;
-        LobbyNameText.gameObject.SetActive(true);
-        LobbyNameText.text = SteamMatchmaking.GetLobbyData(new CSteamID(callback.m_ulSteamIDLobby), "name");
-        Debug.Log(LobbyNameText.text);
         
         //Client
         if (NetworkServer.active){ return; }
@@ -80,7 +72,7 @@ public class SteamLobby : MonoBehaviour
         manager.StartClient();
     }
     
-    public static void JoinLobby(CSteamID lobbyID)
+    public void JoinLobby(CSteamID lobbyID)
     {
         SteamMatchmaking.JoinLobby(lobbyID);
     }

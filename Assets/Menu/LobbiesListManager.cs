@@ -6,7 +6,6 @@ using Steamworks;
 public class LobbiesListManager : MonoBehaviour
 {
     public static LobbiesListManager instance;
-    [SerializeField] private SteamLobby  SteamLobby;
     
     //Lobbies List Variables
     public GameObject lobbiesMenu;
@@ -25,7 +24,7 @@ public class LobbiesListManager : MonoBehaviour
         lobbiesButton.SetActive(false);
         hostButton.SetActive(false);
         lobbiesMenu.SetActive(true);
-        SteamLobby.GetLobbiesList();
+        SteamLobby.Instance.GetLobbiesList();
     }
     
     public void DisplayLobbbies(List<CSteamID> lobbyIDs, LobbyDataUpdate_t result)

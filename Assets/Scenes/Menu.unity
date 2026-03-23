@@ -209,7 +209,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u041D\u0430\u0437\u0430\u0434"
+  m_text: Back
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
@@ -421,7 +421,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u0425\u043E\u0441\u0442"
+  m_text: Host Game
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
@@ -545,7 +545,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d028ecc43b76df439cd917a2e2326d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbiesListManager
-  SteamLobby: {fileID: 1975455247}
   lobbiesMenu: {fileID: 2589338}
   lobbyDataItemPrefab: {fileID: 5199489096157480741, guid: 88188c241b0576546b28add0ce0a0c69, type: 3}
   lobbyListContent: {fileID: 512279388}
@@ -892,7 +891,7 @@ MonoBehaviour:
   m_Content: {fileID: 512279389}
   m_Horizontal: 1
   m_Vertical: 1
-  m_MovementType: 1
+  m_MovementType: 2
   m_Elasticity: 0.1
   m_Inertia: 1
   m_DecelerationRate: 0.135
@@ -1687,7 +1686,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u0421\u043F\u0438\u0441\u043E\u043A \u043B\u043E\u0431\u0431\u0438"
+  m_text: Lobbies
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
@@ -1873,7 +1872,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1975455244}
-  - component: {fileID: 1975455243}
+  - component: {fileID: 1975455248}
   - component: {fileID: 1975455246}
   - component: {fileID: 1975455245}
   - component: {fileID: 1975455247}
@@ -1884,53 +1883,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1975455243
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1975455240}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8aab4c8111b7c411b9b92cf3dbc5bd4e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Mirror::Mirror.NetworkManager
-  dontDestroyOnLoad: 1
-  runInBackground: 1
-  headlessStartMode: 0
-  editorAutoStart: 0
-  sendRate: 60
-  offlineScene: Assets/Scenes/Menu.unity
-  onlineScene: Assets/Scenes/BaseScene.unity
-  offlineSceneLoadDelay: 0
-  transport: {fileID: 0}
-  networkAddress: localhost
-  maxConnections: 100
-  disconnectInactiveConnections: 0
-  disconnectInactiveTimeout: 60
-  authenticator: {fileID: 0}
-  playerPrefab: {fileID: 9157056898161686194, guid: 68fd399731f37e14f85e9c66f1cb9db9, type: 3}
-  autoCreatePlayer: 1
-  playerSpawnMethod: 0
-  spawnPrefabs:
-  - {fileID: 8113474687368866636, guid: cab3290037a0a7b4b898da3a693e7fd3, type: 3}
-  - {fileID: 8113474687368866636, guid: 0e9fc6742a50e004d89e454ad131a4c7, type: 3}
-  exceptionsDisconnect: 1
-  snapshotSettings:
-    bufferTimeMultiplier: 2
-    bufferLimit: 32
-    catchupNegativeThreshold: -1
-    catchupPositiveThreshold: 1
-    catchupSpeed: 0.019999999552965164
-    slowdownSpeed: 0.03999999910593033
-    driftEmaDuration: 1
-    dynamicAdjustment: 1
-    dynamicAdjustmentTolerance: 1
-    deliveryTimeEmaDuration: 2
-  evaluationMethod: 0
-  evaluationInterval: 3
-  timeInterpolationGui: 0
 --- !u!4 &1975455244
 Transform:
   m_ObjectHideFlags: 0
@@ -1988,8 +1940,52 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SteamLobby
   lobbyIDs: []
   CurrentLobbyID: 0
-  HostButton: {fileID: 2021037413}
-  LobbyNameText: {fileID: 0}
+--- !u!114 &1975455248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1975455240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f3352be627ea3347ba4a836ac6f7e1c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CustomNetworkManager
+  dontDestroyOnLoad: 1
+  runInBackground: 1
+  headlessStartMode: 0
+  editorAutoStart: 0
+  sendRate: 60
+  offlineScene: Assets/Scenes/Menu.unity
+  onlineScene: Assets/Scenes/Lobby.unity
+  offlineSceneLoadDelay: 0
+  transport: {fileID: 1975455246}
+  networkAddress: localhost
+  maxConnections: 4
+  disconnectInactiveConnections: 0
+  disconnectInactiveTimeout: 60
+  authenticator: {fileID: 0}
+  playerPrefab: {fileID: 1958588552355248976, guid: acb6cdb732a80734ca2d7ec684b3322d, type: 3}
+  autoCreatePlayer: 1
+  playerSpawnMethod: 0
+  spawnPrefabs: []
+  exceptionsDisconnect: 1
+  snapshotSettings:
+    bufferTimeMultiplier: 2
+    bufferLimit: 32
+    catchupNegativeThreshold: -1
+    catchupPositiveThreshold: 1
+    catchupSpeed: 0.019999999552965164
+    slowdownSpeed: 0.03999999910593033
+    driftEmaDuration: 1
+    dynamicAdjustment: 1
+    dynamicAdjustmentTolerance: 1
+    deliveryTimeEmaDuration: 2
+  evaluationMethod: 0
+  evaluationInterval: 3
+  timeInterpolationGui: 0
+  GamePlayerPrefab: {fileID: 9114113570624904871, guid: acb6cdb732a80734ca2d7ec684b3322d, type: 3}
 --- !u!1 &2021037413
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,5 +1,6 @@
 ﻿<Solution>
   <Project Path="NaughtyAttributes.Core.csproj" />
+  <Project Path="com.rlabrecque.steamworks.net.csproj" />
   <Project Path="Mirror.csproj" />
   <Project Path="Edgegap.csproj" />
   <Project Path="NaughtyAttributes.Test.csproj" />
@@ -8,13 +9,15 @@
   <Project Path="Mirror.Examples.csproj" />
   <Project Path="Mirror.Editor.csproj" />
   <Project Path="Mirror.Transports.csproj" />
+  <Project Path="FizzySteamworks.csproj" />
   <Project Path="NaughtyAttributes.Editor.csproj" />
   <Project Path="kcp2k.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Mirror.Authenticators.csproj" />
   <Project Path="EncryptionTransportEditor.csproj" />
   <Project Path="Telepathy.csproj" />
+  <Project Path="com.rlabrecque.steamworks.net.editor.csproj" />
   <Project Path="Mirror.CompilerSymbols.csproj" />
 </Solution>

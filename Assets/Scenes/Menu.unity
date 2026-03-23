@@ -1989,7 +1989,6 @@ MonoBehaviour:
   lobbyIDs: []
   CurrentLobbyID: 0
   HostButton: {fileID: 2021037413}
-  LobbyNameText: {fileID: 0}
 --- !u!1 &2021037413
 GameObject:
   m_ObjectHideFlags: 0

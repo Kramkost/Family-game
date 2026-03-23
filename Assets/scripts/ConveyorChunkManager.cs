@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Mirror; // Обязательно для NetworkTime
+using Mirror; 
 
 /// <summary>
 /// Процедурный генератор мира с динамическим количеством биомов, 
@@ -103,7 +103,7 @@ public class ConveyorChunkManager : MonoBehaviour
     
     private List<Vector2> placedPositionsCache = new List<Vector2>();
 
-    private int highestWeightBiomeIndex = 0; // Кэш для стартовой зоны
+    private int highestWeightBiomeIndex = 0; 
 
     #endregion
 
@@ -160,7 +160,6 @@ public class ConveyorChunkManager : MonoBehaviour
                 biomeTotalWeightMap[i] = totalWeight;
             }
 
-            // Запоминаем биом с самым большим весом для стартовой зоны
             if (biomes[i].spawnWeight > maxWeight)
             {
                 maxWeight = biomes[i].spawnWeight;
@@ -199,7 +198,7 @@ public class ConveyorChunkManager : MonoBehaviour
     private void SpawnChunk(int index)
     {
         float noiseValue = Mathf.PerlinNoise(globalSeed + (index * biomeScale), globalSeed);
-        int nextBiomeIndex = DetermineBiomeIndex(noiseValue, index); // Передаем индекс чанка
+        int nextBiomeIndex = DetermineBiomeIndex(noiseValue, index); 
 
         GameObject chunk = GetChunkFromPool(nextBiomeIndex);
         float exactZ = index * chunkSize;
@@ -207,6 +206,9 @@ public class ConveyorChunkManager : MonoBehaviour
         chunk.transform.SetLocalPositionAndRotation(new Vector3(0, 0, exactZ), Quaternion.identity);
         activeChunks.Add(index, chunk);
         
+        // Синхронизируем физику, чтобы коллайдеры чанка (и дороги) сразу стали активны для Raycast/OverlapSphere
+        Physics.SyncTransforms();
+
         List<GameObject> chunkProps = GetListFromPool();
         activePropsMap.Add(index, chunkProps);
 
@@ -272,6 +274,8 @@ public class ConveyorChunkManager : MonoBehaviour
                     Vector2 testPos2D = new Vector2(randX, randZ);
 
                     bool hasClearance = true;
+
+                    // 1. Проверка на наложение с другими объектами
                     for (int p = 0; p < placedPositionsCache.Count; p++)
                     {
                         if ((placedPositionsCache[p] - testPos2D).sqrMagnitude < sqrMinDist)
@@ -281,17 +285,35 @@ public class ConveyorChunkManager : MonoBehaviour
                         }
                     }
 
+                    // 2. ФИЗИЧЕСКАЯ ПРОВЕРКА НА ТЕГ "Road"
                     if (hasClearance)
                     {
-                        placedPositionsCache.Add(testPos2D);
-                        localPos = new Vector3(randX, 0, baseZ + randZ);
-                        localRot = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
-                        
-                        float randomScale = UnityEngine.Random.Range(propScaleRange.x, propScaleRange.y);
-                        prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale);
-                        
-                        spawnSuccess = true;
-                        break; 
+                        Vector3 tempLocalPos = new Vector3(randX, 0, baseZ + randZ);
+                        Vector3 tempWorldPos = propContainer != null ? propContainer.TransformPoint(tempLocalPos) : tempLocalPos;
+
+                        // Ощупываем сферу размером с объект. Если цепляем дорогу - отмена!
+                        Collider[] hitColliders = Physics.OverlapSphere(tempWorldPos, minPropDistance * 0.5f);
+                        foreach (Collider hit in hitColliders)
+                        {
+                            if (hit.CompareTag("Road"))
+                            {
+                                hasClearance = false;
+                                break;
+                            }
+                        }
+
+                        if (hasClearance)
+                        {
+                            placedPositionsCache.Add(testPos2D);
+                            localPos = tempLocalPos;
+                            localRot = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
+                            
+                            float randomScale = UnityEngine.Random.Range(propScaleRange.x, propScaleRange.y);
+                            prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale);
+                            
+                            spawnSuccess = true;
+                            break; 
+                        }
                     }
                 }
             }
@@ -385,28 +407,20 @@ public class ConveyorChunkManager : MonoBehaviour
         return newChunk;
     }
 
-    /// <summary>
-    /// Математическое распределение биомов: Safe Zone -> Таймер -> Веса.
-    /// </summary>
     private int DetermineBiomeIndex(float noise, int chunkIndex)
     {
         int count = biomes.Length;
         if (count == 0) return 0;
 
-        // --- 0. СТАРТОВАЯ ЗОНА (Safe Zone) 100% гарантия ---
-        // Если чанк находится в зоне начальной прорисовки (вокруг нуля), 
-        // мы ЖЕСТКО спавним самый частый биом.
         if (Mathf.Abs(chunkIndex) <= viewDistanceAhead)
         {
             return highestWeightBiomeIndex;
         }
 
-        // --- 1. ПРОВЕРКА ВРЕМЕННОГО ИВЕНТА ---
         if (NetworkClient.active || NetworkServer.active)
         {
             float currentMinutes = (float)NetworkTime.time / 60f;
             
-            // Защита от старта: Ивент не начнется на 0-й минуте. Только после первого интервала.
             if (currentMinutes >= eventIntervalMinutes)
             {
                 if (currentMinutes % eventIntervalMinutes < eventDurationMinutes)
@@ -416,7 +430,6 @@ public class ConveyorChunkManager : MonoBehaviour
             }
         }
 
-        // --- 2. СТАНДАРТНАЯ ГЕНЕРАЦИЯ (По весам) ---
         int totalWeight = 0;
         for (int i = 0; i < count; i++)
         {
@@ -437,7 +450,7 @@ public class ConveyorChunkManager : MonoBehaviour
             }
         }
 
-        return 0; // Fallback
+        return 0; 
     }
 
     private List<GameObject> GetListFromPool() => listPool.Count > 0 ? listPool.Pop() : new List<GameObject>(propsPerChunk);

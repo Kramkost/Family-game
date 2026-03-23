@@ -26,14 +26,14 @@ public class CarHybridSystem : NetworkBehaviour
     [SerializeField] private float idlePitch = 0.8f;
     [SerializeField] private float maxPitch = 2.0f;
     
-    [SerializeField] private GameObject[] headlights; // Перетащи сюда фары (источники света/эффекты)
+    [SerializeField] private GameObject[] headlights; 
     
     [SerializeField] private Transform steeringWheel;
-    [SerializeField] private float maxSteeringAngle = 90f; // На сколько градусов крутится руль
+    [SerializeField] private float maxSteeringAngle = 90f; 
     
     [SerializeField] private Transform gasPedal;
     [SerializeField] private Transform brakePedal;
-    [SerializeField] private Vector3 pedalTravel = new Vector3(0.05f, 0, 0); // Куда сдвигается педаль при нажатии
+    [SerializeField] private Vector3 pedalTravel = new Vector3(0.05f, 0, 0); 
 
     [Header("Visual Polish (Sway & Pitch)")]
     [SerializeField] private Transform carModel;
@@ -47,7 +47,6 @@ public class CarHybridSystem : NetworkBehaviour
     [SerializeField] private float speedForMaxFOV = 25f;
     [SerializeField] private float fovLerpSpeed = 3f;
 
-    // Синхронизированные переменные для визуала у всех клиентов
     [SyncVar(hook = nameof(OnLightsChanged))] public bool lightsOn = false;
     [SyncVar] private float syncSteer;
     [SyncVar] private float syncAccel;
@@ -58,39 +57,37 @@ public class CarHybridSystem : NetworkBehaviour
     private float currentSteer;
     private float currentAccel;
     
-    // Оптимизация сети (чтобы не спамить сервер каждым микро-движением стика)
     private float lastSentSteer;
     private float lastSentAccel;
 
     private Rigidbody rb;
     private Camera mainCam;
 
-    // Исходные позиции педалей для анимации
+    // Исходные позиции и повороты для анимации салона
     private Vector3 initialGasPos;
     private Vector3 initialBrakePos;
+    private Vector3 initialSteeringEuler; 
+    private Quaternion initialSteeringRot;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
         
-        // --- ФИКС ФИЗИКИ (ЭФФЕКТ НЕВАЛЯШКИ) ---
         rb.mass = 3500f; 
-        
-       
         rb.centerOfMass = new Vector3(0, -1.5f, 0); 
-        
         rb.angularDamping = 2f; 
-        // --------------------------------------
 
         if (gasPedal != null) initialGasPos = gasPedal.localPosition;
         if (brakePedal != null) initialBrakePos = brakePedal.localPosition;
+        
+     
+        if (steeringWheel != null) initialSteeringRot = steeringWheel.localRotation;
     }
 
     private void Start()
     {
         mainCam = Camera.main;
         
-        // Запускаем звук мотора
         if (engineAudio != null && !engineAudio.isPlaying)
         {
             engineAudio.loop = true;
@@ -147,7 +144,6 @@ public class CarHybridSystem : NetworkBehaviour
             worldContainer.Translate(-transform.forward * virtualSpeed * Time.deltaTime, Space.World);
         }
 
-        // Локальные визуальные эффекты
         HandleVisualPolish();
         HandleInteriorAnimation();
         HandleEngineSound();
@@ -158,15 +154,11 @@ public class CarHybridSystem : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Вызывается локальным игроком.
-    /// </summary>
     public void LocalDrive(float steerInput, float accelInput)
     {
         currentSteer = steerInput;
         currentAccel = accelInput;
 
-        // Отправляем на сервер только если значения изменились (Экономит трафик!)
         if (Mathf.Abs(lastSentSteer - steerInput) > 0.05f || Mathf.Abs(lastSentAccel - accelInput) > 0.05f)
         {
             CmdSyncInputs(steerInput, accelInput);
@@ -190,9 +182,7 @@ public class CarHybridSystem : NetworkBehaviour
 
     private void FixedUpdate()
     {
-        // Физика работает только на сервере (или у владельца)
         if (!isOwned) return; 
-
         if (isRoadMillMode) return;
 
         if (resourceManager != null && resourceManager.gasoline <= 0)
@@ -213,25 +203,31 @@ public class CarHybridSystem : NetworkBehaviour
         ApplyLateralFriction();
     }
 
-    // --- БЛОК ВИЗУАЛА И ЗВУКА ---
-
+    // --- ЖЕЛЕЗОБЕТОННЫЙ БЛОК АНИМАЦИИ САЛОНА ---
     private void HandleInteriorAnimation()
     {
-        // Руль
+        // Руль (Вращение строго по оси Z)
         if (steeringWheel != null)
         {
-            float targetZ = syncSteer * -maxSteeringAngle;
-            steeringWheel.localRotation = Quaternion.Lerp(steeringWheel.localRotation, Quaternion.Euler(0, 0, targetZ), Time.deltaTime * 10f);
+            float targetAngle = syncSteer * -maxSteeringAngle;
+            
+            // Создаем вращение ТОЛЬКО вокруг локальной оси Z
+            Quaternion zRotation = Quaternion.AngleAxis(targetAngle, Vector3.forward);
+            
+            // Накладываем это чистое Z-вращение поверх изначального наклона рулевой колонки
+            Quaternion targetRotation = initialSteeringRot * zRotation;
+            
+            steeringWheel.localRotation = Quaternion.Lerp(steeringWheel.localRotation, targetRotation, Time.deltaTime * 10f);
         }
 
-        // Газ (нажимается если accel > 0)
+        // Газ
         if (gasPedal != null)
         {
             Vector3 targetGas = initialGasPos + (syncAccel > 0 ? pedalTravel : Vector3.zero);
             gasPedal.localPosition = Vector3.Lerp(gasPedal.localPosition, targetGas, Time.deltaTime * 10f);
         }
 
-        // Тормоз/Реверс (нажимается если accel < 0)
+        // Тормоз
         if (brakePedal != null)
         {
             Vector3 targetBrake = initialBrakePos + (syncAccel < 0 ? pedalTravel : Vector3.zero);
@@ -243,11 +239,9 @@ public class CarHybridSystem : NetworkBehaviour
     {
         if (engineAudio == null) return;
         
-        // Звук зависит от реальной скорости машины
         float speed = rb.linearVelocity.magnitude;
         float pitchTarget = Mathf.Lerp(idlePitch, maxPitch, speed / speedForMaxFOV);
         
-        // Если газуем стоя на месте - тоже повышаем питч
         if (Mathf.Abs(syncAccel) > 0.1f && speed < 5f) pitchTarget += 0.3f;
 
         engineAudio.pitch = Mathf.Lerp(engineAudio.pitch, pitchTarget, Time.deltaTime * 5f);

@@ -80,8 +80,8 @@ Material:
     - _ToonSmoothness: 0.05
     - _ToonThreshold: 0.178
     - _UVSec: 0
-    - _WindSpeed: 0.33
-    - _WindStrength: 0.05
+    - _WindSpeed: 0
+    - _WindStrength: 0
     - _ZWrite: 1
     m_Colors:
     - _Color: {r: 0.26364803, g: 1, b: 0, a: 1}

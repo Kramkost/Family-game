@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Captures local audio from the microphone, perfectly matching system sample rate,
-/// applies VAD with a "hang time" to prevent stuttering, and safely packets data.
+/// Записывает голос, применяет VAD и СЖИМАЕТ трафик (Downsampling),
+/// чтобы пакеты гарантированно пролезали в сетевые лимиты Mirror (MTU).
 /// </summary>
 [RequireComponent(typeof(VoiceNetworker))]
 public class VoiceRecorder : MonoBehaviour
@@ -11,11 +11,11 @@ public class VoiceRecorder : MonoBehaviour
     [SerializeField] private string pttKeyName = "v"; 
     [SerializeField] private bool useVAD = true;
     [SerializeField] private float vadThreshold = 0.01f;
-    [Tooltip("Сколько секунд продолжать запись после того, как голос стих (сглаживает прерывания)")]
     [SerializeField] private float vadHangTime = 0.5f; 
-    
-    [Tooltip("20ms гарантирует, что размер пакета не превысит MTU лимит UDP")]
     [SerializeField] private int chunkLengthMs = 20;
+
+    [Tooltip("Фактор сжатия трафика. Значение 4 уменьшит вес пакета в 4 раза (гарантия обхода ошибки Mirror)")]
+    [SerializeField] private int downsampleFactor = 4;
 
     private VoiceNetworker networker;
     private AudioClip micClip;
@@ -23,6 +23,7 @@ public class VoiceRecorder : MonoBehaviour
     private int lastMicPosition;
     private int chunkSize;
     private float[] chunkBuffer;
+    private float[] downsampledBuffer; // Уменьшенный буфер для сети
     private bool isRecording = false;
     
     private int systemSampleRate;
@@ -37,21 +38,21 @@ public class VoiceRecorder : MonoBehaviour
             return;
         }
 
-        // 1. АВТО-ГЕРЦОВКА: Берем системную частоту (спасает от высокого "бурундучьего" питча)
         systemSampleRate = AudioSettings.outputSampleRate;
-
         chunkSize = systemSampleRate * chunkLengthMs / 1000;
+        
         chunkBuffer = new float[chunkSize];
+        // Подготавливаем крошечный буфер для отправки по сети
+        downsampledBuffer = new float[chunkSize / downsampleFactor]; 
 
         if (Microphone.devices.Length > 0)
         {
             deviceName = null; 
-            Debug.Log($"[Voice] Запуск микрофона. Частота: {systemSampleRate}Hz, Размер чанка: {chunkSize} сэмплов.");
             StartMicrophone();
         }
         else
         {
-            Debug.LogError("КРИТИЧЕСКАЯ ОШИБКА: Микрофоны не найдены в системе!");
+            Debug.LogError("КРИТИЧЕСКАЯ ОШИБКА: Микрофоны не найдены!");
         }
     }   
 
@@ -71,7 +72,6 @@ public class VoiceRecorder : MonoBehaviour
 
         if (diff < 0) diff += micClip.samples;
 
-        // Отправляем чанки, если накопилось достаточно данных
         while (diff >= chunkSize)
         {
             micClip.GetData(chunkBuffer, lastMicPosition);
@@ -87,7 +87,6 @@ public class VoiceRecorder : MonoBehaviour
         bool isPttPressed = Keyboard.current != null && Keyboard.current.vKey.isPressed;
         bool isSpeaking = isPttPressed;
 
-        // Умный VAD с "хвостом"
         if (useVAD && !isPttPressed)
         {
             float maxVolume = 0f;
@@ -100,11 +99,10 @@ public class VoiceRecorder : MonoBehaviour
             if (maxVolume >= vadThreshold)
             {
                 isSpeaking = true;
-                currentVadHangTimer = vadHangTime; // Сбрасываем таймер удержания
+                currentVadHangTimer = vadHangTime; 
             }
             else if (currentVadHangTimer > 0f)
             {
-                // Голос стих, но мы продолжаем запись еще долю секунды
                 isSpeaking = true;
                 currentVadHangTimer -= (float)chunkLengthMs / 1000f; 
             }
@@ -112,7 +110,15 @@ public class VoiceRecorder : MonoBehaviour
 
         if (!isSpeaking) return;
 
-        networker.TransmitAudio(chunkBuffer);
+        // --- МАГИЯ СЖАТИЯ (DOWNSAMPLING) ---
+        // Берем только каждый 4-й сэмпл. Качество голоса остается понятным (как в рации), 
+        // но пакет становится легким, и Mirror перестает ругаться!
+        for (int i = 0; i < downsampledBuffer.Length; i++)
+        {
+            downsampledBuffer[i] = chunkBuffer[i * downsampleFactor];
+        }
+
+        networker.TransmitAudio(downsampledBuffer);
     }
 
     private void OnDisable()

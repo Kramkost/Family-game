@@ -3,9 +3,6 @@ using UnityEngine;
 using Mirror;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// Отвечает за локальное передвижение, прыжок, управление камерой, посадку в авто, взаимодействие, предметы и ЗВУКИ ШАГОВ.
-/// </summary>
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(NetworkAnimator))]
 public class PlayerEntity : NetworkBehaviour
@@ -25,13 +22,13 @@ public class PlayerEntity : NetworkBehaviour
     [Header("Camera Bobbing")]
     [SerializeField] private float bobbingSpeed = 14f;
     [SerializeField] private float bobbingAmount = 0.05f;
-    private float defaultCameraY;
-    private float timer = 0f;
+    private Vector3 defaultCameraPos;
+    private float bobbingTimer = 0f;
 
     [Header("Audio & Footsteps")]
     [SerializeField] private AudioSource footstepAudioSource;
     [SerializeField] private AudioClip[] footstepSounds;
-    [SerializeField] private float footstepInterval = 0.4f; // Время между шагами при обычной ходьбе
+    [SerializeField] private float footstepInterval = 0.4f;
     private float footstepTimer = 0f;
     private Vector3 lastPosition;
 
@@ -57,7 +54,6 @@ public class PlayerEntity : NetworkBehaviour
 
     private CharacterController characterController;
     private Collider[] allColliders; 
-    
     private float xRotation = 0f; 
     private float yRotation = 0f; 
     
@@ -96,12 +92,9 @@ public class PlayerEntity : NetworkBehaviour
 
         if (cameraTransform != null)
         {
-            defaultCameraY = cameraTransform.localPosition.y;
-            Camera cam = cameraTransform.GetComponent<Camera>();
-            if (cam != null) cam.enabled = false;
-
-            AudioListener listener = cameraTransform.GetComponent<AudioListener>();
-            if (listener != null) listener.enabled = false;
+            defaultCameraPos = cameraTransform.localPosition;
+            if (cameraTransform.TryGetComponent(out Camera cam)) cam.enabled = false;
+            if (cameraTransform.TryGetComponent(out AudioListener listener)) listener.enabled = false;
         }
 
         lastPosition = transform.position;
@@ -114,15 +107,13 @@ public class PlayerEntity : NetworkBehaviour
 
         if (cameraTransform != null)
         {
-            Camera cam = cameraTransform.GetComponent<Camera>();
-            if (cam != null) cam.enabled = true;
-
-            AudioListener listener = cameraTransform.GetComponent<AudioListener>();
-            if (listener != null) listener.enabled = true;
+            if (cameraTransform.TryGetComponent(out Camera cam)) cam.enabled = true;
+            if (cameraTransform.TryGetComponent(out AudioListener listener)) listener.enabled = true;
         }
 
-        if (moveAction != null) moveAction.action.Enable();
-        if (lookAction != null) lookAction.action.Enable();
+        moveAction?.action.Enable();
+        lookAction?.action.Enable();
+        jumpAction?.action.Enable();
         
         if (interactAction != null)
         {
@@ -134,11 +125,6 @@ public class PlayerEntity : NetworkBehaviour
         {
             dropAction.action.Enable();
             dropAction.action.performed += OnDropPerformed;
-        }
-
-        if (jumpAction != null)
-        {
-            jumpAction.action.Enable();
         }
 
         if (useAction != null) 
@@ -153,8 +139,9 @@ public class PlayerEntity : NetworkBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        if (moveAction != null) moveAction.action.Disable();
-        if (lookAction != null) lookAction.action.Disable();
+        moveAction?.action.Disable();
+        lookAction?.action.Disable();
+        jumpAction?.action.Disable();
         
         if (interactAction != null)
         {
@@ -168,11 +155,6 @@ public class PlayerEntity : NetworkBehaviour
             dropAction.action.Disable();
         }
 
-        if (jumpAction != null)
-        {
-            jumpAction.action.Disable();
-        }
-
         if (useAction != null) 
         {
             useAction.action.performed -= OnUsePerformed;
@@ -182,10 +164,8 @@ public class PlayerEntity : NetworkBehaviour
 
     private void Update()
     {
-        // 1. Отрабатываем шаги ДЛЯ ВСЕХ игроков (чтобы слышать чужие)
         HandleFootsteps();
 
-        // 2. Всё что ниже - только для нашего локального персонажа
         if (!isLocalPlayer) return;
 
         if (isSitting)
@@ -193,15 +173,11 @@ public class PlayerEntity : NetworkBehaviour
             HandleLook();
             HandleDriving();
             
-            if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame)
-            {
-                CmdLeaveSeat();
-            }
+            if (Keyboard.current.spaceKey.wasPressedThisFrame) CmdLeaveSeat();
             
             if (currentSeat != null && currentSeat.isDriverSeat)
             {
-                if (UnityEngine.InputSystem.Keyboard.current.fKey.wasPressedThisFrame || 
-                    UnityEngine.InputSystem.Keyboard.current.lKey.wasPressedThisFrame)
+                if (Keyboard.current.fKey.wasPressedThisFrame || Keyboard.current.lKey.wasPressedThisFrame)
                 {
                     currentSeat.carSystem.CmdToggleLights();
                 }
@@ -215,26 +191,21 @@ public class PlayerEntity : NetworkBehaviour
         HandleCameraBobbing();
     }
 
-    // --- ЛОГИКА ШАГОВ ---
     private void HandleFootsteps()
     {
         if (footstepSounds == null || footstepSounds.Length == 0 || footstepAudioSource == null) return;
 
-        // Вычисляем горизонтальную скорость (чтобы звук не играл при падении в пропасть)
-        Vector3 horizontalMovement = new Vector3(transform.position.x - lastPosition.x, 0, transform.position.z - lastPosition.z);
-        float currentSpeed = horizontalMovement.magnitude / Time.deltaTime;
+        Vector3 delta = transform.position - lastPosition;
+        delta.y = 0;
+        float currentSpeed = delta.magnitude / Time.deltaTime;
         lastPosition = transform.position;
 
-        // Простой Raycast, чтобы проверить, стоит ли игрок на земле (Network Safe)
         bool isGroundedNetworkSafe = Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.4f);
 
         if (currentSpeed > 0.5f && isGroundedNetworkSafe && !isSitting)
         {
             footstepTimer += Time.deltaTime;
-            
-            // Если игрок бежит быстрее, шаги звучат чаще
-            float currentInterval = footstepInterval * (moveSpeed / Mathf.Max(currentSpeed, 1f));
-            currentInterval = Mathf.Clamp(currentInterval, 0.2f, footstepInterval);
+            float currentInterval = Mathf.Clamp(footstepInterval * (moveSpeed / Mathf.Max(currentSpeed, 1f)), 0.2f, footstepInterval);
 
             if (footstepTimer >= currentInterval)
             {
@@ -244,17 +215,14 @@ public class PlayerEntity : NetworkBehaviour
         }
         else
         {
-            // Сбрасываем таймер, чтобы первый шаг всегда звучал сразу после начала движения
             footstepTimer = footstepInterval; 
         }
     }
 
     private void PlayRandomFootstep()
     {
-        AudioClip clip = footstepSounds[Random.Range(0, footstepSounds.Length)];
-        // Небольшой рандом высоты звука для естественности
         footstepAudioSource.pitch = Random.Range(0.85f, 1.15f); 
-        footstepAudioSource.PlayOneShot(clip);
+        footstepAudioSource.PlayOneShot(footstepSounds[Random.Range(0, footstepSounds.Length)]);
     }
 
     private void HandleDriving()
@@ -274,13 +242,11 @@ public class PlayerEntity : NetworkBehaviour
         float mouseX = lookInput.x * lookSensitivity;
         float mouseY = lookInput.y * lookSensitivity;
 
-        xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+        xRotation = Mathf.Clamp(xRotation - mouseY, -90f, 90f);
 
         if (isSitting)
         {
-            yRotation += mouseX;
-            yRotation = Mathf.Clamp(yRotation, -110f, 110f); 
+            yRotation = Mathf.Clamp(yRotation + mouseX, -110f, 110f); 
             cameraTransform.localRotation = Quaternion.Euler(xRotation, yRotation, 0f);
         }
         else
@@ -301,8 +267,9 @@ public class PlayerEntity : NetworkBehaviour
 
         if (animator != null)
         {
-            float horizontalSpeed = new Vector3(characterController.velocity.x, 0, characterController.velocity.z).magnitude;
-            animator.SetFloat(SpeedHash, horizontalSpeed, 0.1f, Time.deltaTime);
+            Vector3 horizVelocity = characterController.velocity;
+            horizVelocity.y = 0;
+            animator.SetFloat(SpeedHash, horizVelocity.magnitude, 0.1f, Time.deltaTime);
         }
     }
 
@@ -310,11 +277,7 @@ public class PlayerEntity : NetworkBehaviour
     {
         bool isGrounded = characterController.isGrounded;
 
-        if (isGrounded && velocityY < 0)
-        {
-           
-            velocityY = -0.1f; 
-        }
+        if (isGrounded && velocityY < 0) velocityY = -0.1f; 
 
         if (isGrounded && jumpAction != null && jumpAction.action.triggered)
         {
@@ -329,67 +292,49 @@ public class PlayerEntity : NetworkBehaviour
     {
         if (cameraTransform == null) return;
 
-        float speed = new Vector3(characterController.velocity.x, 0, characterController.velocity.z).magnitude;
+        Vector3 horizVelocity = characterController.velocity;
+        horizVelocity.y = 0;
+        float speed = horizVelocity.magnitude;
 
         if (speed > 0.1f && characterController.isGrounded)
         {
-            timer += Time.deltaTime * bobbingSpeed;
-            float newY = defaultCameraY + Mathf.Sin(timer) * bobbingAmount;
-            cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, newY, cameraTransform.localPosition.z);
+            bobbingTimer += Time.deltaTime * bobbingSpeed;
+            float newY = defaultCameraPos.y + Mathf.Sin(bobbingTimer * 2f) * bobbingAmount;
+            float newX = defaultCameraPos.x + Mathf.Cos(bobbingTimer) * bobbingAmount * 0.5f;
+            cameraTransform.localPosition = new Vector3(newX, newY, cameraTransform.localPosition.z);
         }
         else
         {
-            timer = 0f;
-            float newY = Mathf.Lerp(cameraTransform.localPosition.y, defaultCameraY, Time.deltaTime * bobbingSpeed);
-            cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, newY, cameraTransform.localPosition.z);
+            bobbingTimer = 0f;
+            cameraTransform.localPosition = Vector3.Lerp(cameraTransform.localPosition, defaultCameraPos, Time.deltaTime * bobbingSpeed);
         }
     }
 
     private void OnInteractPerformed(InputAction.CallbackContext context)
     {
-        if (isSitting || cameraTransform == null) return;
-
-        if (Time.time < lastInteractTime + 0.5f) return;
+        if (isSitting || cameraTransform == null || Time.time < lastInteractTime + 0.5f) return;
         lastInteractTime = Time.time;
 
         if (networkAnimator != null) animator.SetTrigger(InteractTriggerHash);
 
         if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange, interactLayerMask))
         {
-            if (hit.collider.TryGetComponent(out CarPart brokenPart) || hit.collider.GetComponentInParent<CarPart>())
+            CarPart part = hit.collider.GetComponent<CarPart>() ?? hit.collider.GetComponentInParent<CarPart>();
+            if (part != null && part.isBroken)
             {
-                CarPart part = hit.collider.GetComponent<CarPart>() ?? hit.collider.GetComponentInParent<CarPart>();
-                
-                if (part != null && part.isBroken)
+                if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool) && tool.CanFix(part))
                 {
-                    
-                    if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool))
-                    {
-                        if (tool.CanFix(part))
-                        {
-                           
-                            RepairUIManager uiManager = FindFirstObjectByType<RepairUIManager>();
-                            if (uiManager != null)
-                            {
-                                uiManager.OpenMiniGame(part, this);
-                            }
-                            return; 
-                        }
-                    }
-                    else
-                    {
-                        Debug.Log("Чтобы починить это, нужен правильный инструмент в руках!");
-                        return;
-                    }
+                    FindFirstObjectByType<RepairUIManager>()?.OpenMiniGame(part, this);
+                    return; 
                 }
             }
+
             NetworkIdentity rootIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
             IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
 
             if (rootIdentity != null && interactable != null)
             {
-                string targetName = ((Component)interactable).gameObject.name;
-                CmdInteract(rootIdentity, targetName);
+                CmdInteract(rootIdentity, ((Component)interactable).gameObject.name);
             }
         }
     }
@@ -399,8 +344,7 @@ public class PlayerEntity : NetworkBehaviour
     {
         if (rootIdentity == null || string.IsNullOrEmpty(targetName)) return;
 
-        Transform[] allChildren = rootIdentity.GetComponentsInChildren<Transform>();
-        foreach (Transform child in allChildren)
+        foreach (Transform child in rootIdentity.GetComponentsInChildren<Transform>())
         {
             if (child.name == targetName && child.TryGetComponent(out IInteractable interactable))
             {
@@ -422,7 +366,7 @@ public class PlayerEntity : NetworkBehaviour
         if (heldItem == null) return;
         
         GameObject itemToDrop = heldItem.gameObject;
-        if (inventory != null) inventory.RemoveItem(itemToDrop);
+        inventory?.RemoveItem(itemToDrop);
         heldItem = null; 
         itemToDrop.transform.position = cameraTransform.position + cameraTransform.forward * 1.5f;
     }
@@ -438,7 +382,6 @@ public class PlayerEntity : NetworkBehaviour
         if (oldItem != null)
         {
             oldItem.transform.SetParent(null);
-            
             if (oldItem.TryGetComponent(out Rigidbody rb)) rb.isKinematic = false;
             foreach (var col in oldItem.GetComponents<Collider>()) col.enabled = true;
         }
@@ -446,8 +389,7 @@ public class PlayerEntity : NetworkBehaviour
         if (newItem != null && rightHandSocket != null)
         {
             newItem.transform.SetParent(rightHandSocket);
-            newItem.transform.localPosition = Vector3.zero;
-            newItem.transform.localRotation = Quaternion.identity; 
+            newItem.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity); 
 
             if (newItem.TryGetComponent(out Rigidbody rb)) rb.isKinematic = true;
             foreach (var col in newItem.GetComponents<Collider>()) col.enabled = false;
@@ -457,20 +399,14 @@ public class PlayerEntity : NetworkBehaviour
     [Command]
     private void CmdLeaveSeat()
     {
-        if (currentSeat != null)
-        {
-            currentSeat.ServerLeave(this);
-        }
+        currentSeat?.ServerLeave(this);
     }
 
     [TargetRpc]
     public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath)
     {
         GameObject seatObj = GameObject.Find(seatPath);
-        if (seatObj == null) return;
-        
-        currentSeat = seatObj.GetComponent<CarSeat>();
-        if (currentSeat == null) return;
+        if (seatObj == null || !seatObj.TryGetComponent(out currentSeat)) return;
 
         characterController.enabled = false; 
         foreach (var col in allColliders) if (col != null) col.enabled = false;
@@ -486,8 +422,7 @@ public class PlayerEntity : NetworkBehaviour
         Transform targetTransform = currentSeat.viewPoint != null ? currentSeat.viewPoint : currentSeat.transform;
 
         transform.SetParent(targetTransform);
-        transform.localPosition = Vector3.zero;
-        transform.localRotation = Quaternion.identity;
+        transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 
         xRotation = 0f;
         yRotation = 0f;
@@ -508,20 +443,15 @@ public class PlayerEntity : NetworkBehaviour
         transform.SetParent(null);
         transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
 
-        if (currentSeat != null && currentSeat.exitPoint != null)
-        {
-            transform.position = currentSeat.exitPoint.position;
-        }
-        else
-        {
-            transform.position += transform.right * 1.5f; 
-        }
+        transform.position = currentSeat != null && currentSeat.exitPoint != null 
+            ? currentSeat.exitPoint.position 
+            : transform.position + transform.right * 1.5f;
 
         xRotation = 0f;
         yRotation = 0f;
         
         cameraTransform.localRotation = Quaternion.identity;
-        cameraTransform.localPosition = new Vector3(cameraTransform.localPosition.x, defaultCameraY, cameraTransform.localPosition.z);
+        cameraTransform.localPosition = defaultCameraPos;
         
         currentSeat = null;
 
@@ -529,28 +459,15 @@ public class PlayerEntity : NetworkBehaviour
         characterController.enabled = true;
     }
 
-    // =========================================================
-    // СЕТЕВАЯ КОМАНДА ДЛЯ UI ПОЧИНКИ
-    // =========================================================
     [Command]
     public void CmdFixPart(GameObject partObj)
     {
-        // Проверяем, что объект не пустой и на нем действительно есть CarPart
-        if (partObj != null && partObj.TryGetComponent(out CarPart part))
-        {
-            part.RepairPart(); // Сервер чинит деталь (меняет модельку и переменную isBroken у всех)
-        }
+        if (partObj != null && partObj.TryGetComponent(out CarPart part)) part.RepairPart(); 
     }
 
-
-    // =========================================================
-    // ЛОГИКА ИСПОЛЬЗОВАНИЯ ПРЕДМЕТОВ В РУКАХ (ЕДА, ОРУЖИЕ И Т.Д.)
-    // =========================================================
     private void OnUsePerformed(InputAction.CallbackContext context)
     {
         if (isSitting || heldItem == null) return;
-        
-    
         CmdUseItem(); 
     }
 
@@ -563,7 +480,6 @@ public class PlayerEntity : NetworkBehaviour
         }
     }
 
-
     [Server]
     public void DestroyHeldItem()
     {
@@ -572,9 +488,7 @@ public class PlayerEntity : NetworkBehaviour
         GameObject itemObj = heldItem.gameObject;
         heldItem = null; 
         
-        if (inventory != null) 
-            inventory.RemoveItem(itemObj); 
-            
+        inventory?.RemoveItem(itemObj); 
         NetworkServer.Destroy(itemObj); 
     }
 }

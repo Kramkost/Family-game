@@ -1,60 +1,53 @@
 using UnityEngine;
 using Mirror;
 
-/// <summary>
-/// Компонент для отдельных деталей авто. Синхронизирует ХП и меняет визуал при поломке.
-/// </summary>
-public class CarPart : NetworkBehaviour
+namespace Kotenkoff
 {
-    [Header("Health")]
-    [SerializeField] private float maxHealth = 100f;
-    [SyncVar] private float currentHealth;
-
-    [Header("Visuals & Audio")]
-    [SerializeField] private GameObject intactModel;
-    [SerializeField] private GameObject brokenModel;
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip breakSound;
-
-    // Хук вызывается у всех клиентов автоматически при изменении переменной isBroken
-    [SyncVar(hook = nameof(OnBrokenStateChanged))]
-    private bool isBroken = false;
-
-    public override void OnStartServer()
+    public class CarPart : NetworkBehaviour
     {
-        currentHealth = maxHealth;
-    }
+        [Header("Визуал")]
+        [SerializeField] private GameObject workingModel;
+        [SerializeField] private GameObject brokenModel;
+        
+        [Header("Стэйт")]
+        [SyncVar(hook = nameof(OnPartStateChanged))] 
+        public bool isBroken = false;
 
-    /// <summary>
-    /// Нанесение урона детали. Вызывается только на сервере (например, при столкновении).
-    /// </summary>
-    [Server]
-    public void TakeDamage(float damageAmount)
-    {
-        if (isBroken) return; // Уже сломано
-
-        currentHealth -= damageAmount;
-
-        if (currentHealth <= 0)
+        private void Start()
         {
-            isBroken = true; // Триггерит хук у всех клиентов
+            UpdateVisuals(isBroken);
         }
-    }
 
-    /// <summary>
-    /// Клиентская логика: смена мешей и воспроизведение звука.
-    /// </summary>
-    private void OnBrokenStateChanged(bool oldState, bool newState)
-    {
-        if (newState == true)
+        // Вызывается Менеджером Поломок на сервере
+        [Server]
+        public void BreakPart()
         {
-            if (intactModel != null) intactModel.SetActive(false);
-            if (brokenModel != null) brokenModel.SetActive(true);
+            if (isBroken) return;
+            isBroken = true;
+            Debug.Log($"[CarPart] Деталь {gameObject.name} сломалась!");
             
-            if (audioSource != null && breakSound != null)
-            {
-                audioSource.PlayOneShot(breakSound);
-            }
+            // Тут можно отправить сигнал машине, чтобы она начала дымиться или заглохла
+        }
+
+    
+        [Server]
+        public void RepairPart()
+        {
+            if (!isBroken) return;
+            isBroken = false;
+            Debug.Log($"[CarPart] Деталь {gameObject.name} починена!");
+        }
+
+        
+        private void OnPartStateChanged(bool oldState, bool newState)
+        {
+            UpdateVisuals(newState);
+        }
+
+        private void UpdateVisuals(bool broken)
+        {
+            if (workingModel != null) workingModel.SetActive(!broken);
+            if (brokenModel != null) brokenModel.SetActive(broken);
         }
     }
 }

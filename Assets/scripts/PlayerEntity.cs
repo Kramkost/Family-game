@@ -343,6 +343,33 @@ public class PlayerEntity : NetworkBehaviour
 
         if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange, interactLayerMask))
         {
+            if (hit.collider.TryGetComponent(out CarPart brokenPart) || hit.collider.GetComponentInParent<CarPart>())
+            {
+                CarPart part = hit.collider.GetComponent<CarPart>() ?? hit.collider.GetComponentInParent<CarPart>();
+                
+                if (part != null && part.isBroken)
+                {
+                    
+                    if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool))
+                    {
+                        if (tool.CanFix(part))
+                        {
+                           
+                            RepairUIManager uiManager = FindFirstObjectByType<RepairUIManager>();
+                            if (uiManager != null)
+                            {
+                                uiManager.OpenMiniGame(part, this);
+                            }
+                            return; 
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log("Чтобы починить это, нужен правильный инструмент в руках!");
+                        return;
+                    }
+                }
+            }
             NetworkIdentity rootIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
             IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
 
@@ -489,12 +516,16 @@ public class PlayerEntity : NetworkBehaviour
         characterController.enabled = true;
     }
 
+    // =========================================================
+    // СЕТЕВАЯ КОМАНДА ДЛЯ UI ПОЧИНКИ
+    // =========================================================
     [Command]
-    public void CmdFixBreakdown(NetworkIdentity carIdentity)
+    public void CmdFixPart(GameObject partObj)
     {
-        if (carIdentity != null && carIdentity.TryGetComponent(out BreakdownManager breakdownManager))
+        // Проверяем, что объект не пустой и на нем действительно есть CarPart
+        if (partObj != null && partObj.TryGetComponent(out CarPart part))
         {
-            breakdownManager.RepairBreakdown();
+            part.RepairPart(); // Сервер чинит деталь (меняет модельку и переменную isBroken у всех)
         }
     }
 }

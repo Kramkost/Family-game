@@ -1,8 +1,12 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class DropTargetSquare : MonoBehaviour, IDropHandler
+namespace Kotenkoff
 {
+    
+
+ public class DropTargetSquare : MonoBehaviour, IDropHandler
+ {
     [Tooltip("Reference to the main minigame manager to report success.")]
     [SerializeField] private RepairUIManager uiManager;
 
@@ -21,4 +25,5 @@ public class DropTargetSquare : MonoBehaviour, IDropHandler
             }
         }
     }
+ } 
 }

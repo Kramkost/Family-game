@@ -1,64 +1,74 @@
 using UnityEngine;
-using Mirror;
 
-public class RepairUIManager : MonoBehaviour
+namespace Kotenkoff
 {
-    public static RepairUIManager Instance { get; private set; }
-
-    [SerializeField] private GameObject minigamePanel;
-    [SerializeField] private int requiredMatches = 3; // E.g., 3 white squares to match
-    
-    private int currentMatches = 0;
-    private BreakdownManager targetCar;
-
-    private void Awake()
+    public class RepairUIManager : MonoBehaviour
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
-
-        minigamePanel.SetActive(false);
-    }
-
-    public void OpenMinigame(BreakdownManager carToFix)
-    {
-        targetCar = carToFix;
-        currentMatches = 0;
+        [Header("UI Panel")]
+        [SerializeField] private GameObject repairPanel; 
         
+        [Header("Minigame Logic")]
+        [Tooltip("Сколько квадратиков нужно вставить для победы?")]
+        [SerializeField] private int squaresNeededToWin = 3; 
         
-        minigamePanel.SetActive(true);
-    }
+        private int currentMatchedSquares = 0;
 
-    private void Update()
-    {
-        if (minigamePanel.activeSelf && Input.GetKeyDown(KeyCode.Escape))
+        private CarPart currentPartBeingFixed;
+        private PlayerEntity localPlayer; 
+
+        public void OpenMiniGame(CarPart part, PlayerEntity player)
         {
-            CancelMinigame();
+            currentPartBeingFixed = part;
+            localPlayer = player;
+            
+            repairPanel.SetActive(true);
+            ResetPuzzle();
+            
+       
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
-    }
 
-    public void ReportSquareMatched()
-    {
-        currentMatches++;
-        if (currentMatches >= requiredMatches)
+        public void CloseMiniGame()
         {
-            CompleteRepair();
+            repairPanel.SetActive(false);
+            currentPartBeingFixed = null;
+            
+          
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
-    }
 
-    private void CompleteRepair()
-    {
-        minigamePanel.SetActive(false);
-
-        
-        if (NetworkClient.localPlayer.TryGetComponent(out PlayerEntity localPlayer))
+      
+        public void ReportSquareMatched()
         {
-            localPlayer.CmdFixBreakdown(targetCar.netIdentity);
+            currentMatchedSquares++;
+            
+          
+            if (currentMatchedSquares >= squaresNeededToWin)
+            {
+                OnMiniGameWon();
+            }
         }
-    }
 
-    public void CancelMinigame()
-    {
-        minigamePanel.SetActive(false);
-        targetCar = null;
+        public void OnMiniGameWon()
+        {
+            Debug.Log("Мини-игра пройдена!");
+            
+            if (currentPartBeingFixed != null && localPlayer != null)
+            {
+                
+                localPlayer.CmdFixPart(currentPartBeingFixed.gameObject);
+            }
+            
+            CloseMiniGame();
+        }
+
+        private void ResetPuzzle()
+        {
+            currentMatchedSquares = 0; 
+            
+            // TODO: Добавить возврат на старые места квадратики
+        }
     }
 }

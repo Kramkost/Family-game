@@ -8,6 +8,7 @@ TagManager:
   - Hand
   - PropSocket
   - Roof
+  - Vehicle
   layers:
   - Default
   - TransparentFX

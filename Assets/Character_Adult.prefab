@@ -1583,7 +1583,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 0}
+  m_TargetTexture: {fileID: 8400000, guid: 876028ff07a29b9c08bb718d7b99a215, type: 2}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 1
@@ -2100,6 +2100,7 @@ GameObject:
   - component: {fileID: 3762507393151649599}
   - component: {fileID: 3671616773297462879}
   - component: {fileID: 8186672873814920463}
+  - component: {fileID: 5959779172324562010}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -2163,7 +2164,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 0}
+  m_TargetTexture: {fileID: 8400000, guid: 876028ff07a29b9c08bb718d7b99a215, type: 2}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 1
@@ -2208,6 +2209,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PosterizeEffect
   effectMaterial: {fileID: 2100000, guid: 8e57630923cfed43abd2980b1bd6b039, type: 2}
   colorSteps: 64
+--- !u!114 &5959779172324562010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6629517101996487750}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23298163b7790196b8eb4e3bf173d256, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RetroPostProcess
+  shader: {fileID: 4800000, guid: 4e7d6edef168027858d01ebb417440ea, type: 3}
+  posterizationSteps: 6
+  saturation: -0.4
+  grainIntensity: 0.05
+  aberrationStrength: 0.01
 --- !u!1 &6738221292539901375
 GameObject:
   m_ObjectHideFlags: 0

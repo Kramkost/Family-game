@@ -901,8 +901,9 @@ MonoBehaviour:
   moveAction: {fileID: -1680190386980627800, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   lookAction: {fileID: -5630151704836100654, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   interactAction: {fileID: 1781555164194001046, guid: 289c1b55c9541489481df5cc06664110, type: 3}
-  dropAction: {fileID: 0}
+  dropAction: {fileID: 1781555164194001046, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   jumpAction: {fileID: -2099379676528639254, guid: 289c1b55c9541489481df5cc06664110, type: 3}
+  useAction: {fileID: 1781555164194001046, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   rightHandSocket: {fileID: 5571219151236678227}
   heldItem: {fileID: 0}
   inventory: {fileID: 503767926053367193}
@@ -2100,7 +2101,6 @@ GameObject:
   - component: {fileID: 3762507393151649599}
   - component: {fileID: 3671616773297462879}
   - component: {fileID: 8186672873814920463}
-  - component: {fileID: 5959779172324562010}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -2209,23 +2209,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PosterizeEffect
   effectMaterial: {fileID: 2100000, guid: 8e57630923cfed43abd2980b1bd6b039, type: 2}
   colorSteps: 64
---- !u!114 &5959779172324562010
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6629517101996487750}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 23298163b7790196b8eb4e3bf173d256, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RetroPostProcess
-  shader: {fileID: 4800000, guid: 4e7d6edef168027858d01ebb417440ea, type: 3}
-  posterizationSteps: 6
-  saturation: -0.4
-  grainIntensity: 0.05
-  aberrationStrength: 0.01
 --- !u!1 &6738221292539901375
 GameObject:
   m_ObjectHideFlags: 0

@@ -3,48 +3,54 @@ using Mirror;
 
 public class FreezeSurface : NetworkBehaviour
 {
-    [Header("Настройки")]
-    [Tooltip("Тэг вашего автомобиля. Объекты с этим тэгом замораживаться НЕ будут.")]
-    public string vehicleTag = "Vehicle";
+    [Header("Настройки Ледокола")]
+    [Tooltip("Сила, с которой машина отшвыривает замороженный мусор при столкновении")]
+    public float pushForce = 15f;
+    
+    [Tooltip("Немного подкидывать объекты вверх при ударе (для кинематографичности)")]
+    public float upwardLift = 0.5f;
 
- 
+    // Обработка коллизий происходит только на сервере
     [ServerCallback]
     private void OnCollisionEnter(Collision collision)
     {
         GameObject obj = collision.gameObject;
-
-
-        if (obj.CompareTag(vehicleTag))
-            return;
-
         Rigidbody rb = obj.GetComponent<Rigidbody>();
         NetworkIdentity netIdentity = obj.GetComponent<NetworkIdentity>();
 
-        if (rb != null && netIdentity != null && !rb.isKinematic)
+        // Проверяем: если у объекта есть физика, он сетевой, и он сейчас "ЗАМОРОЖЕН" (isKinematic == true)
+        if (rb != null && netIdentity != null && rb.isKinematic)
         {
-           
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.isKinematic = true; 
+            // 1. РАЗМОРАЖИВАЕМ физику на сервере
+            rb.isKinematic = false;
+
+            // 2. Вычисляем направление удара (от центра машины к объекту)
+            Vector3 pushDirection = obj.transform.position - transform.position;
+            pushDirection.y = upwardLift; // Добавляем немного подъемной силы
             
-            RpcFreezeObject(netIdentity);
+            // 3. Придаем мощный импульс, чтобы объект отлетел в сторону
+            rb.AddForce(pushDirection.normalized * pushForce, ForceMode.Impulse);
+            // Добавим немного вращения для красоты
+            rb.AddTorque(Random.insideUnitSphere * pushForce, ForceMode.Impulse);
+
+            // 4. Отправляем команду всем клиентам разморозить этот объект у себя, 
+            // чтобы они увидели, как он отлетает, без сетевых лагов
+            RpcUnfreezeObject(netIdentity);
         }
     }
 
     // ClientRpc заставляет этот метод выполниться на всех клиентах
     [ClientRpc]
-    private void RpcFreezeObject(NetworkIdentity netIdentity)
+    private void RpcUnfreezeObject(NetworkIdentity netIdentity)
     {
-        
+        // Проверяем, существует ли объект на клиенте
         if (netIdentity != null)
         {
             Rigidbody rb = netIdentity.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-                rb.isKinematic = true;
+                // Размораживаем физику на стороне клиента
+                rb.isKinematic = false;
             }
         }
     }

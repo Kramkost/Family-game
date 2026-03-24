@@ -13,6 +13,9 @@ namespace Kotenkoff
         [SyncVar(hook = nameof(OnPartStateChanged))] 
         public bool isBroken = false;
 
+        [Header("Тип детали")]
+        public CarPartType partType;
+
         private void Start()
         {
             UpdateVisuals(isBroken);

@@ -43,6 +43,7 @@ public class PlayerEntity : NetworkBehaviour
     [SerializeField] private InputActionReference interactAction;
     [SerializeField] private InputActionReference dropAction; 
     [SerializeField] private InputActionReference jumpAction; 
+    [SerializeField] private InputActionReference useAction; 
 
     [Header("Hands & Items")]
     [SerializeField] private Transform rightHandSocket;
@@ -139,6 +140,12 @@ public class PlayerEntity : NetworkBehaviour
         {
             jumpAction.action.Enable();
         }
+
+        if (useAction != null) 
+        {
+            useAction.action.Enable();
+            useAction.action.performed += OnUsePerformed;
+        }
     }
 
     public override void OnStopLocalPlayer()
@@ -164,6 +171,12 @@ public class PlayerEntity : NetworkBehaviour
         if (jumpAction != null)
         {
             jumpAction.action.Disable();
+        }
+
+        if (useAction != null) 
+        {
+            useAction.action.performed -= OnUsePerformed;
+            useAction.action.Disable();
         }
     }
 
@@ -527,5 +540,41 @@ public class PlayerEntity : NetworkBehaviour
         {
             part.RepairPart(); // Сервер чинит деталь (меняет модельку и переменную isBroken у всех)
         }
+    }
+
+
+    // =========================================================
+    // ЛОГИКА ИСПОЛЬЗОВАНИЯ ПРЕДМЕТОВ В РУКАХ (ЕДА, ОРУЖИЕ И Т.Д.)
+    // =========================================================
+    private void OnUsePerformed(InputAction.CallbackContext context)
+    {
+        if (isSitting || heldItem == null) return;
+        
+    
+        CmdUseItem(); 
+    }
+
+    [Command]
+    private void CmdUseItem()
+    {
+        if (heldItem != null && heldItem.TryGetComponent(out IUsableItem usableItem))
+        {
+            usableItem.ServerUse(this);
+        }
+    }
+
+
+    [Server]
+    public void DestroyHeldItem()
+    {
+        if (heldItem == null) return;
+        
+        GameObject itemObj = heldItem.gameObject;
+        heldItem = null; 
+        
+        if (inventory != null) 
+            inventory.RemoveItem(itemObj); 
+            
+        NetworkServer.Destroy(itemObj); 
     }
 }

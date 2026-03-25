@@ -9,6 +9,7 @@ TagManager:
   - PropSocket
   - Roof
   - Vehicle
+  - LootSocket
   layers:
   - Default
   - TransparentFX

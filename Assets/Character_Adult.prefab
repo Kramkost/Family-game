@@ -891,7 +891,7 @@ MonoBehaviour:
     m_Bits: 4294967295
   gravity: -9.81
   bobbingSpeed: 14
-  bobbingAmount: 0.05
+  bobbingAmount: 0.1
   footstepAudioSource: {fileID: 2859016909695254429}
   footstepSounds:
   - {fileID: 8300000, guid: 5cd31176296954121aa77f42ad942ebf, type: 3}

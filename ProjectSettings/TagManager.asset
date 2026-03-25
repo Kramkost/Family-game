@@ -10,6 +10,7 @@ TagManager:
   - Roof
   - Vehicle
   - LootSocket
+  - IN_Room
   layers:
   - Default
   - TransparentFX

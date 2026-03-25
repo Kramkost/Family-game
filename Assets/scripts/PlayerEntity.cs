@@ -64,6 +64,18 @@ public class PlayerEntity : NetworkBehaviour
     [SerializeField] private Animator animator; 
     private NetworkAnimator networkAnimator;
 
+
+    [Header("Smoothness & Sway (Game Feel)")]
+    [SerializeField] private float lookSmoothness = 15f; 
+    [SerializeField] private float swayAmount = 0.02f;  
+    [SerializeField] private float maxSway = 0.06f;     
+    [SerializeField] private float swaySmoothness = 6f;  
+    private Vector3 initialHandPosition;
+
+    [Header("IK / Bone Tracking")]
+    [SerializeField] private Transform headBone; 
+    [SerializeField] private Vector3 headRotationOffset; 
+    [SerializeField] [Range(0, 1)] private float headLookWeight = 1f;
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int IsSittingHash = Animator.StringToHash("IsSitting");
     private static readonly int InteractTriggerHash = Animator.StringToHash("Interact");
@@ -90,6 +102,11 @@ public class PlayerEntity : NetworkBehaviour
             }
         }
 
+        if (rightHandSocket != null)
+        {
+            initialHandPosition = rightHandSocket.localPosition;
+        }
+
         if (cameraTransform != null)
         {
             defaultCameraPos = cameraTransform.localPosition;
@@ -98,6 +115,18 @@ public class PlayerEntity : NetworkBehaviour
         }
 
         lastPosition = transform.position;
+    }
+
+    private void LateUpdate()
+    {
+        if (!isLocalPlayer || headBone == null || isSitting) return;
+
+        
+  
+        Quaternion targetHeadRotation = cameraTransform.rotation * Quaternion.Euler(headRotationOffset);
+
+      
+        headBone.rotation = Quaternion.Slerp(headBone.rotation, targetHeadRotation, headLookWeight);
     }
 
     public override void OnStartLocalPlayer()
@@ -246,15 +275,43 @@ public class PlayerEntity : NetworkBehaviour
 
         if (isSitting)
         {
-            yRotation = Mathf.Clamp(yRotation + mouseX, -110f, 110f); 
-            cameraTransform.localRotation = Quaternion.Euler(xRotation, yRotation, 0f);
+            yRotation = Mathf.Clamp(yRotation + mouseX, -110f, 110f);
+            Quaternion targetCamRot = Quaternion.Euler(xRotation, yRotation, 0f);
+          
+            cameraTransform.localRotation = Quaternion.Slerp(cameraTransform.localRotation, targetCamRot, Time.deltaTime * lookSmoothness);
         }
         else
         {
             yRotation = 0f;
-            cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+            Quaternion targetCamRot = Quaternion.Euler(xRotation, 0f, 0f);
+            
+          
+            cameraTransform.localRotation = Quaternion.Slerp(cameraTransform.localRotation, targetCamRot, Time.deltaTime * lookSmoothness);
+            
+        
             transform.Rotate(Vector3.up * mouseX);
         }
+
+    
+        HandleWeaponSway(lookInput.x, lookInput.y);
+    }
+
+    private void HandleWeaponSway(float mouseX, float mouseY)
+    {
+        if (rightHandSocket == null) return;
+
+   
+        float moveX = -mouseX * swayAmount;
+        float moveY = -mouseY * swayAmount;
+
+  
+        moveX = Mathf.Clamp(moveX, -maxSway, maxSway);
+        moveY = Mathf.Clamp(moveY, -maxSway, maxSway);
+
+
+        Vector3 finalPosition = new Vector3(moveX, moveY, 0) + initialHandPosition;
+
+        rightHandSocket.localPosition = Vector3.Lerp(rightHandSocket.localPosition, finalPosition, Time.deltaTime * swaySmoothness);
     }
 
     private void HandleMovement()

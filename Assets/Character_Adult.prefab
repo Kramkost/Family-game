@@ -908,6 +908,13 @@ MonoBehaviour:
   heldItem: {fileID: 0}
   inventory: {fileID: 503767926053367193}
   animator: {fileID: 5108710359567493460}
+  lookSmoothness: 15
+  swayAmount: 0.02
+  maxSway: 0.06
+  swaySmoothness: 6
+  headBone: {fileID: 43360673198035515}
+  headRotationOffset: {x: 0, y: 0, z: 0}
+  headLookWeight: 1
 --- !u!95 &5108710359567493460
 Animator:
   serializedVersion: 7
@@ -2101,6 +2108,8 @@ GameObject:
   - component: {fileID: 3762507393151649599}
   - component: {fileID: 3671616773297462879}
   - component: {fileID: 8186672873814920463}
+  - component: {fileID: 8448125117828162083}
+  - component: {fileID: 8555446060104096514}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -2209,6 +2218,47 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PosterizeEffect
   effectMaterial: {fileID: 2100000, guid: 8e57630923cfed43abd2980b1bd6b039, type: 2}
   colorSteps: 64
+--- !u!114 &8448125117828162083
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6629517101996487750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda5218ad7cde008da851af5ca0470d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  lowPassFilter: {fileID: 8555446060104096514}
+  muffleFrequency: 5000
+  normalFrequency: 22000
+  transitionSpeed: 2
+--- !u!169 &8555446060104096514
+AudioLowPassFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6629517101996487750}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_LowpassResonanceQ: 1
+  lowpassLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.22727273
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &6738221292539901375
 GameObject:
   m_ObjectHideFlags: 0

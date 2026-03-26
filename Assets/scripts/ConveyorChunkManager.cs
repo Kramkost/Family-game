@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Kotenkoff;
 using Mirror; 
 
 /// <summary>
@@ -106,6 +107,8 @@ public class ConveyorChunkManager : MonoBehaviour
     private int highestWeightBiomeIndex = 0; 
 
     #endregion
+    
+    public static event NavMeshSurfaceManager.UpdateSurface OnUpdateSurface;
 
     private void Start()
     {
@@ -329,6 +332,8 @@ public class ConveyorChunkManager : MonoBehaviour
                 propPool[selectedConfig.prefab].Enqueue(prop);
             }
         }
+        
+        OnUpdateSurface?.Invoke();
     }
 
     private PropConfig GetWeightedRandomProp(PropConfig[] configs, int totalWeight)

@@ -88,13 +88,13 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "MouseInteract",
-                    "type": "Value",
-                    "id": "5765f63a-90c7-49c5-b83e-baae5d43d554",
-                    "expectedControlType": "Vector2",
+                    "name": "Aboba",
+                    "type": "Button",
+                    "id": "29df3b86-98e1-45ab-accb-5d9418b3d9e0",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": true
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -484,37 +484,15 @@
                     "isPartOfComposite": false
                 },
                 {
-                    "name": "Mouse Left Click",
-                    "id": "bea7e678-da4e-4c0e-9a32-d7b87bf6e84b",
-                    "path": "OneModifier",
+                    "name": "",
+                    "id": "9b43ca2c-931e-4fce-8b7c-db4297675a13",
+                    "path": "<Keyboard>/enter",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "MouseInteract",
-                    "isComposite": true,
+                    "action": "Aboba",
+                    "isComposite": false,
                     "isPartOfComposite": false
-                },
-                {
-                    "name": "modifier",
-                    "id": "d9b0e6ae-b5b7-4d69-9342-e46597d98952",
-                    "path": "<Mouse>/leftButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "MouseInteract",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "binding",
-                    "id": "b7cdb0f3-ad33-4812-bf39-dbf7896a5ec8",
-                    "path": "<Mouse>/position",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "MouseInteract",
-                    "isComposite": false,
-                    "isPartOfComposite": true
                 }
             ]
         },

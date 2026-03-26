@@ -530,7 +530,7 @@ BoxCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 0.016939603, y: 0.03360891, z: 0.15081474}
   m_Center: {x: -0.0019658306, y: -0.08866779, z: 0.0055881497}
@@ -618,6 +618,7 @@ GameObject:
   - component: {fileID: 6963022057656730045}
   - component: {fileID: 76923274015164687}
   - component: {fileID: 1299199804655644317}
+  - component: {fileID: 4666704044860763493}
   m_Layer: 0
   m_Name: Character_Adult
   m_TagString: Untagged
@@ -909,6 +910,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  downsampleFactor: 4
 --- !u!114 &6963022057656730045
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -926,6 +928,7 @@ MonoBehaviour:
   vadThreshold: 0.001
   vadHangTime: 0.5
   chunkLengthMs: 40
+  downsampleFactor: 4
 --- !u!114 &76923274015164687
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -938,13 +941,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e15802b9cac1fa1bb8acfbda876e8666, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JawSyncer
-  targetSource: {fileID: 2663088102589046834}
+  targetVoice: {fileID: 0}
   jawBone: {fileID: 802113955519292821}
   restRotation: {x: 0, y: 0, z: 0}
   maxOpenRotation: {x: 0, y: 0, z: 0}
   rmsMultiplier: 15
   smoothingSpeed: 10
-  sampleWindow: 256
 --- !u!114 &1299199804655644317
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -962,6 +964,27 @@ MonoBehaviour:
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
+--- !u!65 &4666704044860763493
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164101469142759297}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.2637124, y: 15.367813, z: 2.6376798}
+  m_Center: {x: -0.7149728, y: 1.345605, z: 0.537948}
 --- !u!1 &2187859041725899747
 GameObject:
   m_ObjectHideFlags: 0
@@ -1367,7 +1390,7 @@ BoxCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 0.0043436503, y: 0.005, z: 0.0027421594}
   m_Center: {x: -0.00008792847, y: 4.917913e-13, z: 0.0000088268525}

@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1165071228952628159}
   - component: {fileID: 1238399605744610518}
   - component: {fileID: 564802408701056442}
-  m_Layer: 0
+  m_Layer: 27
   m_Name: Forest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -126,7 +126,7 @@ GameObject:
   - component: {fileID: 5312060339208190579}
   - component: {fileID: 5208525116102599100}
   - component: {fileID: 5484089648182542312}
-  m_Layer: 0
+  m_Layer: 27
   m_Name: Road
   m_TagString: Road
   m_Icon: {fileID: 0}
@@ -238,7 +238,7 @@ GameObject:
   - component: {fileID: 8639964263447849226}
   - component: {fileID: 8941293117385255941}
   - component: {fileID: 7208708480686388390}
-  m_Layer: 0
+  m_Layer: 27
   m_Name: Ambient
   m_TagString: Untagged
   m_Icon: {fileID: 0}

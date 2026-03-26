@@ -70,6 +70,9 @@ public class PlayerEntity : NetworkBehaviour
     [SerializeField] private float swayAmount = 0.02f;  
     [SerializeField] private float maxSway = 0.06f;     
     [SerializeField] private float swaySmoothness = 6f;  
+
+    private float drunkTimer = 0f;
+    private float currentDrunkIntensity = 0f;
     private Vector3 initialHandPosition;
 
     [Header("IK / Bone Tracking")]
@@ -270,6 +273,24 @@ public class PlayerEntity : NetworkBehaviour
         Vector2 lookInput = lookAction.action.ReadValue<Vector2>();
         float mouseX = lookInput.x * lookSensitivity;
         float mouseY = lookInput.y * lookSensitivity;
+
+
+        // --- ЛОГИКА ОПЬЯНЕНИЯ ---
+        if (drunkTimer > 0)
+        {
+            drunkTimer -= Time.deltaTime;
+            
+            // Плавное затухание эффекта в последние 3 секунды
+            float fadeMultiplier = Mathf.Clamp01(drunkTimer / 3f); 
+            
+            // Фигуры Лиссажу для пьяного "плавания" камеры
+            float drunkSwayX = Mathf.Sin(Time.time * 1.2f) * currentDrunkIntensity * fadeMultiplier * Time.deltaTime;
+            float drunkSwayY = Mathf.Cos(Time.time * 0.8f) * currentDrunkIntensity * fadeMultiplier * Time.deltaTime;
+
+            mouseX += drunkSwayX;
+            mouseY += drunkSwayY;
+        }
+        // -------------------------
 
         xRotation = Mathf.Clamp(xRotation - mouseY, -90f, 90f);
 
@@ -547,5 +568,14 @@ public class PlayerEntity : NetworkBehaviour
         
         inventory?.RemoveItem(itemObj); 
         NetworkServer.Destroy(itemObj); 
+    }
+
+
+    [TargetRpc]
+    public void TargetApplyDrunkEffect(NetworkConnection target, float duration, float intensity)
+    {
+  
+        drunkTimer += duration; 
+        currentDrunkIntensity = intensity;
     }
 }

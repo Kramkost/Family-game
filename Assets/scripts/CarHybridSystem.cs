@@ -3,7 +3,7 @@ using Mirror;
 
 /// <summary>
 /// Серверно-авторитетная система управления автомобилем с полным сетевым визуалом
-/// (звук, фары, руль, педали) и защитой от "игрока-халка".
+/// (звук, фары, руль, педали, гудок) и защитой от "игрока-халка".
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class CarHybridSystem : NetworkBehaviour
@@ -21,10 +21,16 @@ public class CarHybridSystem : NetworkBehaviour
     [SerializeField] private float motorForce = 1500f;
     [SerializeField] private float steerForce = 100f;
 
-    [Header("Network Visuals (Фары, Звук, Салон)")]
+    [Header("Network Visuals & Audio")]
     [SerializeField] private AudioSource engineAudio;
     [SerializeField] private float idlePitch = 0.8f;
     [SerializeField] private float maxPitch = 2.0f;
+    
+    [Tooltip("Аудиосорс для гудка и визга тормозов (сделай его погромче)")]
+    [SerializeField] private AudioSource fxAudioSource;
+    [SerializeField] private AudioClip hornSound;
+    [SerializeField] private AudioClip lightSwitchSound;
+    [SerializeField] private AudioClip brakeSquealSound;
     
     [SerializeField] private GameObject[] headlights; 
     
@@ -63,11 +69,11 @@ public class CarHybridSystem : NetworkBehaviour
     private Rigidbody rb;
     private Camera mainCam;
 
-    // Исходные позиции и повороты для анимации салона
     private Vector3 initialGasPos;
     private Vector3 initialBrakePos;
-    private Vector3 initialSteeringEuler; 
     private Quaternion initialSteeringRot;
+
+    private bool isBraking = false;
 
     private void Awake()
     {
@@ -79,8 +85,6 @@ public class CarHybridSystem : NetworkBehaviour
 
         if (gasPedal != null) initialGasPos = gasPedal.localPosition;
         if (brakePedal != null) initialBrakePos = brakePedal.localPosition;
-        
-     
         if (steeringWheel != null) initialSteeringRot = steeringWheel.localRotation;
     }
 
@@ -128,12 +132,22 @@ public class CarHybridSystem : NetworkBehaviour
         }
     }
 
+    // --- ФАРЫ (ВЫЗЫВАЕТСЯ У ВСЕХ КЛИЕНТОВ ПРИ ИЗМЕНЕНИИ SyncVar) ---
     private void OnLightsChanged(bool oldState, bool newState)
     {
-        if (headlights == null) return;
-        foreach (GameObject light in headlights)
+        if (headlights != null)
         {
-            if (light != null) light.SetActive(newState);
+            foreach (GameObject light in headlights)
+            {
+                if (light != null) light.SetActive(newState);
+            }
+        }
+
+        // Звук щелчка тумблера
+        if (fxAudioSource != null && lightSwitchSound != null)
+        {
+            fxAudioSource.pitch = Random.Range(0.9f, 1.1f);
+            fxAudioSource.PlayOneShot(lightSwitchSound);
         }
     }
 
@@ -147,10 +161,53 @@ public class CarHybridSystem : NetworkBehaviour
         HandleVisualPolish();
         HandleInteriorAnimation();
         HandleEngineSound();
+        HandleBrakeSoundFX();
         
         if (isOwned)
         {
             HandleCameraFOV();
+            HandleLocalInputs(); // Проверка нажатий клавиатуры
+        }
+    }
+
+    // --- ЛОКАЛЬНЫЙ ВВОД (ТОЛЬКО ДЛЯ ВОДИТЕЛЯ) ---
+    private void HandleLocalInputs()
+    {
+        if (Input.GetKeyDown(KeyCode.L)) CmdToggleLights();
+        if (Input.GetKeyDown(KeyCode.H)) CmdHonkHorn();
+    }
+
+    // --- ПУБЛИЧНЫЕ МЕТОДЫ ДЛЯ UI КНОПОК ---
+    public void ToggleLightsUI()
+    {
+        if (isOwned) CmdToggleLights();
+    }
+
+    public void HonkUI()
+    {
+        if (isOwned) CmdHonkHorn();
+    }
+
+    [Command]
+    public void CmdToggleLights()
+    {
+        lightsOn = !lightsOn;
+    }
+
+    // --- ГУДОК ---
+    [Command]
+    private void CmdHonkHorn()
+    {
+        RpcHonkHorn();
+    }
+
+    [ClientRpc]
+    private void RpcHonkHorn()
+    {
+        if (fxAudioSource != null && hornSound != null)
+        {
+            fxAudioSource.pitch = Random.Range(0.95f, 1.05f);
+            fxAudioSource.PlayOneShot(hornSound);
         }
     }
 
@@ -172,12 +229,6 @@ public class CarHybridSystem : NetworkBehaviour
     {
         syncSteer = steer;
         syncAccel = accel;
-    }
-
-    [Command]
-    public void CmdToggleLights()
-    {
-        lightsOn = !lightsOn;
     }
 
     private void FixedUpdate()
@@ -203,31 +254,22 @@ public class CarHybridSystem : NetworkBehaviour
         ApplyLateralFriction();
     }
 
-    // --- ЖЕЛЕЗОБЕТОННЫЙ БЛОК АНИМАЦИИ САЛОНА ---
     private void HandleInteriorAnimation()
     {
-        // Руль (Вращение строго по оси Z)
         if (steeringWheel != null)
         {
             float targetAngle = syncSteer * -maxSteeringAngle;
-            
-            // Создаем вращение ТОЛЬКО вокруг локальной оси Z
             Quaternion zRotation = Quaternion.AngleAxis(targetAngle, Vector3.forward);
-            
-            // Накладываем это чистое Z-вращение поверх изначального наклона рулевой колонки
             Quaternion targetRotation = initialSteeringRot * zRotation;
-            
             steeringWheel.localRotation = Quaternion.Lerp(steeringWheel.localRotation, targetRotation, Time.deltaTime * 10f);
         }
 
-        // Газ
         if (gasPedal != null)
         {
             Vector3 targetGas = initialGasPos + (syncAccel > 0 ? pedalTravel : Vector3.zero);
             gasPedal.localPosition = Vector3.Lerp(gasPedal.localPosition, targetGas, Time.deltaTime * 10f);
         }
 
-        // Тормоз
         if (brakePedal != null)
         {
             Vector3 targetBrake = initialBrakePos + (syncAccel < 0 ? pedalTravel : Vector3.zero);
@@ -245,6 +287,27 @@ public class CarHybridSystem : NetworkBehaviour
         if (Mathf.Abs(syncAccel) > 0.1f && speed < 5f) pitchTarget += 0.3f;
 
         engineAudio.pitch = Mathf.Lerp(engineAudio.pitch, pitchTarget, Time.deltaTime * 5f);
+    }
+
+    // --- СКРИП ТОРМОЗОВ ---
+    private void HandleBrakeSoundFX()
+    {
+        if (fxAudioSource == null || brakeSquealSound == null) return;
+
+        float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
+        
+        // Если едем вперед быстро, но нажали кнопку назад (syncAccel < 0)
+        bool shouldBrake = forwardSpeed > 8f && syncAccel < -0.1f;
+
+        if (shouldBrake && !isBraking)
+        {
+            isBraking = true;
+            fxAudioSource.PlayOneShot(brakeSquealSound, 0.7f); // Играем скрип
+        }
+        else if (!shouldBrake && isBraking)
+        {
+            isBraking = false; // Сбрасываем флаг, когда отпустили тормоз или остановились
+        }
     }
 
     private void HandleVisualPolish()

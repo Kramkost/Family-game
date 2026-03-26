@@ -10,6 +10,8 @@ public class ConveyorChunkManager : MonoBehaviour
         public GameObject prefab;
         public int weight;
         public bool requiresSocket;
+        [Tooltip("Индивидуальный разброс размера (X - мин, Y - макс). Если оставить 0,0 - используется глобальный Prop Scale Range.")]
+        public Vector2 scaleRange;
     }
 
     [System.Serializable]
@@ -26,6 +28,8 @@ public class ConveyorChunkManager : MonoBehaviour
     {
         public GameObject prefab;
         public int weight;
+        [Tooltip("Разброс размера лута (X - мин, Y - макс). Если оставить 0,0 - размер будет стандартным (1,1).")]
+        public Vector2 scaleRange;
     }
 
     [Header("Core References")]
@@ -57,7 +61,10 @@ public class ConveyorChunkManager : MonoBehaviour
     [SerializeField] private int propsPerChunk = 40; 
     [SerializeField] private Vector2 propSpawnArea = new Vector2(60f, 50f);
     [SerializeField] private float roadWidth = 12f;
+    
+    [Tooltip("Глобальный размер для пропсов, у которых Scale Range оставлен по умолчанию (0,0)")]
     [SerializeField] private Vector2 propScaleRange = new Vector2(0.8f, 1.5f);
+    
     [SerializeField] private float minPropDistance = 2.5f;
     [SerializeField] private int maxSpawnAttempts = 5;
 
@@ -209,6 +216,10 @@ public class ConveyorChunkManager : MonoBehaviour
             Quaternion localRot = Quaternion.identity;
             bool spawnSuccess = false;
 
+            // Вычисляем размер (индивидуальный или глобальный)
+            Vector2 activeScaleRange = selectedConfig.scaleRange != Vector2.zero ? selectedConfig.scaleRange : propScaleRange;
+            float randomScale = UnityEngine.Random.Range(activeScaleRange.x, activeScaleRange.y);
+
             if (selectedConfig.requiresSocket)
             {
                 Transform selectedSocket = null;
@@ -226,7 +237,7 @@ public class ConveyorChunkManager : MonoBehaviour
                     usedSocketsCache.Add(selectedSocket); 
                     localPos = new Vector3(selectedSocket.localPosition.x, selectedSocket.localPosition.y, baseZ + selectedSocket.localPosition.z);
                     localRot = selectedSocket.localRotation;
-                    prop.transform.localScale = Vector3.one; 
+                    prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale); 
                     spawnSuccess = true;
                 }
             }
@@ -271,7 +282,6 @@ public class ConveyorChunkManager : MonoBehaviour
                             placedPositionsCache.Add(testPos2D);
                             localPos = tempLocalPos;
                             localRot = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
-                            float randomScale = UnityEngine.Random.Range(propScaleRange.x, propScaleRange.y);
                             prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale);
                             spawnSuccess = true;
                             break; 
@@ -308,6 +318,12 @@ public class ConveyorChunkManager : MonoBehaviour
                 GameObject lootObj = GetLootFromPool(selectedLoot.prefab);
                 
                 lootObj.transform.SetPositionAndRotation(socket.position, socket.rotation);
+
+                // Индивидуальный размер лута
+                Vector2 activeLootScale = selectedLoot.scaleRange != Vector2.zero ? selectedLoot.scaleRange : Vector2.one;
+                float rScale = UnityEngine.Random.Range(activeLootScale.x, activeLootScale.y);
+                lootObj.transform.localScale = new Vector3(rScale, rScale, rScale);
+
                 lootObj.SetActive(true);
                 
                 targetLootList.Add(lootObj);

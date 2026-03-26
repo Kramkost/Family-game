@@ -98,7 +98,7 @@ namespace Kotenkoff.Monsters
         [Server]
         public void ChangeHealth(float value)
         {
-            health += value;
+            health = Mathf.Clamp(health + value, 0, maxHealth);
         }
     }
 }

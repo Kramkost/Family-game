@@ -11,11 +11,12 @@ GameObject:
   - component: {fileID: 2000459064925000289}
   - component: {fileID: 7312004561977257189}
   - component: {fileID: 358926511087306985}
-  - component: {fileID: 2365736717321659958}
   - component: {fileID: 3624159225347941045}
   - component: {fileID: 5602804101241273388}
   - component: {fileID: 5302263337828470868}
   - component: {fileID: 413907390199251430}
+  - component: {fileID: 5426933138814120692}
+  - component: {fileID: 2988796588766131104}
   m_Layer: 0
   m_Name: CapsuleDeath
   m_TagString: Untagged
@@ -45,7 +46,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3300561575362676941}
-  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -5495902117074765545, guid: 5a4833c9ee39eee52b3bbabddaf19cf9, type: 3}
 --- !u!23 &358926511087306985
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -95,29 +96,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!136 &2365736717321659958
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3300561575362676941}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.49999994
-  m_Height: 1.9999998
-  m_Direction: 1
-  m_Center: {x: -0.00000005960464, y: 0, z: 0}
 --- !u!54 &3624159225347941045
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -212,3 +190,44 @@ MonoBehaviour:
   rotationSensitivity: 0.01
   positionPrecision: 0.01
   scalePrecision: 0.01
+--- !u!114 &5426933138814120692
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3300561575362676941}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff2ef6e99e3bf6542a4c3b3df6c14a6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Kotenkoff.BloodDecalSpawner
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  bloodDecalPrefab: {fileID: 1024402992272021025, guid: 29bde75f601cbf9f3a024bb07590cba7, type: 3}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  decalScaleRange: {x: 5, y: 5}
+--- !u!65 &2988796588766131104
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3300561575362676941}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.025505966, y: 0.07813561, z: 0.1528084}
+  m_Center: {x: -0.0021752901, y: -0.0000000018626451, z: 0.0065687895}

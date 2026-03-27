@@ -14,23 +14,23 @@ public class CarHybridSystemEditor : Editor
 
         serializedObject.Update();
 
-        // 1. Core Settings
         EditorGUILayout.BeginVertical(GUI.skin.box);
         GUILayout.Label("1. Core Integration", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("resourceManager"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("worldContainer"));
         EditorGUILayout.EndVertical();
 
-        // 2. Network State
         EditorGUILayout.BeginVertical(GUI.skin.box);
         GUILayout.Label("2. Network State (Read Only)", EditorStyles.boldLabel);
         GUI.enabled = false;
         EditorGUILayout.PropertyField(serializedObject.FindProperty("playersInCar"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("isRoadMillMode"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("engineSpeedModifier"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("isEngineDead"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("isEngineOn"));
         GUI.enabled = true;
         EditorGUILayout.EndVertical();
 
-        // 3. Engine & Physics
         EditorGUILayout.BeginVertical(GUI.skin.box);
         GUILayout.Label("3. Engine & Mechanics", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("useRoadMill"));
@@ -40,9 +40,9 @@ public class CarHybridSystemEditor : Editor
         }
         EditorGUILayout.PropertyField(serializedObject.FindProperty("motorForce"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("steerForce"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("crashThreshold"));
         EditorGUILayout.EndVertical();
 
-        // 4. Visual Polish
         EditorGUILayout.BeginVertical(GUI.skin.box);
         GUILayout.Label("4. Visual & Camera Polish", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("carModel"));
@@ -56,7 +56,6 @@ public class CarHybridSystemEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("fovLerpSpeed"));
         EditorGUILayout.EndVertical();
 
-        // 5. НОВЫЙ БЛОК: Network Visuals (Фары, Звук, Салон)
         EditorGUILayout.BeginVertical(GUI.skin.box);
         GUILayout.Label("5. Network Visuals (Audio, Lights, Interior)", EditorStyles.boldLabel);
         
@@ -64,8 +63,17 @@ public class CarHybridSystemEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("idlePitch"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("maxPitch"));
         EditorGUILayout.Space(5);
+
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("fxAudioSource"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("hornSound"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("lightSwitchSound"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("brakeSquealSound"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("engineStartSound"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("engineStopSound"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("crashSounds"), true);
+        EditorGUILayout.Space(5);
         
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("headlights"), true); // true нужно для отрисовки массивов!
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("headlights"), true); 
         EditorGUILayout.Space(5);
         
         EditorGUILayout.PropertyField(serializedObject.FindProperty("steeringWheel"));

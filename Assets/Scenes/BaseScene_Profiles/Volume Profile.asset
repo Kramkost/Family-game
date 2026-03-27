@@ -22,7 +22,7 @@ MonoBehaviour:
     defaultState: 1
   intensity:
     overrideState: 1
-    value: 0.6
+    value: 0.65
   fastMode:
     overrideState: 0
     value: 0
@@ -44,7 +44,7 @@ MonoBehaviour:
     value: 1
   shutterAngle:
     overrideState: 1
-    value: 270
+    value: 360
   sampleCount:
     overrideState: 1
     value: 10
@@ -65,14 +65,14 @@ MonoBehaviour:
     overrideState: 1
     value: 1
   colored:
-    overrideState: 0
+    overrideState: 1
     value: 1
   intensity:
     overrideState: 1
-    value: 0.33
+    value: 0.05
   size:
     overrideState: 1
-    value: 1.1
+    value: 0.5
   lumContrib:
     overrideState: 0
     value: 0.8
@@ -93,16 +93,16 @@ MonoBehaviour:
     overrideState: 1
     value: 1
   filtering:
-    overrideState: 0
-    value: {x: 50, y: 95}
+    overrideState: 1
+    value: {x: 54.000015, y: 99}
   minLuminance:
-    overrideState: 0
-    value: 0
+    overrideState: 1
+    value: -2
   maxLuminance:
-    overrideState: 0
-    value: 0
+    overrideState: 1
+    value: 9
   keyValue:
-    overrideState: 0
+    overrideState: 1
     value: 1
   eyeAdaptation:
     overrideState: 0
@@ -132,6 +132,41 @@ MonoBehaviour:
   - {fileID: -5374865067840875261}
   - {fileID: -8626858155573222369}
   - {fileID: -4331850932806380154}
+  - {fileID: 3086312497447400233}
+--- !u!114 &3086312497447400233
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b77c5407dc277943b591ade9e6b18c5, type: 3}
+  m_Name: LensDistortion
+  m_EditorClassIdentifier: Unity.Postprocessing.Runtime::UnityEngine.Rendering.PostProcessing.LensDistortion
+  active: 1
+  enabled:
+    overrideState: 1
+    value: 1
+  intensity:
+    overrideState: 1
+    value: -10
+  intensityX:
+    overrideState: 0
+    value: 1
+  intensityY:
+    overrideState: 0
+    value: 1
+  centerX:
+    overrideState: 0
+    value: 0
+  centerY:
+    overrideState: 0
+    value: 0
+  scale:
+    overrideState: 0
+    value: 1
 --- !u!114 &4904508324467154590
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -197,7 +232,7 @@ MonoBehaviour:
     value: 0
   saturation:
     overrideState: 1
-    value: -20
+    value: 20
   brightness:
     overrideState: 0
     value: 0
@@ -206,7 +241,7 @@ MonoBehaviour:
     value: 0
   contrast:
     overrideState: 1
-    value: 2
+    value: 3
   mixerRedOutRedIn:
     overrideState: 0
     value: 100
@@ -214,7 +249,7 @@ MonoBehaviour:
     overrideState: 0
     value: 0
   mixerRedOutBlueIn:
-    overrideState: 1
+    overrideState: 0
     value: 15
   mixerGreenOutRedIn:
     overrideState: 0
@@ -241,7 +276,7 @@ MonoBehaviour:
     overrideState: 0
     value: {x: 1, y: 1, z: 1, w: 0}
   gain:
-    overrideState: 1
+    overrideState: 0
     value: {x: 0.93493766, y: 0.96346754, z: 1, w: 0}
   masterCurve:
     overrideState: 0
@@ -1470,10 +1505,10 @@ MonoBehaviour:
     value: {x: 0.5, y: 0.5}
   intensity:
     overrideState: 1
-    value: 1
+    value: 0.3
   smoothness:
     overrideState: 1
-    value: 1
+    value: 0.5
   roundness:
     overrideState: 0
     value: 1

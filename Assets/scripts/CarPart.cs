@@ -5,52 +5,77 @@ namespace Kotenkoff
 {
     public class CarPart : NetworkBehaviour
     {
-        [Header("Визуал")]
-        [SerializeField] private GameObject workingModel;
-        [SerializeField] private GameObject brokenModel;
-        
-        [Header("Стэйт")]
-        [SyncVar(hook = nameof(OnPartStateChanged))] 
-        public bool isBroken = false;
-
-        [Header("Тип детали")]
+        [Header("Базовые настройки")]
         public CarPartType partType;
+        
+        [Tooltip("Визуал для стадий: 0-Целая, 1-Легкая, 2-Дым, 3-Заглохла")]
+        public GameObject[] stageVisuals;
 
-        private void Start()
+
+        [SyncVar(hook = nameof(OnStageChanged))]
+        public int currentStage = 0; 
+
+        public bool isBroken => currentStage > 0;
+
+        private CarHybridSystem carSystem;
+
+        private void Awake()
         {
-            UpdateVisuals(isBroken);
+  
+            carSystem = GetComponentInParent<CarHybridSystem>();
         }
 
-        // Вызывается Менеджером Поломок на сервере
+        public override void OnStartClient()
+        {
+            UpdateVisuals(currentStage);
+        }
+
         [Server]
         public void BreakPart()
         {
-            if (isBroken) return;
-            isBroken = true;
-            Debug.Log($"[CarPart] Деталь {gameObject.name} сломалась!");
-            
-            // Тут можно отправить сигнал машине, чтобы она начала дымиться или заглохла
+           
+            if (currentStage < stageVisuals.Length - 1)
+            {
+                currentStage++;
+                ApplyEffectsToCar(currentStage);
+            }
         }
 
-    
         [Server]
         public void RepairPart()
         {
-            if (!isBroken) return;
-            isBroken = false;
-            Debug.Log($"[CarPart] Деталь {gameObject.name} починена!");
+     
+            if (currentStage > 0)
+            {
+                currentStage--;
+                ApplyEffectsToCar(currentStage);
+            }
         }
 
-        
-        private void OnPartStateChanged(bool oldState, bool newState)
+        [Server]
+        private void ApplyEffectsToCar(int stage)
         {
-            UpdateVisuals(newState);
+       
+            if (partType == CarPartType.Engine && carSystem != null)
+            {
+                carSystem.UpdateEngineState(stage);
+            }
         }
 
-        private void UpdateVisuals(bool broken)
+        private void OnStageChanged(int oldStage, int newStage)
         {
-            if (workingModel != null) workingModel.SetActive(!broken);
-            if (brokenModel != null) brokenModel.SetActive(broken);
+            UpdateVisuals(newStage);
+        }
+
+        private void UpdateVisuals(int stage)
+        {
+            if (stageVisuals == null || stageVisuals.Length == 0) return;
+            
+            for (int i = 0; i < stageVisuals.Length; i++)
+            {
+                if (stageVisuals[i] != null)
+                    stageVisuals[i].SetActive(i == stage);
+            }
         }
     }
 }

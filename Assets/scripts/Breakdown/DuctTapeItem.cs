@@ -1,20 +1,13 @@
-using UnityEngine;
-using Mirror;
-
 namespace Kotenkoff
 {
-    // Наследуем PickupableItem, чтобы её можно было поднять.
-    // Добавляем IRepairTool, чтобы открывать мини-игру починки.
     public class DuctTapeItem : PickupableItem, IRepairTool
     {
         public bool CanFix(CarPart part)
         {
-            // Изолента чинит ТОЛЬКО двери и провода
-            if (part.partType == CarPartType.Door || part.partType == CarPartType.Wires)
-            {
-                return true;
-            }
+            // Изолента чинит легкие поломки - 1 и 2 стадию!
+            if (part.partType == CarPartType.Engine && (part.currentStage == 1 || part.currentStage == 2)) return true;
             
+            if (part.partType == CarPartType.Door || part.partType == CarPartType.Wires) return true;
             return false; 
         }
     }

@@ -388,34 +388,49 @@ public class PlayerEntity : NetworkBehaviour
         }
     }
 
-    private void OnInteractPerformed(InputAction.CallbackContext context)
+private void OnInteractPerformed(InputAction.CallbackContext context)
+{
+    if (isSitting || cameraTransform == null || Time.time < lastInteractTime + 0.5f) return;
+    lastInteractTime = Time.time;
+
+    if (networkAnimator != null) animator.SetTrigger(InteractTriggerHash);
+
+    // 1. РИСУЕМ ЛУЧ В SCENE VIEW (КРАСНЫЙ)
+    Debug.DrawRay(cameraTransform.position, cameraTransform.forward * interactRange, Color.red, 2f);
+
+    if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange, interactLayerMask))
     {
-        if (isSitting || cameraTransform == null || Time.time < lastInteractTime + 0.5f) return;
-        lastInteractTime = Time.time;
+        // 2. ПИШЕМ В КОНСОЛЬ АБСОЛЮТНО ВСЕ, ВО ЧТО ПОПАЛИ
+        Debug.Log($"[ОТЛАДКА] Луч врезался в объект: {hit.collider.gameObject.name} (Тег: {hit.collider.tag})");
 
-        if (networkAnimator != null) animator.SetTrigger(InteractTriggerHash);
-
-        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange, interactLayerMask))
+        CarPart part = hit.collider.GetComponent<CarPart>() ?? hit.collider.GetComponentInParent<CarPart>();
+        if (part != null && part.isBroken)
         {
-            CarPart part = hit.collider.GetComponent<CarPart>() ?? hit.collider.GetComponentInParent<CarPart>();
-            if (part != null && part.isBroken)
+            if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool) && tool.CanFix(part))
             {
-                if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool) && tool.CanFix(part))
-                {
-                    FindFirstObjectByType<RepairUIManager>()?.OpenMiniGame(part, this);
-                    return; 
-                }
-            }
-
-            NetworkIdentity rootIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
-            IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
-
-            if (rootIdentity != null && interactable != null)
-            {
-                CmdInteract(rootIdentity, ((Component)interactable).gameObject.name);
+                FindFirstObjectByType<RepairUIManager>()?.OpenMiniGame(part, this);
+                return; 
             }
         }
+
+        NetworkIdentity rootIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
+        IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
+
+        if (rootIdentity != null && interactable != null)
+        {
+            Debug.Log($"[ОТЛАДКА] Найден IInteractable на объекте: {((Component)interactable).gameObject.name}. Отправляем команду на сервер!");
+            CmdInteract(rootIdentity, ((Component)interactable).gameObject.name);
+        }
+        else
+        {
+            Debug.LogWarning("[ОТЛАДКА] Компонент IInteractable ИЛИ NetworkIdentity не найден на этом объекте или его родителях!");
+        }
     }
+    else
+    {
+        Debug.Log("[ОТЛАДКА] Луч пролетел мимо и ни во что не попал. Проверь дистанцию или слой!");
+    }
+}
 
     [Command]
     private void CmdInteract(NetworkIdentity rootIdentity, string targetName)
@@ -540,7 +555,17 @@ public class PlayerEntity : NetworkBehaviour
     [Command]
     public void CmdFixPart(GameObject partObj)
     {
-        if (partObj != null && partObj.TryGetComponent(out CarPart part)) part.RepairPart(); 
+        if (partObj != null && partObj.TryGetComponent(out CarPart part))
+        {
+         
+            part.RepairPart(); 
+            
+            // Если в руках была изолента - мы её потратили (уничтожаем предмет)!
+            if (heldItem != null && heldItem.TryGetComponent(out DuctTapeItem tape))
+            {
+                DestroyHeldItem(); 
+            }
+        }
     }
 
     private void OnUsePerformed(InputAction.CallbackContext context)
@@ -578,4 +603,7 @@ public class PlayerEntity : NetworkBehaviour
         drunkTimer += duration; 
         currentDrunkIntensity = intensity;
     }
+
+
+    
 }

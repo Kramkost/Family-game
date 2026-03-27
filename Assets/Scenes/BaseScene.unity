@@ -156,7 +156,7 @@ MonoBehaviour:
   editorAutoStart: 0
   sendRate: 60
   offlineScene: Assets/Scenes/SampleScene.unity
-  onlineScene: 
+  onlineScene: Assets/Scenes/BaseScene.unity
   offlineSceneLoadDelay: 0
   transport: {fileID: 30864255}
   networkAddress: localhost
@@ -1864,6 +1864,7 @@ GameObject:
   - component: {fileID: 2107738016}
   - component: {fileID: 2107738023}
   - component: {fileID: 2107738022}
+  - component: {fileID: 2107738024}
   m_Layer: 0
   m_Name: Monster
   m_TagString: Untagged
@@ -1998,7 +1999,7 @@ NavMeshAgent:
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
-  m_StoppingDistance: 0
+  m_StoppingDistance: 2
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
   m_AutoRepath: 1
@@ -2029,6 +2030,40 @@ MonoBehaviour:
   aggressiveTime: 15
   aggressiveDistance: 5
   isCoroutine: 0
+--- !u!114 &2107738024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2107738015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ff3ba0becae47b8b9381191598957c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror.Components::Mirror.NetworkTransformReliable
+  syncDirection: 1
+  syncMode: 0
+  syncInterval: 0
+  target: {fileID: 2107738021}
+  syncPosition: 1
+  syncRotation: 1
+  syncScale: 0
+  onlySyncOnChange: 1
+  compressRotation: 1
+  interpolatePosition: 1
+  interpolateRotation: 1
+  interpolateScale: 1
+  coordinateSpace: 0
+  timelineOffset: 1
+  showGizmos: 0
+  showOverlay: 0
+  overlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+  onlySyncOnChangeCorrectionMultiplier: 2
+  useFixedUpdate: 0
+  rotationSensitivity: 0.01
+  positionPrecision: 0.01
+  scalePrecision: 0.01
 --- !u!1001 &1701807105924121778
 PrefabInstance:
   m_ObjectHideFlags: 0

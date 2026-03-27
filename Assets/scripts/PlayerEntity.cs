@@ -84,6 +84,9 @@ public class PlayerEntity : NetworkBehaviour
     private static readonly int InteractTriggerHash = Animator.StringToHash("Interact");
     private static readonly int SitTriggerHash = Animator.StringToHash("Sit");
     private static readonly int StandTriggerHash = Animator.StringToHash("Stand");
+    
+    [Header("Drop settings")]
+    [SerializeField] private float maxDropDistance = 1.5f;
 
     private void Awake()
     {
@@ -460,8 +463,19 @@ private void OnInteractPerformed(InputAction.CallbackContext context)
         
         GameObject itemToDrop = heldItem.gameObject;
         inventory?.RemoveItem(itemToDrop);
-        heldItem = null; 
-        itemToDrop.transform.position = cameraTransform.position + cameraTransform.forward * 1.5f;
+        heldItem = null;
+
+        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, maxDropDistance))
+        {
+            if (hit.distance < maxDropDistance)
+            {
+                itemToDrop.transform.position = hit.point;
+            }
+        }
+        else
+        {
+            itemToDrop.transform.position = cameraTransform.position + cameraTransform.forward * maxDropDistance;
+        }
     }
 
     [Server]

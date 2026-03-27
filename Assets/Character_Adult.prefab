@@ -1014,6 +1014,7 @@ MonoBehaviour:
   headBone: {fileID: 43360673198035515}
   headRotationOffset: {x: 0, y: -180, z: 0}
   headLookWeight: 1
+  maxDropDistance: 1.5
 --- !u!95 &5108710359567493460
 Animator:
   serializedVersion: 7

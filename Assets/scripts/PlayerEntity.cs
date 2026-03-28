@@ -79,6 +79,9 @@ public class PlayerEntity : NetworkBehaviour
     private float currentDrunkIntensity;
     private Vector3 initialHandPosition;
 
+
+    [HideInInspector] public CarSeat serverCurrentSeat;
+
     [Header("IK / Bone Tracking")]
     [SerializeField] private Transform headBone; 
     [SerializeField] private Vector3 headRotationOffset; 
@@ -533,7 +536,10 @@ public class PlayerEntity : NetworkBehaviour
     [Command]
     private void CmdLeaveSeat()
     {
-        currentSeat?.ServerLeave(this);
+       if (serverCurrentSeat != null)
+    {
+        serverCurrentSeat.ServerLeave(this);
+    }
     }
 
     [TargetRpc]

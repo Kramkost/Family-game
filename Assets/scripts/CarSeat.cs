@@ -60,6 +60,8 @@ public class CarSeat : NetworkBehaviour, IInteractable
                 carNetId.AssignClientAuthority(player.connectionToClient);
         }
 
+        player.serverCurrentSeat = this;
+
         player.TargetEnterSeat(carSystem.netIdentity, gameObject.name);
     }
 
@@ -69,6 +71,8 @@ public class CarSeat : NetworkBehaviour, IInteractable
         if (occupant != player.netIdentity) return;
 
         occupant = null;
+
+        player.serverCurrentSeat = null;
         
         if (carSystem != null)
         {

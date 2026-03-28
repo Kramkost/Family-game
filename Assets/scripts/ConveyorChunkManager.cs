@@ -207,6 +207,10 @@ public class ConveyorChunkManager : MonoBehaviour
         PropConfig[] currentProps = biomes[biomeIndex].props;
         float sqrMinDist = minPropDistance * minPropDistance; 
 
+        // Высчитываем половину ширины дороги. Все объекты должны быть ДАЛЬШЕ этой зоны по оси X.
+        float halfRoad = roadWidth / 2f;
+        float halfArea = propSpawnArea.x / 2f;
+
         for (int i = 0; i < propsPerChunk; i++)
         {
             PropConfig selectedConfig = GetWeightedRandomProp(currentProps, totalWeight);
@@ -216,7 +220,6 @@ public class ConveyorChunkManager : MonoBehaviour
             Quaternion localRot = Quaternion.identity;
             bool spawnSuccess = false;
 
-            // Вычисляем размер (индивидуальный или глобальный)
             Vector2 activeScaleRange = selectedConfig.scaleRange != Vector2.zero ? selectedConfig.scaleRange : propScaleRange;
             float randomScale = UnityEngine.Random.Range(activeScaleRange.x, activeScaleRange.y);
 
@@ -243,16 +246,20 @@ public class ConveyorChunkManager : MonoBehaviour
             }
             else
             {
-                float halfRoad = roadWidth / 2f;
-                float halfArea = propSpawnArea.x / 2f;
-
                 for (int attempt = 0; attempt < maxSpawnAttempts; attempt++)
                 {
-                    float randX = UnityEngine.Random.value > 0.5f ? UnityEngine.Random.Range(halfRoad, halfArea) : UnityEngine.Random.Range(-halfArea, -halfRoad); 
+                    // МАТЕМАТИЧЕСКАЯ ГАРАНТИЯ: Мы выбираем координату X строго слева или строго справа от дороги.
+                    // Знак > 0.5f определяет сторону. Мы никогда не выберем координату внутри roadWidth.
+                    float randX = UnityEngine.Random.value > 0.5f 
+                        ? UnityEngine.Random.Range(halfRoad + (randomScale / 2f), halfArea) // Справа от дороги
+                        : UnityEngine.Random.Range(-halfArea, -halfRoad - (randomScale / 2f)); // Слева от дороги
+                        
                     float randZ = UnityEngine.Random.Range(-propSpawnArea.y * 0.5f, propSpawnArea.y * 0.5f);
                     Vector2 testPos2D = new Vector2(randX, randZ);
+                    
                     bool hasClearance = true;
 
+                    // Проверяем наложение только с уже сгенерированными на этом чанке деревьями/камнями
                     for (int p = 0; p < placedPositionsCache.Count; p++)
                     {
                         if ((placedPositionsCache[p] - testPos2D).sqrMagnitude < sqrMinDist)
@@ -264,28 +271,12 @@ public class ConveyorChunkManager : MonoBehaviour
 
                     if (hasClearance)
                     {
-                        Vector3 tempLocalPos = new Vector3(randX, 0, baseZ + randZ);
-                        Vector3 tempWorldPos = propContainer != null ? propContainer.TransformPoint(tempLocalPos) : tempLocalPos;
-
-                        Collider[] hitColliders = Physics.OverlapSphere(tempWorldPos, minPropDistance * 0.5f);
-                        foreach (Collider hit in hitColliders)
-                        {
-                            if (hit.CompareTag("Road"))
-                            {
-                                hasClearance = false;
-                                break;
-                            }
-                        }
-
-                        if (hasClearance)
-                        {
-                            placedPositionsCache.Add(testPos2D);
-                            localPos = tempLocalPos;
-                            localRot = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
-                            prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale);
-                            spawnSuccess = true;
-                            break; 
-                        }
+                        placedPositionsCache.Add(testPos2D);
+                        localPos = new Vector3(randX, 0, baseZ + randZ);
+                        localRot = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
+                        prop.transform.localScale = new Vector3(randomScale, randomScale, randomScale);
+                        spawnSuccess = true;
+                        break; 
                     }
                 }
             }

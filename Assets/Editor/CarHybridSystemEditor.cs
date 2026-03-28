@@ -41,6 +41,10 @@ public class CarHybridSystemEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("motorForce"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("steerForce"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("crashThreshold"));
+        
+        EditorGUILayout.Space(5);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("lightsOn"));
+        
         EditorGUILayout.EndVertical();
 
         EditorGUILayout.BeginVertical(GUI.skin.box);

@@ -808,8 +808,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.016939603, y: 0.03360891, z: 0.15081474}
-  m_Center: {x: -0.0019658306, y: -0.08866779, z: 0.0055881497}
+  m_Size: {x: 0.016939603, y: 0.03360891, z: 0.14628424}
+  m_Center: {x: -0.0019658306, y: -0.08866779, z: 0.007853405}
 --- !u!1 &2019170341362542758
 GameObject:
   m_ObjectHideFlags: 0
@@ -958,13 +958,13 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 2
-  m_Radius: 0.5
+  m_Height: 15.47
+  m_Radius: 2.25
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: -0.67, y: 1.3, z: 0.62}
 --- !u!114 &8748327918552428277
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1002,7 +1002,9 @@ MonoBehaviour:
   interactAction: {fileID: 1781555164194001046, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   dropAction: {fileID: 7040659881675835329, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   jumpAction: {fileID: -2099379676528639254, guid: 289c1b55c9541489481df5cc06664110, type: 3}
-  useAction: {fileID: -2435242877518397919, guid: 289c1b55c9541489481df5cc06664110, type: 3}
+  useAction: {fileID: 630046469950047068, guid: 289c1b55c9541489481df5cc06664110, type: 3}
+  toggleLightsAction: {fileID: -451227694311455888, guid: 289c1b55c9541489481df5cc06664110, type: 3}
+  hornAction: {fileID: 2086087015865523511, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   rightHandSocket: {fileID: 5571219151236678227}
   heldItem: {fileID: 0}
   inventory: {fileID: 503767926053367193}

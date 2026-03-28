@@ -60,7 +60,7 @@ public class CarHybridSystem : NetworkBehaviour
     [SyncVar] public float engineSpeedModifier = 1f;
     [SyncVar(hook = nameof(OnEngineDeadChanged))] public bool isEngineDead = false;      
 
-    [SyncVar(hook = nameof(OnLightsChanged))] public bool lightsOn = false;
+    [SyncVar(hook = nameof(OnLightsChanged))] public bool lightsOn;
     [SyncVar] private float syncSteer;
     [SyncVar] private float syncAccel;
     [SyncVar(hook = nameof(OnEngineOnChanged))] public bool isEngineOn = false; // Состояние ВКЛ/ВЫКЛ двигателя
@@ -237,19 +237,23 @@ public class CarHybridSystem : NetworkBehaviour
         if (isOwned)
         {
             HandleCameraFOV();
-            HandleLocalInputs(); 
+            //HandleLocalInputs(); 
         }
     }
 
-    private void HandleLocalInputs()
-    {
-        if (Input.GetKeyDown(KeyCode.L)) CmdToggleLights();
-        if (Input.GetKeyDown(KeyCode.H)) CmdHonkHorn();
-    }
+    // private void HandleLocalInputs()
+    // {
+    //     if (Input.GetKeyDown(KeyCode.L)) CmdToggleLights();
+    //     if (Input.GetKeyDown(KeyCode.H)) CmdHonkHorn();
+    // }
 
     public void ToggleLightsUI()
     {
-        if (isOwned) CmdToggleLights();
+        if (isOwned)
+        {
+            lightsOn = !lightsOn;
+            CmdToggleLights();
+        }
     }
 
     public void HonkUI()
@@ -260,11 +264,10 @@ public class CarHybridSystem : NetworkBehaviour
     [Command]
     public void CmdToggleLights()
     {
-        lightsOn = !lightsOn;
     }
 
     [Command]
-    private void CmdHonkHorn()
+    public void CmdHonkHorn()
     {
         RpcHonkHorn();
     }

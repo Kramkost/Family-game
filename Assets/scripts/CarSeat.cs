@@ -13,7 +13,7 @@ public class CarSeat : NetworkBehaviour, IInteractable
     [Tooltip("Ссылка на главную логику машины.")]
     public CarHybridSystem carSystem;
 
-    [SyncVar] public NetworkIdentity occupant;
+    [SyncVar, ReadOnly] public NetworkIdentity occupant;
 
     [Tooltip("Точка, куда привязывается игрок (внутри машины)")]
     public Transform viewPoint; 

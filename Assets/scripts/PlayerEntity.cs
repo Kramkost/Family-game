@@ -2,6 +2,7 @@ using Kotenkoff;
 using UnityEngine;
 using Mirror;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(NetworkAnimator))]
@@ -17,22 +18,22 @@ public class PlayerEntity : NetworkBehaviour
     
     [Header("Physics Settings")]
     [SerializeField] private float gravity = -19.62f; 
-    private float velocityY = 0f;
+    private float velocityY;
 
     [Header("Camera Bobbing")]
     [SerializeField] private float bobbingSpeed = 14f;
     [SerializeField] private float bobbingAmount = 0.05f;
     private Vector3 defaultCameraPos;
-    private float bobbingTimer = 0f;
+    private float bobbingTimer;
 
     [Header("Audio & Footsteps")]
     [SerializeField] private AudioSource footstepAudioSource;
     [SerializeField] private AudioClip[] footstepSounds;
     [SerializeField] private float footstepInterval = 0.4f;
-    private float footstepTimer = 0f;
+    private float footstepTimer;
     private Vector3 lastPosition;
 
-    private float lastInteractTime = 0f;
+    private float lastInteractTime;
 
     [Header("Input Actions")]
     [SerializeField] private InputActionReference moveAction;
@@ -41,6 +42,9 @@ public class PlayerEntity : NetworkBehaviour
     [SerializeField] private InputActionReference dropAction; 
     [SerializeField] private InputActionReference jumpAction; 
     [SerializeField] private InputActionReference useAction; 
+    
+    [SerializeField] private InputActionReference toggleLightsAction;
+    [SerializeField] private InputActionReference hornAction;
 
     [Header("Hands & Items")]
     [SerializeField] private Transform rightHandSocket;
@@ -50,12 +54,12 @@ public class PlayerEntity : NetworkBehaviour
 
     [Header("Vehicle State")]
     private CarSeat currentSeat;
-    private bool isSitting = false;
+    private bool isSitting;
 
     private CharacterController characterController;
     private Collider[] allColliders; 
-    private float xRotation = 0f; 
-    private float yRotation = 0f; 
+    private float xRotation; 
+    private float yRotation; 
     
     [Header("Inventory")]
     [SerializeField] private PlayerInventory inventory;
@@ -71,8 +75,8 @@ public class PlayerEntity : NetworkBehaviour
     [SerializeField] private float maxSway = 0.06f;     
     [SerializeField] private float swaySmoothness = 6f;  
 
-    private float drunkTimer = 0f;
-    private float currentDrunkIntensity = 0f;
+    private float drunkTimer;
+    private float currentDrunkIntensity;
     private Vector3 initialHandPosition;
 
     [Header("IK / Bone Tracking")]
@@ -148,7 +152,12 @@ public class PlayerEntity : NetworkBehaviour
 
         moveAction?.action.Enable();
         lookAction?.action.Enable();
-        jumpAction?.action.Enable();
+
+        if (jumpAction != null)
+        {
+            jumpAction.action.Enable();
+            jumpAction.action.performed += OnJump;
+        }
         
         if (interactAction != null)
         {
@@ -176,7 +185,12 @@ public class PlayerEntity : NetworkBehaviour
 
         moveAction?.action.Disable();
         lookAction?.action.Disable();
-        jumpAction?.action.Disable();
+
+        if (jumpAction != null)
+        {
+            jumpAction.action.performed -= OnJump;
+            jumpAction.action.Disable();
+        }
         
         if (interactAction != null)
         {
@@ -194,6 +208,18 @@ public class PlayerEntity : NetworkBehaviour
         {
             useAction.action.performed -= OnUsePerformed;
             useAction.action.Disable();
+        }
+
+        if (toggleLightsAction != null)
+        {
+            toggleLightsAction.action.performed -= OnToggleLights;
+            toggleLightsAction.action.Disable();
+        }
+
+        if (hornAction != null)
+        {
+            hornAction.action.performed -= OnHorn;
+            hornAction.action.Disable();
         }
     }
 
@@ -356,17 +382,18 @@ public class PlayerEntity : NetworkBehaviour
 
     private void ApplyGravityAndJump()
     {
-        bool isGrounded = characterController.isGrounded;
-
-        if (isGrounded && velocityY < 0) velocityY = -0.1f; 
-
-        if (isGrounded && jumpAction != null && jumpAction.action.triggered)
-        {
-            velocityY = jumpForce;
-        }
+        if (characterController.isGrounded && velocityY < 0) velocityY = -0.1f;
 
         velocityY += gravity * Time.deltaTime;
         characterController.Move(new Vector3(0, velocityY, 0) * Time.deltaTime);
+    }
+    
+    private void OnJump(InputAction.CallbackContext ctx)
+    {
+        if (characterController.isGrounded)
+        {
+            velocityY = jumpForce;
+        }
     }
 
     private void HandleCameraBobbing()
@@ -391,49 +418,49 @@ public class PlayerEntity : NetworkBehaviour
         }
     }
 
-private void OnInteractPerformed(InputAction.CallbackContext context)
-{
-    if (isSitting || cameraTransform == null || Time.time < lastInteractTime + 0.5f) return;
-    lastInteractTime = Time.time;
-
-    if (networkAnimator != null) animator.SetTrigger(InteractTriggerHash);
-
-    // 1. РИСУЕМ ЛУЧ В SCENE VIEW (КРАСНЫЙ)
-    Debug.DrawRay(cameraTransform.position, cameraTransform.forward * interactRange, Color.red, 2f);
-
-    if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange, interactLayerMask))
+    private void OnInteractPerformed(InputAction.CallbackContext context)
     {
-        // 2. ПИШЕМ В КОНСОЛЬ АБСОЛЮТНО ВСЕ, ВО ЧТО ПОПАЛИ
-        Debug.Log($"[ОТЛАДКА] Луч врезался в объект: {hit.collider.gameObject.name} (Тег: {hit.collider.tag})");
+        if (isSitting || cameraTransform == null || Time.time < lastInteractTime + 0.5f) return;
+        lastInteractTime = Time.time;
 
-        CarPart part = hit.collider.GetComponent<CarPart>() ?? hit.collider.GetComponentInParent<CarPart>();
-        if (part != null && part.isBroken)
+        if (networkAnimator != null) animator.SetTrigger(InteractTriggerHash);
+
+        // 1. РИСУЕМ ЛУЧ В SCENE VIEW (КРАСНЫЙ)
+        Debug.DrawRay(cameraTransform.position, cameraTransform.forward * interactRange, Color.red, 2f);
+
+        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange, interactLayerMask))
         {
-            if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool) && tool.CanFix(part))
+            // 2. ПИШЕМ В КОНСОЛЬ АБСОЛЮТНО ВСЕ, ВО ЧТО ПОПАЛИ
+            Debug.Log($"[ОТЛАДКА] Луч врезался в объект: {hit.collider.gameObject.name} (Тег: {hit.collider.tag})");
+
+            CarPart part = hit.collider.GetComponent<CarPart>() ?? hit.collider.GetComponentInParent<CarPart>();
+            if (part != null && part.isBroken)
             {
-                FindFirstObjectByType<RepairUIManager>()?.OpenMiniGame(part, this);
-                return; 
+                if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool) && tool.CanFix(part))
+                {
+                    FindFirstObjectByType<RepairUIManager>()?.OpenMiniGame(part, this);
+                    return; 
+                }
             }
-        }
 
-        NetworkIdentity rootIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
-        IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
+            NetworkIdentity rootIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
+            IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
 
-        if (rootIdentity != null && interactable != null)
-        {
-            Debug.Log($"[ОТЛАДКА] Найден IInteractable на объекте: {((Component)interactable).gameObject.name}. Отправляем команду на сервер!");
-            CmdInteract(rootIdentity, ((Component)interactable).gameObject.name);
+            if (rootIdentity != null && interactable != null)
+            {
+                Debug.Log($"[ОТЛАДКА] Найден IInteractable на объекте: {((Component)interactable).gameObject.name}. Отправляем команду на сервер!");
+                CmdInteract(rootIdentity, ((Component)interactable).gameObject.name);
+            }
+            else
+            {
+                Debug.LogWarning("[ОТЛАДКА] Компонент IInteractable ИЛИ NetworkIdentity не найден на этом объекте или его родителях!");
+            }
         }
         else
         {
-            Debug.LogWarning("[ОТЛАДКА] Компонент IInteractable ИЛИ NetworkIdentity не найден на этом объекте или его родителях!");
+            Debug.Log("[ОТЛАДКА] Луч пролетел мимо и ни во что не попал. Проверь дистанцию или слой!");
         }
     }
-    else
-    {
-        Debug.Log("[ОТЛАДКА] Луч пролетел мимо и ни во что не попал. Проверь дистанцию или слой!");
-    }
-}
 
     [Command]
     private void CmdInteract(NetworkIdentity rootIdentity, string targetName)
@@ -512,6 +539,8 @@ private void OnInteractPerformed(InputAction.CallbackContext context)
     [TargetRpc]
     public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath)
     {
+        EnterVehicle();
+        
         GameObject seatObj = GameObject.Find(seatPath);
         if (seatObj == null || !seatObj.TryGetComponent(out currentSeat)) return;
 
@@ -539,6 +568,8 @@ private void OnInteractPerformed(InputAction.CallbackContext context)
     [TargetRpc]
     public void TargetLeaveSeat()
     {
+        ExitVehicle();
+        
         isSitting = false;
         
         if (animator != null)
@@ -608,8 +639,7 @@ private void OnInteractPerformed(InputAction.CallbackContext context)
         inventory?.RemoveItem(itemObj); 
         NetworkServer.Destroy(itemObj); 
     }
-
-
+    
     [TargetRpc]
     public void TargetApplyDrunkEffect(NetworkConnection target, float duration, float intensity)
     {
@@ -618,6 +648,52 @@ private void OnInteractPerformed(InputAction.CallbackContext context)
         currentDrunkIntensity = intensity;
     }
 
+    private void EnterVehicle()
+    {
+        if (toggleLightsAction != null)
+        {
+            toggleLightsAction.action.Enable();
+            toggleLightsAction.action.performed += OnToggleLights;
+        }
 
+        if (hornAction != null)
+        {
+            hornAction.action.Enable();
+            hornAction.action.performed += OnHorn;
+        }
+    }
+
+    private void ExitVehicle()
+    {
+        if (toggleLightsAction != null)
+        {
+            toggleLightsAction.action.performed -= OnToggleLights;
+            toggleLightsAction.action.Disable();
+        }
+
+        if (hornAction != null)
+        {
+            hornAction.action.performed -= OnHorn;
+            hornAction.action.Disable();
+        }
+    }
     
+    private void OnToggleLights(InputAction.CallbackContext ctx)
+    {
+        Debug.Log("ToggleLights");
+        
+        if (currentSeat.isDriverSeat)
+        {
+            currentSeat.carSystem.lightsOn = !currentSeat.carSystem.lightsOn;
+            currentSeat.carSystem.CmdToggleLights();
+        }
+    }
+    
+    private void OnHorn(InputAction.CallbackContext ctx)
+    {
+        if (currentSeat.isDriverSeat)
+        {
+            currentSeat?.carSystem.CmdHonkHorn();
+        }
+    }
 }

@@ -1825,7 +1825,7 @@ MonoBehaviour:
   eventIntervalMinutes: 15
   eventDurationMinutes: 1
   globalSeed: 1337
-  chunkSize: 200
+  chunkSize: 500
   biomeScale: 1
   viewDistanceAhead: 5
   viewDistanceBehind: 3

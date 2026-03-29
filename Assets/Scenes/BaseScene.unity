@@ -4001,6 +4001,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -1067361466338621136, guid: d935afc0ae2775249876286871c22e0f, type: 3}
+      propertyPath: sceneId
+      value: 1785469119
+      objectReference: {fileID: 0}
     - target: {fileID: 487119667575471214, guid: d935afc0ae2775249876286871c22e0f, type: 3}
       propertyPath: m_Name
       value: Motel_SaveZone_RAID
@@ -4443,6 +4447,10 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Vehicle
       objectReference: {fileID: 0}
+    - target: {fileID: 1690118488076454017, guid: 24383c8696704cbaab8592c39f108007, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.0526
+      objectReference: {fileID: 0}
     - target: {fileID: 2049901115475650209, guid: 24383c8696704cbaab8592c39f108007, type: 3}
       propertyPath: exitPoint
       value: 
@@ -4599,6 +4607,10 @@ PrefabInstance:
       propertyPath: workingModel
       value: 
       objectReference: {fileID: 1123089840}
+    - target: {fileID: 7033365590928737601, guid: 24383c8696704cbaab8592c39f108007, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.04864
+      objectReference: {fileID: 0}
     - target: {fileID: 7199559695023031155, guid: 24383c8696704cbaab8592c39f108007, type: 3}
       propertyPath: m_Layer
       value: 7
@@ -4627,6 +4639,18 @@ PrefabInstance:
       propertyPath: exitPoint
       value: 
       objectReference: {fileID: 197072234}
+    - target: {fileID: 8439059529454921643, guid: 24383c8696704cbaab8592c39f108007, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8439059529454921643, guid: 24383c8696704cbaab8592c39f108007, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8439059529454921643, guid: 24383c8696704cbaab8592c39f108007, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.5
+      objectReference: {fileID: 0}
     - target: {fileID: 8439059529454921643, guid: 24383c8696704cbaab8592c39f108007, type: 3}
       propertyPath: m_LocalPosition.x
       value: -7.94

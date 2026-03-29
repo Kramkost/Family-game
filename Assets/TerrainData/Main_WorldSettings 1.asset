@@ -16,10 +16,10 @@ MonoBehaviour:
   ChunkResolution: 129
   ChunkWorldSize: 200
   ViewDistanceChunks: 4
-  RoadWidth: 5
+  RoadWidth: 8
   RoadShoulderWidth: 4
   RoadMaxSlopeDeg: 8
-  RoadSegmentLength: 2
+  RoadSegmentLength: 4
   SafeZoneIntervalMeters: 1000
   SafeZonePrefab: {fileID: 487119667575471214, guid: d935afc0ae2775249876286871c22e0f, type: 3}
   MoistureFrequency: 0.0008

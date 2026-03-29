@@ -62,16 +62,16 @@ Material:
     m_Ints: []
     m_Floats:
     - _BreathAmplitude: 0.1
-    - _BreathSpeed: 0.5
+    - _BreathSpeed: 0.25
     - _BumpScale: 1
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
-    - _FogDensity: 0.05
+    - _FogDensity: 0.035
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _HeightDensity: 0.25
+    - _HeightDensity: 0.8
     - _HeightEnd: 10
     - _HeightStart: 0
     - _MaxFogOpacity: 0.9

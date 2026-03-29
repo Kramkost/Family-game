@@ -899,6 +899,8 @@ GameObject:
   - component: {fileID: 3184397152509986339}
   - component: {fileID: 2998106193908834400}
   - component: {fileID: 6832684283268549182}
+  - component: {fileID: 1669543956671479950}
+  - component: {fileID: 1809791319995980333}
   m_Layer: 0
   m_Name: Character_Adult
   m_TagString: Untagged
@@ -981,50 +983,26 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  moveSpeed: 5
-  jumpForce: 5
-  lookSensitivity: 0.5
+  playerMovement: {fileID: 1669543956671479950}
+  playerJuice: {fileID: 1809791319995980333}
+  inventory: {fileID: 503767926053367193}
+  rightHandSocket: {fileID: 5571219151236678227}
+  maxDropDistance: 1.5
+  heldItem: {fileID: 0}
   interactRange: 3
-  cameraTransform: {fileID: 7859408330955442929}
   interactLayerMask:
     serializedVersion: 2
     m_Bits: 179
-  gravity: -9.81
-  bobbingSpeed: 14
-  bobbingAmount: 0.1
-  footstepAudioSource: {fileID: 2859016909695254429}
-  footstepSounds:
-  - {fileID: 8300000, guid: 5cd31176296954121aa77f42ad942ebf, type: 3}
-  - {fileID: 8300000, guid: 67cb3f51c594f081e8c14b78bf931fe6, type: 3}
-  - {fileID: 8300000, guid: f582966e768de448c82ff33a1b936e44, type: 3}
-  footstepInterval: 0.4
+  animator: {fileID: 5108710359567493460}
+  serverCurrentSeat: {fileID: 0}
   moveAction: {fileID: -1680190386980627800, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   lookAction: {fileID: -5630151704836100654, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   interactAction: {fileID: 1781555164194001046, guid: 289c1b55c9541489481df5cc06664110, type: 3}
-  dropAction: {fileID: 7040659881675835329, guid: 289c1b55c9541489481df5cc06664110, type: 3}
+  dropAction: {fileID: 1781555164194001046, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   jumpAction: {fileID: -2099379676528639254, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   useAction: {fileID: 630046469950047068, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   toggleLightsAction: {fileID: -451227694311455888, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   hornAction: {fileID: 2086087015865523511, guid: 289c1b55c9541489481df5cc06664110, type: 3}
-  rightHandSocket: {fileID: 5571219151236678227}
-  heldItem: {fileID: 0}
-  rightArmBone: {fileID: 5516522447950020872}
-  raisedArmRotation: {x: -60, y: 0, z: 0}
-  armRaiseSpeed: 8
-  serverCurrentSeat: {fileID: 0}
-  inventory: {fileID: 503767926053367193}
-  animator: {fileID: 5108710359567493460}
-  lookSmoothness: 15
-  swayAmount: 0.02
-  maxSway: 0.06
-  swaySmoothness: 6
-  swayRotationAmount: 2
-  maxRotationSway: 5
-  swayRotationSmoothness: 8
-  headBone: {fileID: 43360673198035515}
-  headRotationOffset: {x: 0, y: 180, z: 0}
-  headLookWeight: 1
-  maxDropDistance: 1.5
 --- !u!95 &5108710359567493460
 Animator:
   serializedVersion: 7
@@ -1351,6 +1329,66 @@ MonoBehaviour:
   rumbleSounds:
   - {fileID: 8300000, guid: 2f92498d1f4c3b4abb301ce47cb4da12, type: 3}
   rumbleInterval: 12
+--- !u!114 &1669543956671479950
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164101469142759297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67b78d9ce3a64105e8ffb17f252eb84a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  playerEntity: {fileID: 8748327918552428277}
+  cameraTransform: {fileID: 7859408330955442929}
+  moveSpeed: 5
+  jumpForce: 7.5
+  gravity: -19.62
+  lookSensitivity: 0.5
+  lookSmoothness: 15
+--- !u!114 &1809791319995980333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164101469142759297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19df2aa9b63e1a83ea986433d24a7202, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerJuiceAndIK
+  playerEntity: {fileID: 8748327918552428277}
+  playerMovement: {fileID: 1669543956671479950}
+  animator: {fileID: 5108710359567493460}
+  bobbingSpeed: 14
+  bobbingAmount: 0.05
+  footstepAudioSource: {fileID: 2663088102589046834}
+  footstepSounds:
+  - {fileID: 8300000, guid: 506ce00208efa427f8bae7a742f55722, type: 3}
+  - {fileID: 8300000, guid: ccf7de35293e248b6a37333d49a4e3f6, type: 3}
+  - {fileID: 8300000, guid: 5cd31176296954121aa77f42ad942ebf, type: 3}
+  footstepInterval: 0.4
+  effectsAudioSource: {fileID: 0}
+  jumpSound: {fileID: 0}
+  landSound: {fileID: 0}
+  landingJoltAmount: 0.08
+  landingJoltDuration: 0.3
+  rightHandSocket: {fileID: 5571219151236678227}
+  swayAmount: 0.02
+  maxSway: 0.06
+  swaySmoothness: 6
+  swayRotationAmount: 2
+  maxRotationSway: 5
+  swayRotationSmoothness: 8
+  rightArmBone: {fileID: 5475314453862942091}
+  raisedArmRotation: {x: -60, y: 0, z: 0}
+  armRaiseSpeed: 8
+  headBone: {fileID: 3300710679881712874}
+  headRotationOffset: {x: 0, y: 0, z: 0}
+  headLookWeight: 1
 --- !u!1 &2187859041725899747
 GameObject:
   m_ObjectHideFlags: 0

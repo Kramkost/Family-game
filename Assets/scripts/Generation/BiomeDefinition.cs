@@ -14,12 +14,31 @@ namespace ProceduralTerrain.Core
         public int       PrimarySplatLayer  = 0;
         public int       SecondarySplatLayer = 1;
 
-        [Header("Height Noise")]
+        [Header("Height Noise — Base")]
         public float  HeightScale      = 50f;
         public float  HeightFrequency  = 0.003f;
         public int    HeightOctaves    = 5;
         public float  HeightPersistence = 0.5f;
         public float  HeightLacunarity = 2.0f;
+
+        // NEW — Topography shaping controls (Requirement 3)
+        [Header("Height Shaping (NEW)")]
+        [Tooltip("Power curve exponent. >1 = sharp peaks + flat plains (mountains). " +
+                 "<1 = rounded, bubbly hills. 1 = flat standard fBm.")]
+        [Range(0.1f, 4.0f)]
+        public float HeightExponent = 1.0f;
+
+        [Tooltip("Blend weight of ridged multifractal noise. " +
+                 "0 = pure standard fBm (rolling hills). " +
+                 "1 = pure ridged (sharp mountain ridges).")]
+        [Range(0f, 1f)]
+        public float RidgeWeight = 0.0f;
+
+        [Tooltip("Number of terrace steps. 0 = disabled. " +
+                 "Use 3-6 for canyon/mesa style biomes.")]
+        [Range(0, 8)]
+        public int TerraceCount = 0;
+        // END NEW
 
         [Header("Moisture / Temperature Ranges (for blending)")]
         [Range(0f, 1f)] public float MoistureMin = 0f;
@@ -38,7 +57,7 @@ namespace ProceduralTerrain.Core
         [Header("POIs")]
         public GameObject[] HousePrefabs;
         [Range(0f, 1f)] public float HouseSpawnProbability = 0.4f;
-        public float HouseRoadOffset  = 8f;    // Side offset from road edge (meters)
-        public float HouseMinSpacing  = 40f;   // Min distance between houses
+        public float HouseRoadOffset  = 8f;
+        public float HouseMinSpacing  = 40f;
     }
 }

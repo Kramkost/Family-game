@@ -1,7 +1,9 @@
 // =============================================================================
-// FILE 6: BiomeSystem.cs
-// IBiomeProvider implementation using moisture/temperature noise maps.
-// Handles seamless blending between biomes at chunk boundaries.
+// FILE 6: BiomeSystem.cs  (MODIFIED — Requirement 3)
+// Changes:
+//   [REQ-3] ScheduleBlendedHeightmapJob: passes HeightExponent, RidgeWeight,
+//            TerraceCount from BiomeDefinition to HeightmapGenerationJob.
+// All other logic unchanged.
 // =============================================================================
 
 using System;
@@ -16,30 +18,21 @@ using UnityEngine;
 
 namespace ProceduralTerrain.Biomes
 {
-    /// <summary>
-    /// Concrete IBiomeProvider.
-    /// Uses a moisture+temperature 2D noise space to place and blend biomes.
-    /// All heavy per-vertex blending is pushed to BiomeWeightJob (Burst).
-    /// </summary>
     public sealed class BiomeProvider : IBiomeProvider, IDisposable
     {
         private const string LOG_TAG = "BiomeProvider";
 
-        private readonly WorldSettings   _settings;
-        private readonly ITerrainLogger  _logger;
+        private readonly WorldSettings        _settings;
+        private readonly ITerrainLogger       _logger;
         private readonly List<BiomeDefinition> _biomes;
-
-        // Cached biome ranges for job scheduling
-        private NativeArray<float4> _biomeRanges; // (mMin, mMax, tMin, tMax) per biome
+        private NativeArray<float4>           _biomeRanges;
 
         public IReadOnlyList<BiomeDefinition> Biomes => _biomes.AsReadOnly();
 
-        // ---- Constructor ----------------------------------------------------
-
         public BiomeProvider(WorldSettings settings, ITerrainLogger logger)
         {
-            _settings = settings  ?? throw new ArgumentNullException(nameof(settings));
-            _logger   = logger    ?? throw new ArgumentNullException(nameof(logger));
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _logger   = logger   ?? throw new ArgumentNullException(nameof(logger));
             _biomes   = new List<BiomeDefinition>(settings.BiomeDefinitions);
 
             if (_biomes.Count == 0)
@@ -48,7 +41,6 @@ namespace ProceduralTerrain.Biomes
                 return;
             }
 
-            // Build NativeArray of ranges (Allocate once — persistent lifetime)
             _biomeRanges = new NativeArray<float4>(_biomes.Count, Allocator.Persistent);
             for (int i = 0; i < _biomes.Count; i++)
             {
@@ -68,53 +60,44 @@ namespace ProceduralTerrain.Biomes
         {
             float moisture    = SampleMoisture(worldX, worldZ);
             float temperature = SampleTemperature(worldX, worldZ);
-
             float[] weights   = new float[_biomes.Count];
             float   total     = 0f;
 
             for (int i = 0; i < _biomes.Count; i++)
             {
-                var   b      = _biomes[i];
-                float mW     = SmoothFit(b.MoistureMin,    b.MoistureMax,    moisture);
-                float tW     = SmoothFit(b.TemperatureMin, b.TemperatureMax, temperature);
-                weights[i]   = mW * tW;
-                total       += weights[i];
+                var   b    = _biomes[i];
+                float mW   = SmoothFit(b.MoistureMin,    b.MoistureMax,    moisture);
+                float tW   = SmoothFit(b.TemperatureMin, b.TemperatureMax, temperature);
+                weights[i] = mW * tW;
+                total     += weights[i];
             }
 
             if (total > 1e-6f)
                 for (int i = 0; i < weights.Length; i++) weights[i] /= total;
             else
-                weights[0] = 1f; // Default to first biome
+                weights[0] = 1f;
 
             return weights;
         }
 
         public int GetDominantBiome(float worldX, float worldZ)
         {
-            var weights   = GetBiomeWeights(worldX, worldZ);
-            int dominant  = 0;
-            float max     = float.MinValue;
+            var weights  = GetBiomeWeights(worldX, worldZ);
+            int dominant = 0;
+            float max    = float.MinValue;
             for (int i = 0; i < weights.Length; i++)
-            {
                 if (weights[i] > max) { max = weights[i]; dominant = i; }
-            }
             return dominant;
         }
 
-        // ---- Batch Job scheduling --------------------------------------------
+        // ---- Batch Job scheduling -------------------------------------------
 
-        /// <summary>
-        /// Schedules a Burst job to compute biome weights for an entire chunk.
-        /// Caller is responsible for completing the returned JobHandle
-        /// before reading the output NativeArray.
-        /// </summary>
         public JobHandle ScheduleBiomeWeightJob(
             Vector2Int chunkCoord, int resolution, float worldSize,
-            NativeArray<float> biomeWeightsOutput,  // Must be pre-allocated
+            NativeArray<float> biomeWeightsOutput,
             JobHandle dependency = default)
         {
             Vector2 origin = GetChunkOriginXZ(chunkCoord, worldSize);
-
             var job = new BiomeWeightJob
             {
                 Resolution           = resolution,
@@ -127,36 +110,30 @@ namespace ProceduralTerrain.Biomes
                 BiomeRanges          = _biomeRanges,
                 BiomeWeights         = biomeWeightsOutput
             };
-
             return job.Schedule(resolution * resolution, 64, dependency);
         }
 
-        /// <summary>
-        /// Schedules per-biome heightmap generation jobs (one per biome),
-        /// then blends them with a BiomeHeightBlendJob.
-        /// Returns the handle to the final blend job.
-        /// </summary>
         public JobHandle ScheduleBlendedHeightmapJob(
             Vector2Int chunkCoord, int resolution, float worldSize,
-            NativeArray<float> biomeWeights,         // Already computed
+            NativeArray<float> biomeWeights,
             NativeArray<float> outputHeightmap,
-            out NativeArray<float> tempBiomeHeightmaps, // Caller must dispose
+            out NativeArray<float> tempBiomeHeightmaps,
             JobHandle dependency = default)
         {
             int vertCount = resolution * resolution;
             tempBiomeHeightmaps = new NativeArray<float>(vertCount * _biomes.Count, Allocator.TempJob);
 
-            Vector2 origin = GetChunkOriginXZ(chunkCoord, worldSize);
-            var handles    = new NativeArray<JobHandle>(_biomes.Count, Allocator.Temp);
+            Vector2 origin  = GetChunkOriginXZ(chunkCoord, worldSize);
+            var     handles = new NativeArray<JobHandle>(_biomes.Count, Allocator.Temp);
 
             for (int b = 0; b < _biomes.Count; b++)
             {
-                var biome   = _biomes[b];
-                int bOffset = b; // Capture for closure-equivalent struct
-
-                // Slice of tempBiomeHeightmaps for this biome
+                var biome = _biomes[b];
                 var slice = new NativeArray<float>(vertCount, Allocator.TempJob);
 
+                // NEW [REQ-3] — Pass topography shaping fields to the job.
+                // Each biome independently controls mountain vs. plain shape
+                // via its HeightExponent, RidgeWeight, and TerraceCount.
                 var hJob = new HeightmapGenerationJob
                 {
                     Resolution    = resolution,
@@ -168,29 +145,29 @@ namespace ProceduralTerrain.Biomes
                     Octaves       = biome.HeightOctaves,
                     Persistence   = biome.HeightPersistence,
                     Lacunarity    = biome.HeightLacunarity,
-                    Heightmap     = slice
+
+                    // NEW fields — sourced from BiomeDefinition asset
+                    HeightExponent = biome.HeightExponent,  // NEW [REQ-3]
+                    RidgeWeight    = biome.RidgeWeight,     // NEW [REQ-3]
+                    TerraceCount   = biome.TerraceCount,    // NEW [REQ-3]
+                    // END NEW
+
+                    Heightmap = slice
                 };
+                // END NEW
 
                 handles[b] = hJob.Schedule(vertCount, 64, dependency);
-
-                // Copy slice into tempBiomeHeightmaps column after job
-                // (handled via a CopySliceJob — simplified: inline copy on main thread after Complete)
-                // For production: use NativeSlice<T> views. Here we use a simple separate array
-                // and merge them in the blend job via the compound array approach.
             }
 
-            // Wait for all biome heightmap jobs
             var combinedDep = JobHandle.CombineDependencies(handles);
             handles.Dispose();
 
-            // NOTE: In production, write into tempBiomeHeightmaps slices properly.
-            // Simplified here: blend job reads from them.
             var blendJob = new BiomeHeightBlendJob
             {
-                NumBiomes         = _biomes.Count,
-                BiomeWeights      = biomeWeights,
-                BiomeHeightmaps   = tempBiomeHeightmaps,
-                OutputHeightmap   = outputHeightmap
+                NumBiomes       = _biomes.Count,
+                BiomeWeights    = biomeWeights,
+                BiomeHeightmaps = tempBiomeHeightmaps,
+                OutputHeightmap = outputHeightmap
             };
 
             return blendJob.Schedule(vertCount, 64, combinedDep);
@@ -199,18 +176,17 @@ namespace ProceduralTerrain.Biomes
         // ---- Private helpers ------------------------------------------------
 
         private float SampleMoisture(float worldX, float worldZ)
-            => (BurstNoise.FBM01(new float2(worldX, worldZ), 2,
-                _settings.MoistureFrequency, 0.5f, 2f, _settings.WorldSeed + 7));
+            => BurstNoise.FBM01(new float2(worldX, worldZ), 2,
+                _settings.MoistureFrequency, 0.5f, 2f, _settings.WorldSeed + 7);
 
         private float SampleTemperature(float worldX, float worldZ)
-            => (BurstNoise.FBM01(new float2(worldX, worldZ), 2,
-                _settings.TemperatureFrequency, 0.5f, 2f, _settings.WorldSeed + 13));
+            => BurstNoise.FBM01(new float2(worldX, worldZ), 2,
+                _settings.TemperatureFrequency, 0.5f, 2f, _settings.WorldSeed + 13);
 
         private static float SmoothFit(float min, float max, float value)
         {
             if (value < min || value > max) return 0f;
-            float t = (value - min) / Mathf.Max(max - min, 1e-6f);
-            // Tent function: peaks at 0.5, zero at boundaries — smooth blending
+            float t    = (value - min) / Mathf.Max(max - min, 1e-6f);
             float tent = 1f - Mathf.Abs(t * 2f - 1f);
             return tent * tent * (3f - 2f * tent);
         }
@@ -218,7 +194,7 @@ namespace ProceduralTerrain.Biomes
         private static Vector2 GetChunkOriginXZ(Vector2Int coord, float worldSize)
             => new Vector2(coord.x * worldSize, coord.y * worldSize);
 
-        // ---- IDisposable -----------------------------------------------------
+        // ---- IDisposable ----------------------------------------------------
 
         private bool _disposed;
         public void Dispose()

@@ -1,8 +1,10 @@
 // =============================================================================
-// FILE 9: FoliageAndPOISpawner.cs
-// Concrete IFoliageSpawner and IPOISpawner.
-// Foliage uses GPU-instanced TreeInstances via Unity TerrainData.
-// POI / House spawning uses NetworkServer.Spawn (Mirror) — server-only.
+// FILE 9: FoliageAndPOISpawner.cs  (MODIFIED — Requirement 2)
+// Changes:
+//   [REQ-2] FoliageSpawner.SpawnFoliage: passes ExclusionBuffer + SplineTangents
+//            to FoliageCandidateJob (tangents enable corridor check, not just distance)
+//   [REQ-2] SpawnGrassDetail: road exclusion per-detail-cell using spline corridor math
+// POISpawner unchanged.
 // =============================================================================
 
 using System;
@@ -21,7 +23,7 @@ using UnityEngine;
 namespace ProceduralTerrain.Spawning
 {
     // =========================================================================
-    // Foliage Spawner
+    // Foliage Spawner  (MODIFIED)
     // =========================================================================
 
     public sealed class FoliageSpawner : IFoliageSpawner
@@ -48,169 +50,200 @@ namespace ProceduralTerrain.Spawning
             if (terrain == null || terrain.terrainData == null)
             {
                 _logger.LogWarning(LOG_TAG,
-                    $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: Terrain is null — skipping foliage.");
+                    $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: Terrain null — skipping foliage.");
                 return;
             }
 
-            // Determine dominant biome at chunk center
-            float cx = chunk.WorldOrigin.x + _settings.ChunkWorldSize * 0.5f;
-            float cz = chunk.WorldOrigin.z + _settings.ChunkWorldSize * 0.5f;
-
-            // Collect spline points for this chunk (road exclusion)
             var splinePoints = _roadBuilder.GetSampledPointsForChunk(chunk.Coord);
-            var nativeSpline = new NativeArray<float3>(splinePoints.Count, Allocator.TempJob);
+
+            // NEW [REQ-2] — Build separate NativeArrays for positions AND tangents.
+            // Tangents are required by the improved corridor-based exclusion in FoliageCandidateJob.
+            var nativePositions = new NativeArray<float3>(splinePoints.Count, Allocator.TempJob);
+            var nativeTangents  = new NativeArray<float3>(splinePoints.Count, Allocator.TempJob);
             for (int i = 0; i < splinePoints.Count; i++)
-                nativeSpline[i] = splinePoints[i].Position;
+            {
+                nativePositions[i] = splinePoints[i].Position;
+                nativeTangents[i]  = splinePoints[i].Tangent;
+            }
 
-            // We'll generate candidates per biome weighted by density
-            int totalCandidates = 512; // Candidates per chunk (tunable)
-            var candidateResults = new NativeArray<FoliagePlacement>(
-                totalCandidates, Allocator.TempJob);
+            // Total exclusion radius from road center line:
+            //   RoadHalfWidth + ShoulderHalfWidth + FoliageExclusionBuffer
+            // Log it so it's visible in console during generation.
+            float totalExclusion = _settings.RoadWidth * 0.5f +
+                                   _settings.RoadShoulderWidth +
+                                   _settings.FoliageExclusionBuffer;
+            _logger.Log(LogLevel.Verbose, LOG_TAG,
+                $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: " +
+                $"Foliage exclusion radius = {totalExclusion:F1} m from road center.");
+            // END NEW
 
+            int totalCandidates = 512;
+            var candidateResults = new NativeArray<FoliagePlacement>(totalCandidates, Allocator.TempJob);
+
+            // NEW [REQ-2] — Pass decomposed exclusion fields + tangents to the job
             var candidateJob = new FoliageCandidateJob
             {
                 Resolution        = chunk.Resolution,
                 WorldSize         = _settings.ChunkWorldSize,
                 ChunkOriginXZ     = new float2(chunk.WorldOrigin.x, chunk.WorldOrigin.z),
                 Seed              = chunk.Seed,
-                RoadHalfWidth     = _settings.RoadWidth * 0.5f,
-                ShoulderHalfWidth = _settings.RoadShoulderWidth,
-                NumSplinePoints   = nativeSpline.Length,
-                SplinePoints      = nativeSpline,
-                Heightmap         = chunk.Heightmap,
                 HeightScale       = GetAverageHeightScale(),
+                RoadHalfWidth     = _settings.RoadWidth * 0.5f,            // NEW [REQ-2]
+                ShoulderHalfWidth = _settings.RoadShoulderWidth,            // NEW [REQ-2]
+                ExclusionBuffer   = _settings.FoliageExclusionBuffer,       // NEW [REQ-2]
+                NumSplinePoints   = nativePositions.Length,
+                SplinePoints      = nativePositions,
+                SplineTangents    = nativeTangents,                         // NEW [REQ-2]
+                Heightmap         = chunk.Heightmap,
                 Results           = candidateResults
             };
+            // END NEW
 
             candidateJob.Schedule(totalCandidates, 64).Complete();
-            nativeSpline.Dispose();
 
-            // Convert to Unity TreeInstances
+            nativePositions.Dispose();
+            nativeTangents.Dispose(); // NEW [REQ-2]
+
+            // Build tree instances
             var treeInstances = new List<TreeInstance>();
             var terrainData   = terrain.terrainData;
-
-            // Setup tree prototypes on terrain (biome-based)
-            SetupTreePrototypes(terrainData, chunk, cx, cz);
+            SetupTreePrototypes(terrainData);
 
             for (int i = 0; i < totalCandidates; i++)
             {
                 var candidate = candidateResults[i];
                 if (!candidate.Valid) continue;
 
-                // Check exclusion zones (POI footprints)
                 bool excluded = false;
-                var candXZ    = new Vector2(candidate.WorldPosition.x, candidate.WorldPosition.z);
+                var  candXZ   = new Vector2(candidate.WorldPosition.x, candidate.WorldPosition.z);
                 foreach (var zone in exclusionZones)
-                {
                     if (zone.Contains(candXZ)) { excluded = true; break; }
-                }
                 if (excluded) continue;
 
-                // Convert to terrain-local normalized position
-                float normX = (candidate.WorldPosition.x - terrain.transform.position.x) /
-                               _settings.ChunkWorldSize;
-                float normZ = (candidate.WorldPosition.z - terrain.transform.position.z) /
-                               _settings.ChunkWorldSize;
-
+                float normX = (candidate.WorldPosition.x - terrain.transform.position.x) / _settings.ChunkWorldSize;
+                float normZ = (candidate.WorldPosition.z - terrain.transform.position.z) / _settings.ChunkWorldSize;
                 if (normX < 0f || normX > 1f || normZ < 0f || normZ > 1f) continue;
 
-                var ti = new TreeInstance
+                treeInstances.Add(new TreeInstance
                 {
-                    prototypeIndex  = candidate.PrefabIndex % Mathf.Max(1, terrainData.treePrototypes.Length),
-                    position        = new Vector3(normX, 0f, normZ),
-                    rotation        = candidate.Rotation,
-                    widthScale      = candidate.Scale,
-                    heightScale     = candidate.Scale,
-                    color           = Color.white,
-                    lightmapColor   = Color.white
-                };
-                treeInstances.Add(ti);
+                    prototypeIndex = candidate.Scale > 1.1f
+                        ? 0    // Tall scale → tree prototype
+                        : 1 % Mathf.Max(1, terrainData.treePrototypes.Length), // short → bush
+                    position       = new Vector3(normX, 0f, normZ),
+                    rotation       = candidate.Rotation,
+                    widthScale     = candidate.Scale,
+                    heightScale    = candidate.Scale,
+                    color          = Color.white,
+                    lightmapColor  = Color.white
+                });
             }
 
             candidateResults.Dispose();
-
             terrainData.SetTreeInstances(treeInstances.ToArray(), true);
 
             _logger.Log(LogLevel.Info, LOG_TAG,
                 $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: " +
-                $"Spawned {treeInstances.Count} foliage instances " +
-                $"(from {totalCandidates} candidates).");
+                $"Spawned {treeInstances.Count} foliage instances (from {totalCandidates} candidates).");
 
-            // Grass / Detail layers
-            SpawnGrassDetail(chunk, terrainData, cx, cz);
+            // NEW [REQ-2] — Pass spline data to grass spawner for exclusion
+            SpawnGrassDetail(chunk, terrain, terrainData, exclusionZones);
+            // END NEW
         }
 
         // ---- Private helpers ------------------------------------------------
 
-        private void SetupTreePrototypes(TerrainData td, ChunkData chunk, float cx, float cz)
+        private void SetupTreePrototypes(TerrainData td)
         {
-            // Biome weights are already baked — just use settings.BiomeDefinitions
             var protos = new List<TreePrototype>();
             foreach (var biome in _settings.BiomeDefinitions)
             {
                 foreach (var treePrefab in biome.TreePrefabs)
-                {
-                    if (treePrefab != null)
-                        protos.Add(new TreePrototype { prefab = treePrefab });
-                }
+                    if (treePrefab != null) protos.Add(new TreePrototype { prefab = treePrefab });
+                foreach (var bushPrefab in biome.BushPrefabs)
+                    if (bushPrefab != null) protos.Add(new TreePrototype { prefab = bushPrefab });
             }
-            if (protos.Count > 0)
-                td.treePrototypes = protos.ToArray();
+            if (protos.Count > 0) td.treePrototypes = protos.ToArray();
         }
 
-        private void SpawnGrassDetail(ChunkData chunk, TerrainData td, float cx, float cz)
+        // NEW [REQ-2] — Grass exclusion is now road-corridor-aware.
+        // We rasterize the road spline into the detail grid and blank out
+        // any detail cell whose center falls within the exclusion radius.
+        private void SpawnGrassDetail(ChunkData chunk, Terrain terrain,
+                                       TerrainData td, IReadOnlyList<Rect> poiExclusionZones)
         {
             if (_settings.BiomeDefinitions.Length == 0) return;
 
-            var biome = _settings.BiomeDefinitions[0]; // Simplified: use first biome for now
-
-            int detailRes    = td.detailResolution;
-            int grassLayer   = biome.GrassDetailLayer;
+            var biome = _settings.BiomeDefinitions[0];
+            int grassLayer = biome.GrassDetailLayer;
             if (grassLayer >= td.detailPrototypes.Length) return;
 
-            var grassMap     = td.GetDetailLayer(0, 0, detailRes, detailRes, grassLayer);
-            var rng          = new System.Random(chunk.Seed);
+            int   detailRes = td.detailResolution;
+            var   grassMap  = td.GetDetailLayer(0, 0, detailRes, detailRes, grassLayer);
+            var   rng       = new System.Random(chunk.Seed);
 
-            // --- ДОБАВЛЕНО: Достаем точки дороги для этого чанка ---
+            // Re-fetch spline points for this chunk (we need them for grass exclusion)
             var splinePoints = _roadBuilder.GetSampledPointsForChunk(chunk.Coord);
-            // Считаем радиус чистоты: половина дороги + обочина + 2 метра запаса
-            float exclusionDist = (_settings.RoadWidth * 0.5f) + _settings.RoadShoulderWidth + 2f; 
-            float sqrExclusion = exclusionDist * exclusionDist;
+
+            float totalExclusion = _settings.RoadWidth     * 0.5f +
+                                   _settings.RoadShoulderWidth     +
+                                   _settings.FoliageExclusionBuffer;
+
+            float cellWorldSize  = _settings.ChunkWorldSize / detailRes;
+            float chunkOriginX   = chunk.WorldOrigin.x;
+            float chunkOriginZ   = chunk.WorldOrigin.z;
 
             for (int z = 0; z < detailRes; z++)
             for (int x = 0; x < detailRes; x++)
             {
-                // Вычисляем мировые координаты текущего куста травы
-                float worldX = chunk.WorldOrigin.x + ((float)x / detailRes) * _settings.ChunkWorldSize;
-                float worldZ = chunk.WorldOrigin.z + ((float)z / detailRes) * _settings.ChunkWorldSize;
+                // World-space center of this detail cell
+                float cellWorldX = chunkOriginX + (x + 0.5f) * cellWorldSize;
+                float cellWorldZ = chunkOriginZ + (z + 0.5f) * cellWorldSize;
+                var   cellXZ     = new Vector2(cellWorldX, cellWorldZ);
 
-                bool onRoad = false;
-                
-                // Проверяем, не слишком ли близко мы к какой-нибудь точке дороги
-                foreach (var sp in splinePoints)
+                // NEW [REQ-2] — Check each road segment for corridor exclusion
+                bool inRoadCorridor = false;
+                for (int i = 0; i < splinePoints.Count - 1 && !inRoadCorridor; i++)
                 {
-                    float dx = sp.Position.x - worldX;
-                    float dz = sp.Position.z - worldZ;
-                    if (dx * dx + dz * dz < sqrExclusion)
-                    {
-                        onRoad = true;
-                        break;
-                    }
-                }
+                    var   sp0 = splinePoints[i];
+                    var   sp1 = splinePoints[i + 1];
+                    var   a   = new Vector2(sp0.Position.x, sp0.Position.z);
+                    var   b   = new Vector2(sp1.Position.x, sp1.Position.z);
 
-                // Если на дороге - пустота (0), иначе - сажаем траву с шансом из биома
-                if (onRoad)
-                {
-                    grassMap[z, x] = 0; 
+                    float perpDist = PerpendicularDistToSegment(cellXZ, a, b);
+                    if (perpDist < totalExclusion)
+                        inRoadCorridor = true;
                 }
+                // END NEW
+
+                // Check POI exclusion zones
+                bool inPOIZone = false;
+                foreach (var zone in poiExclusionZones)
+                    if (zone.Contains(cellXZ)) { inPOIZone = true; break; }
+
+                if (inRoadCorridor || inPOIZone)
+                    grassMap[z, x] = 0;
                 else
-                {
                     grassMap[z, x] = rng.NextDouble() < biome.GrassDensity ? 1 : 0;
-                }
             }
 
             td.SetDetailLayer(0, 0, grassLayer, grassMap);
+
+            _logger.Log(LogLevel.Verbose, LOG_TAG,
+                $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: " +
+                $"Grass detail written ({detailRes}x{detailRes}, " +
+                $"exclusion radius {totalExclusion:F1}m).");
         }
+
+        // NEW [REQ-2] — Shared perpendicular-distance helper (managed, for grass loop)
+        private static float PerpendicularDistToSegment(Vector2 p, Vector2 a, Vector2 b)
+        {
+            Vector2 ab    = b - a;
+            float   lenSq = Vector2.Dot(ab, ab);
+            if (lenSq < 1e-6f) return Vector2.Distance(p, a);
+            float   t     = Mathf.Clamp01(Vector2.Dot(p - a, ab) / lenSq);
+            return Vector2.Distance(p, a + t * ab);
+        }
+        // END NEW
 
         private float GetAverageHeightScale()
         {
@@ -222,7 +255,7 @@ namespace ProceduralTerrain.Spawning
     }
 
     // =========================================================================
-    // POI Spawner
+    // POI Spawner (unchanged from original)
     // =========================================================================
 
     public sealed class POISpawner : IPOISpawner
@@ -231,8 +264,6 @@ namespace ProceduralTerrain.Spawning
 
         private readonly WorldSettings  _settings;
         private readonly ITerrainLogger _logger;
-
-        // Track last house position per chunk side for min-spacing enforcement
         private readonly Dictionary<Vector2Int, float> _lastHouseDistancePerChunk = new();
 
         public POISpawner(WorldSettings settings, ITerrainLogger logger)
@@ -247,7 +278,7 @@ namespace ProceduralTerrain.Spawning
             if (!NetworkServer.active)
             {
                 _logger.LogWarning(LOG_TAG,
-                    $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: SpawnPOIs called on CLIENT. Skipping.");
+                    $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: SpawnPOIs on CLIENT. Skipping.");
                 return;
             }
 
@@ -260,58 +291,46 @@ namespace ProceduralTerrain.Spawning
 
             foreach (var sp in splinePoints)
             {
-                // Determine biome at this point
                 int biomeIdx = biomeProvider.GetDominantBiome(sp.Position.x, sp.Position.z);
                 if (biomeIdx >= _settings.BiomeDefinitions.Length) continue;
 
                 var biome = _settings.BiomeDefinitions[biomeIdx];
                 if (biome.HousePrefabs == null || biome.HousePrefabs.Length == 0) continue;
-
-                // Spacing check
                 if (sp.DistanceAlongSpline - lastDist < biome.HouseMinSpacing) continue;
 
-                // Probability check (deterministic RNG)
-                uint hash     = DeterministicHash((uint)seed, (uint)(sp.DistanceAlongSpline * 100f));
-                float roll    = (hash & 0xFFFF) / 65535f;
+                uint  hash = DeterministicHash((uint)seed, (uint)(sp.DistanceAlongSpline * 100f));
+                float roll = (hash & 0xFFFF) / 65535f;
                 if (roll > biome.HouseSpawnProbability) continue;
 
-                // Spawn on BOTH sides of road
                 for (int side = -1; side <= 1; side += 2)
                 {
                     float3 roadRight     = math.normalize(new float3(sp.Tangent.z, 0, -sp.Tangent.x));
                     float3 spawnWorldPos = sp.Position +
                                           roadRight * (side * (sp.RoadWidth * 0.5f + biome.HouseRoadOffset));
-
-                    // Ensure spawn is on terrain surface
                     spawnWorldPos.y = SampleTerrainHeight(spawnWorldPos.x, spawnWorldPos.z);
 
-                    // Y rotation: face the road
-                    float yRot = Mathf.Atan2(roadRight.x * side * -1, roadRight.z * side * -1)
-                                 * Mathf.Rad2Deg;
+                    float yRot = Mathf.Atan2(roadRight.x * side * -1, roadRight.z * side * -1) * Mathf.Rad2Deg;
 
-                    // Select prefab deterministically
-                    uint  prefabHash  = DeterministicHash(hash, (uint)(side + 2));
-                    int   prefabIndex = (int)(prefabHash % (uint)biome.HousePrefabs.Length);
-                    var   prefab      = biome.HousePrefabs[prefabIndex];
+                    uint prefabHash  = DeterministicHash(hash, (uint)(side + 2));
+                    int  prefabIndex = (int)(prefabHash % (uint)biome.HousePrefabs.Length);
+                    var  prefab      = biome.HousePrefabs[prefabIndex];
 
                     if (prefab == null) continue;
-
-                    // Check it has a NetworkIdentity
                     if (prefab.GetComponent<NetworkIdentity>() == null)
                     {
                         _logger.LogWarning(LOG_TAG,
-                            $"House prefab '{prefab.name}' is missing NetworkIdentity — cannot NetworkServer.Spawn.");
+                            $"House prefab '{prefab.name}' missing NetworkIdentity — skipped.");
                         continue;
                     }
 
-                    Vector3 spawnPos = new Vector3(spawnWorldPos.x, spawnWorldPos.y, spawnWorldPos.z);
-                    var     spawnRot = Quaternion.Euler(0f, yRot, 0f);
+                    Vector3    spawnPos = new Vector3(spawnWorldPos.x, spawnWorldPos.y, spawnWorldPos.z);
+                    Quaternion rot      = Quaternion.Euler(0f, yRot, 0f);
 
                     _logger.Log(LogLevel.Info, LOG_TAG,
-                        $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: Spawning '{prefab.name}' " +
-                        $"at {spawnPos} (biome={biome.BiomeName}, dist={sp.DistanceAlongSpline:F1}m, side={side})");
+                        $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: " +
+                        $"Spawning '{prefab.name}' at {spawnPos} (dist={sp.DistanceAlongSpline:F1}m, side={side})");
 
-                    var instance = UnityEngine.Object.Instantiate(prefab, spawnPos, spawnRot);
+                    var instance = UnityEngine.Object.Instantiate(prefab, spawnPos, rot);
                     NetworkServer.Spawn(instance);
                     spawnedThisChunk++;
                 }
@@ -320,28 +339,21 @@ namespace ProceduralTerrain.Spawning
             }
 
             _lastHouseDistancePerChunk[chunk.Coord] = lastDist;
-
             _logger.Log(LogLevel.Info, LOG_TAG,
                 $"Chunk [{chunk.Coord.x},{chunk.Coord.y}]: {spawnedThisChunk} POI(s) spawned.");
         }
 
-        // ---- Private helpers ------------------------------------------------
-
         private static List<SplinePoint> GetChunkSplinePoints(ChunkData chunk, IRoadBuilder roadBuilder)
         {
-            if (roadBuilder is RoadBuilder rb)
-                return rb.GetSampledPointsForChunk(chunk.Coord);
+            if (roadBuilder is RoadBuilder rb) return rb.GetSampledPointsForChunk(chunk.Coord);
             return new List<SplinePoint>();
         }
 
         private float SampleTerrainHeight(float worldX, float worldZ)
         {
-            // Raycast downward to find actual terrain surface
             if (Physics.Raycast(new Vector3(worldX, 1000f, worldZ), Vector3.down,
                     out var hit, 2000f, LayerMask.GetMask("Terrain")))
                 return hit.point.y;
-
-            // Fallback: Unity Terrain API
             var terrain = Terrain.activeTerrain;
             return terrain != null ? terrain.SampleHeight(new Vector3(worldX, 0, worldZ)) : 0f;
         }

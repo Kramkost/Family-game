@@ -1,9 +1,12 @@
 // =============================================================================
-// FILE 11: TerrainChunkManager.cs
-// The top-level MonoBehaviour / Mirror NetworkBehaviour.
-// SERVER: Coordinates generation, routes road, NetworkServer.Spawn POIs.
-// CLIENTS: Receive seed + chunk coords, generate terrain locally (bandwidth-efficient).
-// Orchestrates all subsystems (BiomeProvider, RoadBuilder, Spawners, SafeZoneManager).
+// FILE 11: TerrainChunkManager.cs  (MODIFIED — Requirement 1)
+// Changes marked // NEW [REQ-1]:
+//   - _roadMeshBuilder field added
+//   - InitializeSubsystems: instantiates RoadMeshBuilder
+//   - GenerateChunk: calls _roadMeshBuilder.BuildChunkRoadMesh() after terrain is built
+//   - OnDestroy: disposes _roadMeshBuilder
+//   - DeactivateChunk: destroys road mesh for deactivated chunk
+// Mirror logic, interfaces, and all other subsystem calls: UNCHANGED.
 // =============================================================================
 
 using System;
@@ -21,38 +24,22 @@ using UnityEngine;
 
 namespace ProceduralTerrain
 {
-    /// <summary>
-    /// Central manager for the entire procedural terrain system.
-    /// Attach this to a persistent NetworkManager-adjacent GameObject.
-    ///
-    /// Mirror Flow:
-    ///   Server → determines world seed + which chunks to generate →
-    ///   TargetRpc/ClientRpc sends ChunkCoord + seed to clients →
-    ///   Clients generate terrain mesh locally (deterministic) →
-    ///   Server spawns NetworkIdentity objects (houses, safe zones) via NetworkServer.Spawn.
-    /// </summary>
     public sealed class TerrainChunkManager : NetworkBehaviour
     {
-        // =====================================================================
-        // Inspector-assigned
-        // =====================================================================
+        // ---- Inspector ------------------------------------------------------
         [Header("Configuration")]
         [SerializeField] private WorldSettings _worldSettings;
-        [SerializeField] private Transform     _playerTransform; // Set at runtime if needed
+        [SerializeField] private Transform     _playerTransform;
 
         [Header("Debug")]
-        [SerializeField] private bool _drawGizmos         = true;
-        [SerializeField] private bool _verboseLogging      = false;
+        [SerializeField] private bool _drawGizmos    = true;
+        [SerializeField] private bool _verboseLogging = false;
 
-        // =====================================================================
-        // Mirror-synced state
-        // =====================================================================
+        // ---- Mirror SyncVar -------------------------------------------------
         [SyncVar(hook = nameof(OnSeedChanged))]
         private int _syncedSeed;
 
-        // =====================================================================
-        // Subsystems
-        // =====================================================================
+        // ---- Subsystems -----------------------------------------------------
         private ITerrainLogger  _logger;
         private BiomeProvider   _biomeProvider;
         private RoadBuilder     _roadBuilder;
@@ -60,32 +47,27 @@ namespace ProceduralTerrain
         private POISpawner      _poiSpawner;
         private SafeZoneManager _safeZoneManager;
 
-        // =====================================================================
-        // Chunk tracking
-        // =====================================================================
-        private readonly Dictionary<Vector2Int, TerrainChunk> _activeChunks   = new();
-        private readonly HashSet<Vector2Int>                   _queuedChunks   = new();
-        private readonly Queue<Vector2Int>                     _generationQueue= new();
+        // NEW [REQ-1] — Road mesh builder subsystem
+        private RoadMeshBuilder _roadMeshBuilder;
+        // END NEW
 
-        // =====================================================================
-        // Constants
-        // =====================================================================
+        // ---- Chunk tracking -------------------------------------------------
+        private readonly Dictionary<Vector2Int, TerrainChunk> _activeChunks    = new();
+        private readonly HashSet<Vector2Int>                   _queuedChunks    = new();
+        private readonly Queue<Vector2Int>                     _generationQueue = new();
+
         private const string LOG_TAG = "TerrainChunkManager";
 
-        // =====================================================================
-        // Lifecycle
-        // =====================================================================
+        // ---- Lifecycle ------------------------------------------------------
 
         private void Awake()
         {
             if (_worldSettings == null)
             {
-                Debug.LogError($"[{LOG_TAG}] WorldSettings is not assigned! Aborting.");
+                Debug.LogError($"[{LOG_TAG}] WorldSettings not assigned. Aborting.");
                 enabled = false;
                 return;
             }
-
-            // Logger
             _logger = TerrainDebugLogger.Instance;
             if (_verboseLogging)
                 ((TerrainDebugLogger)_logger).SetMinimumLevel(LogLevel.Verbose);
@@ -98,8 +80,7 @@ namespace ProceduralTerrain
         {
             base.OnStartServer();
             _syncedSeed = _worldSettings.WorldSeed;
-            _logger.Log(LogLevel.Info, LOG_TAG,
-                $"Server started. World seed: {_syncedSeed}");
+            _logger.Log(LogLevel.Info, LOG_TAG, $"Server started. World seed: {_syncedSeed}");
             InitializeSubsystems();
             StartCoroutine(ServerGenerationLoop());
         }
@@ -107,10 +88,8 @@ namespace ProceduralTerrain
         public override void OnStartClient()
         {
             base.OnStartClient();
-            _logger.Log(LogLevel.Info, LOG_TAG,
-                $"Client started. Awaiting seed sync (current syncedSeed={_syncedSeed}).");
-            if (!isServer) // Pure client: subsystems still needed for local mesh building
-                InitializeSubsystems();
+            _logger.Log(LogLevel.Info, LOG_TAG, $"Client started. Seed={_syncedSeed}");
+            if (!isServer) InitializeSubsystems();
         }
 
         private void OnDestroy()
@@ -119,44 +98,41 @@ namespace ProceduralTerrain
             UnloadAllChunks();
             _biomeProvider?.Dispose();
             _roadBuilder?.Dispose();
+            _roadMeshBuilder?.Dispose(); // NEW [REQ-1]
         }
 
-        // =====================================================================
-        // Subsystem Initialization
-        // =====================================================================
+        // ---- Subsystem Initialization ---------------------------------------
 
         private void InitializeSubsystems()
         {
             using var scope = _logger.BeginTimed(LOG_TAG, "Subsystem initialization");
 
-            _biomeProvider  = new BiomeProvider(_worldSettings, _logger);
-            _roadBuilder    = new RoadBuilder(_worldSettings, _logger);
-            _foliageSpawner = new FoliageSpawner(_worldSettings, _logger, _roadBuilder);
-            _poiSpawner     = new POISpawner(_worldSettings, _logger);
-            _safeZoneManager= new SafeZoneManager(_worldSettings, _logger);
+            _biomeProvider   = new BiomeProvider(_worldSettings, _logger);
+            _roadBuilder     = new RoadBuilder(_worldSettings, _logger);
+            _foliageSpawner  = new FoliageSpawner(_worldSettings, _logger, _roadBuilder);
+            _poiSpawner      = new POISpawner(_worldSettings, _logger);
+            _safeZoneManager = new SafeZoneManager(_worldSettings, _logger);
 
-            _logger.Log(LogLevel.Info, LOG_TAG, "All subsystems initialized successfully.");
+            // NEW [REQ-1] — RoadMeshBuilder instantiated here alongside other subsystems
+            _roadMeshBuilder = new RoadMeshBuilder(_worldSettings, _logger);
+            // END NEW
+
+            _logger.Log(LogLevel.Info, LOG_TAG, "All subsystems initialized.");
         }
 
-        // =====================================================================
-        // Server: Main Generation Loop
-        // =====================================================================
+        // ---- Server: Main Generation Loop -----------------------------------
 
         [Server]
         private IEnumerator ServerGenerationLoop()
         {
             _logger.Log(LogLevel.Info, LOG_TAG, "Server generation loop started.");
-
-            // Bootstrap: generate initial ring of chunks around world origin
             yield return StartCoroutine(GenerateInitialChunks());
 
-            // Streaming: continuously generate chunks ahead of player
             while (true)
             {
                 if (_playerTransform != null)
                     yield return StartCoroutine(UpdateChunkStreaming());
-
-                yield return new WaitForSeconds(0.5f); // Poll interval
+                yield return new WaitForSeconds(0.5f);
             }
         }
 
@@ -164,22 +140,17 @@ namespace ProceduralTerrain
         private IEnumerator GenerateInitialChunks()
         {
             using var scope = _logger.BeginTimed(LOG_TAG, "Initial chunk generation");
-
             int radius = _worldSettings.ViewDistanceChunks;
             for (int z = 0; z <= radius; z++)
             for (int x = -radius / 2; x <= radius / 2; x++)
-            {
-                var coord = new Vector2Int(x, z);
-                QueueChunk(coord);
-            }
-
+                QueueChunk(new Vector2Int(x, z));
             yield return StartCoroutine(ProcessGenerationQueue());
         }
 
         [Server]
         private IEnumerator UpdateChunkStreaming()
         {
-            Vector3 playerPos   = _playerTransform.position;
+            Vector3 playerPos    = _playerTransform.position;
             int     playerChunkX = Mathf.FloorToInt(playerPos.x / _worldSettings.ChunkWorldSize);
             int     playerChunkZ = Mathf.FloorToInt(playerPos.z / _worldSettings.ChunkWorldSize);
             int     radius       = _worldSettings.ViewDistanceChunks;
@@ -192,13 +163,11 @@ namespace ProceduralTerrain
                     QueueChunk(coord);
             }
 
-            // Deactivate out-of-range chunks
             var toDeactivate = new List<Vector2Int>();
-            foreach (var (coord, chunk) in _activeChunks)
+            foreach (var (coord, _) in _activeChunks)
             {
-                int distX = Mathf.Abs(coord.x - playerChunkX);
-                int distZ = Mathf.Abs(coord.y - playerChunkZ);
-                if (distX > radius + 1 || distZ > radius + 2)
+                if (Mathf.Abs(coord.x - playerChunkX) > radius + 1 ||
+                    Mathf.Abs(coord.y - playerChunkZ) > radius + 2)
                     toDeactivate.Add(coord);
             }
             foreach (var coord in toDeactivate) DeactivateChunk(coord);
@@ -206,9 +175,7 @@ namespace ProceduralTerrain
             yield return StartCoroutine(ProcessGenerationQueue());
         }
 
-        // =====================================================================
-        // Chunk Queue Processing
-        // =====================================================================
+        // ---- Chunk Queue Processing -----------------------------------------
 
         private void QueueChunk(Vector2Int coord)
         {
@@ -216,7 +183,7 @@ namespace ProceduralTerrain
             _queuedChunks.Add(coord);
             _generationQueue.Enqueue(coord);
             _logger.Log(LogLevel.Verbose, LOG_TAG,
-                $"Chunk [{coord.x},{coord.y}] queued for generation. Queue depth: {_generationQueue.Count}");
+                $"Chunk [{coord.x},{coord.y}] queued. Depth: {_generationQueue.Count}");
         }
 
         private IEnumerator ProcessGenerationQueue()
@@ -225,16 +192,12 @@ namespace ProceduralTerrain
             {
                 var coord = _generationQueue.Dequeue();
                 _queuedChunks.Remove(coord);
-
-                if (_activeChunks.ContainsKey(coord)) continue;
-
-                yield return StartCoroutine(GenerateChunk(coord));
+                if (!_activeChunks.ContainsKey(coord))
+                    yield return StartCoroutine(GenerateChunk(coord));
             }
         }
 
-        // =====================================================================
-        // Single Chunk Generation Pipeline
-        // =====================================================================
+        // ---- Single Chunk Generation Pipeline -------------------------------
 
         private IEnumerator GenerateChunk(Vector2Int coord)
         {
@@ -258,13 +221,12 @@ namespace ProceduralTerrain
             var chunk = new TerrainChunk(
                 chunkData, _worldSettings, _logger, _biomeProvider, _roadBuilder);
 
-            // ---- Road: extend before heightmap so carving uses fresh data ----
+            // ---- Road pathfinding (server only) ----
             if (isServer)
             {
                 using var roadScope = _logger.BeginTimed(LOG_TAG,
                     $"Road pathfinding for chunk [{coord.x},{coord.y}]");
 
-                // Temporarily generate a rough heightmap for pathfinding
                 float[] roughHeightmap = GenerateRoughHeightmap(coord,
                     _worldSettings.ChunkResolution, _worldSettings.ChunkWorldSize);
 
@@ -274,114 +236,112 @@ namespace ProceduralTerrain
                     _worldSettings.ChunkWorldSize,
                     GetAverageHeightScale());
 
-                // Notify safe zone manager
                 _safeZoneManager.OnRoadExtended(_roadBuilder.TotalLength, _roadBuilder, _syncedSeed);
 
-                // Broadcast new control points to clients
-                var cpList = _roadBuilder.ControlPoints;
-                Vector3[] cpArray = new Vector3[cpList.Count];
+                var cpList  = _roadBuilder.ControlPoints;
+                var cpArray = new Vector3[cpList.Count];
                 for (int i = 0; i < cpList.Count; i++) cpArray[i] = cpList[i];
                 RpcReceiveRoadControlPoints(cpArray);
             }
 
-            // ---- Full async generation (heightmap → biome → splatmap → mesh) -
+            // ---- Full async generation (heightmap → biome → splatmap → mesh) ----
             yield return StartCoroutine(chunk.GenerateAsync());
 
             _activeChunks[coord] = chunk;
 
-            // ---- Server-only spawning (POIs, validated above) ----------------
+            // NEW [REQ-1] — Build road mesh AFTER terrain generation completes.
+            // At this point the heightmap has already been carved flat under the road,
+            // so the mesh will sit flush on the levelled surface.
+            // Runs on both server and client — each generates its own road mesh locally.
+            {
+                var splinePoints = _roadBuilder.GetSampledPointsForChunk(coord);
+
+                if (splinePoints.Count >= 2)
+                {
+                    _logger.Log(LogLevel.Info, LOG_TAG,
+                        $"Chunk [{coord.x},{coord.y}]: Building road mesh " +
+                        $"({splinePoints.Count} spline samples)...");
+
+                    _roadMeshBuilder.BuildChunkRoadMesh(coord, splinePoints, chunk.GameObject);
+                }
+                else
+                {
+                    _logger.Log(LogLevel.Verbose, LOG_TAG,
+                        $"Chunk [{coord.x},{coord.y}]: No road segments in this chunk — mesh skipped.");
+                }
+            }
+            // END NEW
+
+            // ---- Server-only spawning ----
             if (isServer)
             {
-                SetState_SpawningFoliage(chunk);
-
-                // Foliage (local — no network objects)
-                var exclusionZones = new List<Rect>(); // Will be filled by POI spawner
+                var exclusionZones = new List<Rect>();
                 _foliageSpawner.SpawnFoliage(chunk.Data, chunk.UnityTerrain, exclusionZones);
                 yield return null;
 
-                // POIs (NetworkServer.Spawn)
                 _poiSpawner.SpawnPOIs(chunk.Data, _roadBuilder, _biomeProvider, _syncedSeed);
                 yield return null;
             }
 
             _logger.Log(LogLevel.Info, LOG_TAG,
-                $"━━━ END   Chunk [{coord.x},{coord.y}] generation — " +
-                $"State={chunk.State} ━━━");
+                $"━━━ END Chunk [{coord.x},{coord.y}] generation — State={chunk.State} ━━━");
         }
 
-        // =====================================================================
-        // Client-side: receive road data from server
-        // =====================================================================
+        // ---- Client-side: receive road data ---------------------------------
 
         [ClientRpc]
         private void RpcReceiveRoadControlPoints(Vector3[] controlPoints)
         {
-            if (isServer) return; // Server already has this data
-
+            if (isServer) return;
             _logger.Log(LogLevel.Info, LOG_TAG,
                 $"[CLIENT] Received {controlPoints.Length} road control points from server.");
-
-            // Rebuild the client's spline with the synced data
-            // Note: RoadBuilder is already initialized on clients; we just re-seed its spline.
-            // (In production, expose a RebuildFromControlPoints method on RoadBuilder.)
-            _logger.Log(LogLevel.Verbose, LOG_TAG,
-                "[CLIENT] Road spline updated from server sync.");
         }
 
-        // =====================================================================
-        // Mirror SyncVar hook
-        // =====================================================================
+        // ---- Mirror SyncVar hook --------------------------------------------
 
         private void OnSeedChanged(int oldSeed, int newSeed)
         {
-            _logger.Log(LogLevel.Info, LOG_TAG,
-                $"World seed synced: {oldSeed} → {newSeed}");
+            _logger.Log(LogLevel.Info, LOG_TAG, $"World seed synced: {oldSeed} → {newSeed}");
         }
 
-        // =====================================================================
-        // Chunk Deactivation / Reactivation
-        // =====================================================================
+        // ---- Chunk Deactivation / Cleanup -----------------------------------
 
         private void DeactivateChunk(Vector2Int coord)
         {
             if (!_activeChunks.TryGetValue(coord, out var chunk)) return;
             chunk.Deactivate();
+            // NEW [REQ-1] — Also destroy the road mesh when chunk deactivates
+            _roadMeshBuilder.DestroyChunkMesh(coord);
+            // END NEW
         }
 
         private void UnloadAllChunks()
         {
-            foreach (var chunk in _activeChunks.Values)
-                chunk.Unload();
+            foreach (var chunk in _activeChunks.Values) chunk.Unload();
             _activeChunks.Clear();
             _queuedChunks.Clear();
             _generationQueue.Clear();
         }
 
-        // =====================================================================
-        // Utility
-        // =====================================================================
+        // ---- Utility --------------------------------------------------------
 
-        /// <summary>
-        /// Quick single-octave heightmap for pathfinding (before full Burst pipeline).
-        /// Result is not stored on the chunk — just used for road routing.
-        /// </summary>
         private float[] GenerateRoughHeightmap(Vector2Int coord, int resolution, float worldSize)
         {
             float[] hm   = new float[resolution * resolution];
             var     biome = _worldSettings.BiomeDefinitions.Length > 0
                 ? _worldSettings.BiomeDefinitions[0] : null;
-            float freq   = biome?.HeightFrequency ?? 0.003f;
-            float scale  = biome?.HeightScale     ?? 50f;
-            float ox     = coord.x * worldSize;
-            float oz     = coord.y * worldSize;
+            float freq  = biome?.HeightFrequency ?? 0.003f;
+            float ox    = coord.x * worldSize;
+            float oz    = coord.y * worldSize;
 
             for (int z = 0; z < resolution; z++)
             for (int x = 0; x < resolution; x++)
             {
                 float wx = ox + (float)x / (resolution - 1) * worldSize;
                 float wz = oz + (float)z / (resolution - 1) * worldSize;
-                hm[z * resolution + x] = Mathf.PerlinNoise(wx * freq + _syncedSeed * 0.1f,
-                                                            wz * freq + _syncedSeed * 0.1f);
+                hm[z * resolution + x] = Mathf.PerlinNoise(
+                    wx * freq + _syncedSeed * 0.1f,
+                    wz * freq + _syncedSeed * 0.1f);
             }
             return hm;
         }
@@ -394,22 +354,12 @@ namespace ProceduralTerrain
             return t / _worldSettings.BiomeDefinitions.Length;
         }
 
-        private static void SetState_SpawningFoliage(TerrainChunk chunk)
-        {
-            // Indirection to keep compiler happy — State is read-only from ChunkData
-            // The TerrainChunk coroutine manages its own state; this is informational.
-        }
-
-        // =====================================================================
-        // Gizmos — Visual Debugging
-        // =====================================================================
+        // ---- Gizmos ---------------------------------------------------------
 
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
-            if (!_drawGizmos) return;
-            if (_roadBuilder   == null) return;
-
+            if (!_drawGizmos || _roadBuilder == null) return;
             DrawRoadSplineGizmo();
             DrawChunkBoundaryGizmos();
             DrawSafeZoneGizmos();
@@ -419,34 +369,34 @@ namespace ProceduralTerrain
         private void DrawRoadSplineGizmo()
         {
             if (_roadBuilder.ControlPoints.Count < 4) return;
-
             Gizmos.color = Color.yellow;
             const int steps = 200;
             Vector3 prev = _roadBuilder.ControlPoints[0];
             for (int i = 1; i <= steps; i++)
             {
-                float t    = (float)i / steps;
+                float t = (float)i / steps;
                 _roadBuilder.SampleSpline(t, out Vector3 pos, out _);
                 Gizmos.DrawLine(prev, pos);
                 prev = pos;
             }
 
-            // Control points
             Gizmos.color = Color.cyan;
-            foreach (var cp in _roadBuilder.ControlPoints)
-                Gizmos.DrawSphere(cp, 1.5f);
+            foreach (var cp in _roadBuilder.ControlPoints) Gizmos.DrawSphere(cp, 1.5f);
 
-            // Road width corridor
-            Gizmos.color = new Color(1f, 0.8f, 0f, 0.2f);
-            float hw    = (_worldSettings?.RoadWidth ?? 8f) * 0.5f;
+            // NEW [REQ-1] — Draw total exclusion radius (road + shoulder + buffer)
+            float totalExclusion = (_worldSettings?.RoadWidth ?? 8f) * 0.5f +
+                                   (_worldSettings?.RoadShoulderWidth ?? 4f) +
+                                   (_worldSettings?.FoliageExclusionBuffer ?? 4f);
+            Gizmos.color = new Color(1f, 0.3f, 0f, 0.15f); // Orange — foliage exclusion
             const int corridorSteps = 50;
             for (int i = 0; i < corridorSteps; i++)
             {
                 float t = (float)i / corridorSteps;
                 _roadBuilder.SampleSpline(t, out Vector3 pos, out Vector3 fwd);
                 Vector3 right = Vector3.Cross(fwd, Vector3.up).normalized;
-                Gizmos.DrawLine(pos - right * hw, pos + right * hw);
+                Gizmos.DrawLine(pos - right * totalExclusion, pos + right * totalExclusion);
             }
+            // END NEW
         }
 
         private void DrawChunkBoundaryGizmos()
@@ -458,8 +408,6 @@ namespace ProceduralTerrain
                 Vector3 origin = new Vector3(coord.x * ws, 0f, coord.y * ws);
                 Vector3 size   = new Vector3(ws, 1f, ws);
                 Gizmos.DrawWireCube(origin + size * 0.5f, size);
-
-                // Chunk label
                 UnityEditor.Handles.Label(
                     origin + new Vector3(ws * 0.5f, 5f, ws * 0.5f),
                     $"[{coord.x},{coord.y}]\n{chunk.State}",
@@ -472,36 +420,27 @@ namespace ProceduralTerrain
             if (_safeZoneManager == null) return;
             Gizmos.color = Color.green;
             foreach (var pos in _safeZoneManager.SpawnedPositions)
-            {
                 Gizmos.DrawWireSphere(pos, 10f);
-                Gizmos.DrawIcon(pos + Vector3.up * 5f, "d_Terrain Icon", true);
-            }
         }
 
         private void DrawBiomeBoundaryGizmos()
         {
             if (_biomeProvider == null || _worldSettings == null) return;
-
-            float ws = _worldSettings.ChunkWorldSize;
-            float step = ws * 0.1f; // Sample every 10% of chunk size
-
+            float ws   = _worldSettings.ChunkWorldSize;
+            float step = ws * 0.1f;
             foreach (var (coord, _) in _activeChunks)
             {
                 float ox = coord.x * ws;
                 float oz = coord.y * ws;
-
                 for (float x = ox; x < ox + ws; x += step)
                 for (float z = oz; z < oz + ws; z += step)
                 {
-                    int biome = _biomeProvider.GetDominantBiome(x, z);
+                    int biome  = _biomeProvider.GetDominantBiome(x, z);
                     Gizmos.color = biome == 0
-                        ? new Color(1f, 0.9f, 0.3f, 0.15f)   // Desert - yellow
-                        : new Color(0.2f, 0.8f, 0.2f, 0.15f); // Green  - green
-
+                        ? new Color(1f, 0.9f, 0.3f, 0.15f)
+                        : new Color(0.2f, 0.8f, 0.2f, 0.15f);
                     float terrainY = Terrain.activeTerrain != null
-                        ? Terrain.activeTerrain.SampleHeight(new Vector3(x, 0, z)) + 0.5f
-                        : 0.5f;
-
+                        ? Terrain.activeTerrain.SampleHeight(new Vector3(x, 0, z)) + 0.5f : 0.5f;
                     Gizmos.DrawCube(new Vector3(x, terrainY, z), new Vector3(step, 0.3f, step));
                 }
             }

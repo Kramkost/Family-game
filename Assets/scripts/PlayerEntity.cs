@@ -2,39 +2,60 @@ using Kotenkoff;
 using UnityEngine;
 using Mirror;
 using UnityEngine.InputSystem;
-using UnityEngine.Serialization;
 
-[RequireComponent(typeof(CharacterController))]
+/// <summary>
+/// Центральный хаб игрока. Отвечает ТОЛЬКО за:
+/// — Mirror (SyncVar, Command, TargetRpc)
+/// — Инвентарь и управление предметами
+/// — Логику взаимодействия (raycast → CmdInteract)
+/// — Input System (enable/disable, routing в PlayerMovement)
+/// — Логику посадки в машину
+///
+/// Физика → PlayerMovement.  Сочность → PlayerJuiceAndIK.
+/// </summary>
+[RequireComponent(typeof(PlayerMovement))]
+[RequireComponent(typeof(PlayerJuiceAndIK))]
 [RequireComponent(typeof(NetworkAnimator))]
 public class PlayerEntity : NetworkBehaviour
 {
-    [Header("Movement & Look Settings")] 
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float jumpForce = 5f;
-    [SerializeField] private float lookSensitivity = 0.5f;
+    // ─── Sibling Components ───────────────────────────────────────────────────
+    [Header("Sibling Components")]
+    [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField] private PlayerJuiceAndIK playerJuice;
+
+    // ─── Inventory & Items ────────────────────────────────────────────────────
+    [Header("Inventory & Items")]
+    [SerializeField] private PlayerInventory inventory;
+    [SerializeField] private Transform rightHandSocket;
+    [SerializeField] private float maxDropDistance = 1.5f;
+
+    [SyncVar(hook = nameof(OnHeldItemChanged))]
+    public NetworkIdentity heldItem;
+
+    // ─── Interaction ──────────────────────────────────────────────────────────
+    [Header("Interaction")]
     [SerializeField] private float interactRange = 3f;
-    [SerializeField] private Transform cameraTransform;
     [SerializeField] private LayerMask interactLayerMask = ~0;
-
-    [Header("Physics Settings")] 
-    [SerializeField] private float gravity = -19.62f;
-    private float velocityY;
-
-    [Header("Camera Bobbing")] 
-    [SerializeField] private float bobbingSpeed = 14f;
-    [SerializeField] private float bobbingAmount = 0.05f;
-    private Vector3 defaultCameraPos;
-    private float bobbingTimer;
-
-    [Header("Audio & Footsteps")] 
-    [SerializeField] private AudioSource footstepAudioSource;
-    [SerializeField] private AudioClip[] footstepSounds;
-    [SerializeField] private float footstepInterval = 0.4f;
-    private float footstepTimer;
-    private Vector3 lastPosition;
     private float lastInteractTime;
 
-    [Header("Input Actions")] 
+    // ─── Animation ────────────────────────────────────────────────────────────
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    private NetworkAnimator networkAnimator;
+
+    private static readonly int InteractTriggerHash = Animator.StringToHash("Interact");
+    private static readonly int IsSittingHash       = Animator.StringToHash("IsSitting");
+    private static readonly int SitTriggerHash      = Animator.StringToHash("Sit");
+    private static readonly int StandTriggerHash    = Animator.StringToHash("Stand");
+
+    // ─── Vehicle State ────────────────────────────────────────────────────────
+    [HideInInspector] public CarSeat serverCurrentSeat; // только сервер
+    private CarSeat currentSeat;
+    private Collider[] allColliders;
+    private bool isSitting;
+
+    // ─── Input Actions ────────────────────────────────────────────────────────
+    [Header("Input Actions")]
     [SerializeField] private InputActionReference moveAction;
     [SerializeField] private InputActionReference lookAction;
     [SerializeField] private InputActionReference interactAction;
@@ -44,438 +65,222 @@ public class PlayerEntity : NetworkBehaviour
     [SerializeField] private InputActionReference toggleLightsAction;
     [SerializeField] private InputActionReference hornAction;
 
-    [Header("Hands & Items")] 
-    [SerializeField] private Transform rightHandSocket;
-    [SyncVar(hook = nameof(OnHeldItemChanged))]
-    public NetworkIdentity heldItem;
+    // Делегаты для корректного unsubscribe
+    private System.Action<InputAction.CallbackContext> onJumpHandler;
+    private System.Action<InputAction.CallbackContext> onInteractHandler;
+    private System.Action<InputAction.CallbackContext> onDropHandler;
+    private System.Action<InputAction.CallbackContext> onUseHandler;
+    private System.Action<InputAction.CallbackContext> onToggleLightsHandler;
+    private System.Action<InputAction.CallbackContext> onHornHandler;
 
-    [Header("Item Holding Bone Adjustments")]
-    [Tooltip("Кость, которая будет подниматься (например, RightUpperArm или RightShoulder)")]
-    [SerializeField] private Transform rightArmBone;
-    [Tooltip("Локальный поворот кости, когда предмет в руках")]
-    [SerializeField] private Vector3 raisedArmRotation = new Vector3(-60f, 0f, 0f);
-    [Tooltip("Скорость поднятия/опускания руки")]
-    [SerializeField] private float armRaiseSpeed = 8f;
-    private float holdWeight; // Плавно меняется от 0 до 1
+    // ─── Public Properties ────────────────────────────────────────────────────
+    public bool IsSitting => isSitting;
+    public PlayerJuiceAndIK PlayerJuice => playerJuice;
+    public NetworkIdentity HeldItem => heldItem;
 
-    [Header("Vehicle State")] 
-    private CarSeat currentSeat;
-    private bool isSitting;
-    private CharacterController characterController;
-    private Collider[] allColliders;
-    private float xRotation;
-    private float yRotation;
-    [HideInInspector] public CarSeat serverCurrentSeat;
-
-    [Header("Inventory")] 
-    [SerializeField] private PlayerInventory inventory;
-
-    [Header("Visuals & Animation")] 
-    [SerializeField] private Animator animator;
-    private NetworkAnimator networkAnimator;
-
-    [Header("Smoothness & Sway (Game Feel)")] 
-    [SerializeField] private float lookSmoothness = 15f;
-    [SerializeField] private float swayAmount = 0.02f;
-    [SerializeField] private float maxSway = 0.06f;
-    [SerializeField] private float swaySmoothness = 6f;
-    [SerializeField] private float swayRotationAmount = 2f;
-    [SerializeField] private float maxRotationSway = 5f;
-    [SerializeField] private float swayRotationSmoothness = 8f;
-
-    private float drunkTimer;
-    private float currentDrunkIntensity;
-    private Vector3 initialHandPosition;
-    private Quaternion initialHandRotation;
-    private Transform currentGrabPoint;
-
-    [Header("IK / Bone Tracking")] 
-    [SerializeField] private Transform headBone;
-    [SerializeField] private Vector3 headRotationOffset;
-    [SerializeField] [Range(0, 1)] private float headLookWeight = 1f;
-    
-    private static readonly int SpeedHash = Animator.StringToHash("Speed");
-    private static readonly int IsSittingHash = Animator.StringToHash("IsSitting");
-    private static readonly int InteractTriggerHash = Animator.StringToHash("Interact");
-    private static readonly int SitTriggerHash = Animator.StringToHash("Sit");
-    private static readonly int StandTriggerHash = Animator.StringToHash("Stand");
-
-    [Header("Drop settings")] 
-    [SerializeField] private float maxDropDistance = 1.5f;
+    // ─────────────────────────────────────────────────────────────────────────
+    // Awake
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void Awake()
     {
-        characterController = GetComponent<CharacterController>();
         networkAnimator = GetComponent<NetworkAnimator>();
-        allColliders = GetComponentsInChildren<Collider>();
+        allColliders    = GetComponentsInChildren<Collider>();
 
-        if (animator == null) animator = GetComponentInChildren<Animator>();
+        if (animator       == null) animator       = GetComponentInChildren<Animator>();
+        if (playerMovement == null) playerMovement = GetComponent<PlayerMovement>();
+        if (playerJuice    == null) playerJuice    = GetComponent<PlayerJuiceAndIK>();
 
+        // Автопоиск rightHandSocket по тегу
         if (rightHandSocket == null)
         {
-            foreach (Transform child in GetComponentsInChildren<Transform>(true))
+            foreach (Transform t in GetComponentsInChildren<Transform>(true))
             {
-                if (child.CompareTag("Hand"))
-                {
-                    rightHandSocket = child;
-                    break;
-                }
+                if (t.CompareTag("Hand")) { rightHandSocket = t; break; }
             }
         }
 
-        if (rightHandSocket != null)
-        {
-            initialHandPosition = rightHandSocket.localPosition;
-            initialHandRotation = rightHandSocket.localRotation;
-        }
-
-        if (cameraTransform != null)
-        {
-            defaultCameraPos = cameraTransform.localPosition;
-            if (cameraTransform.TryGetComponent(out Camera cam)) cam.enabled = false;
-            if (cameraTransform.TryGetComponent(out AudioListener listener)) listener.enabled = false;
-        }
-
-        lastPosition = transform.position;
+        // Инжектируем InputAction-ссылки в PlayerMovement
+        playerMovement.Initialize(moveAction, lookAction);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Mirror Lifecycle
+    // ─────────────────────────────────────────────────────────────────────────
 
     public override void OnStartLocalPlayer()
     {
         Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-        if (cameraTransform != null)
-        {
-            if (cameraTransform.TryGetComponent(out Camera cam)) cam.enabled = true;
-            if (cameraTransform.TryGetComponent(out AudioListener listener)) listener.enabled = true;
-        }
-
-        moveAction?.action.Enable();
-        lookAction?.action.Enable();
-
-        if (jumpAction != null)
-        {
-            jumpAction.action.Enable();
-            jumpAction.action.performed += OnJump;
-        }
-
-        if (interactAction != null)
-        {
-            interactAction.action.Enable();
-            interactAction.action.performed += OnInteractPerformed;
-        }
-
-        if (dropAction != null)
-        {
-            dropAction.action.Enable();
-            dropAction.action.performed += OnDropPerformed;
-        }
-
-        if (useAction != null)
-        {
-            useAction.action.Enable();
-            useAction.action.performed += OnUsePerformed;
-        }
+        Cursor.visible   = false;
+        EnableBaseInput();
     }
 
     public override void OnStopLocalPlayer()
     {
         Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        moveAction?.action.Disable();
-        lookAction?.action.Disable();
-
-        if (jumpAction != null)
-        {
-            jumpAction.action.performed -= OnJump;
-            jumpAction.action.Disable();
-        }
-
-        if (interactAction != null)
-        {
-            interactAction.action.performed -= OnInteractPerformed;
-            interactAction.action.Disable();
-        }
-
-        if (dropAction != null)
-        {
-            dropAction.action.performed -= OnDropPerformed;
-            dropAction.action.Disable();
-        }
-
-        if (useAction != null)
-        {
-            useAction.action.performed -= OnUsePerformed;
-            useAction.action.Disable();
-        }
-
-        if (toggleLightsAction != null)
-        {
-            toggleLightsAction.action.performed -= OnToggleLights;
-            toggleLightsAction.action.Disable();
-        }
-
-        if (hornAction != null)
-        {
-            hornAction.action.performed -= OnHorn;
-            hornAction.action.Disable();
-        }
+        Cursor.visible   = true;
+        DisableBaseInput();
+        DisableVehicleInput();
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Update — только логика хаба
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void Update()
     {
-        HandleFootsteps();
+        if (!isLocalPlayer || !isSitting) return;
+        HandleDriving();
+    }
 
-        if (!isLocalPlayer) return;
+    // ─────────────────────────────────────────────────────────────────────────
+    // Input Management
+    // ─────────────────────────────────────────────────────────────────────────
 
-        if (isSitting)
+    private void EnableBaseInput()
+    {
+        moveAction?.action.Enable();
+        lookAction?.action.Enable();
+
+        Bind(jumpAction,     ref onJumpHandler,     OnJumpPerformed);
+        Bind(interactAction, ref onInteractHandler, OnInteractPerformed);
+        Bind(dropAction,     ref onDropHandler,     OnDropPerformed);
+        Bind(useAction,      ref onUseHandler,      OnUsePerformed);
+    }
+
+    private void DisableBaseInput()
+    {
+        moveAction?.action.Disable();
+        lookAction?.action.Disable();
+
+        Unbind(jumpAction,     ref onJumpHandler);
+        Unbind(interactAction, ref onInteractHandler);
+        Unbind(dropAction,     ref onDropHandler);
+        Unbind(useAction,      ref onUseHandler);
+    }
+
+    private void EnableVehicleInput()
+    {
+        Bind(toggleLightsAction, ref onToggleLightsHandler, OnToggleLights);
+        Bind(hornAction,         ref onHornHandler,         OnHorn);
+    }
+
+    private void DisableVehicleInput()
+    {
+        Unbind(toggleLightsAction, ref onToggleLightsHandler);
+        Unbind(hornAction,         ref onHornHandler);
+    }
+
+    /// <summary>Подписывает и включает InputAction одной строкой.</summary>
+    private static void Bind(InputActionReference actionRef,
+        ref System.Action<InputAction.CallbackContext> field,
+        System.Action<InputAction.CallbackContext> handler)
+    {
+        if (actionRef == null) return;
+        field = handler;
+        actionRef.action.performed += field;
+        actionRef.action.Enable();
+    }
+
+    /// <summary>Отписывает и выключает InputAction одной строкой.</summary>
+    private static void Unbind(InputActionReference actionRef,
+        ref System.Action<InputAction.CallbackContext> field)
+    {
+        if (actionRef == null || field == null) return;
+        actionRef.action.performed -= field;
+        actionRef.action.Disable();
+        field = null;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Input Handlers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void OnJumpPerformed(InputAction.CallbackContext ctx)
+    {
+        if (isSitting) { CmdLeaveSeat(); return; }
+        playerMovement.TryJump();
+    }
+
+    private void OnInteractPerformed(InputAction.CallbackContext ctx)
+    {
+        if (isSitting || Time.time < lastInteractTime + 0.5f) return;
+        lastInteractTime = Time.time;
+
+        Transform cam = playerMovement.CameraTransform;
+        if (cam == null) return;
+
+        animator?.SetTrigger(InteractTriggerHash);
+        Debug.DrawRay(cam.position, cam.forward * interactRange, Color.red, 2f);
+
+        if (!Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, interactRange, interactLayerMask))
         {
-            HandleLook();
-            HandleDriving();
-
-            if (currentSeat != null && currentSeat.isDriverSeat)
-            {
-                if (Keyboard.current.fKey.wasPressedThisFrame || Keyboard.current.lKey.wasPressedThisFrame)
-                {
-                    currentSeat.carSystem.CmdToggleLights();
-                }
-            }
+            Debug.Log("[Interact] Raycast missed.");
             return;
         }
 
-        HandleLook();
-        HandleMovement();
-        ApplyGravityAndJump();
-        HandleCameraBobbing();
-    }
+        Debug.Log($"[Interact] Hit: {hit.collider.gameObject.name}");
 
-    private void LateUpdate()
-    {
-        if (!isLocalPlayer || isSitting) return;
-
-        // --- Логика поворота головы ---
-        if (headBone != null)
+        // Ремонт сломанной детали машины
+        CarPart part = hit.collider.GetComponent<CarPart>() ?? hit.collider.GetComponentInParent<CarPart>();
+        if (part != null && part.isBroken)
         {
-            Quaternion targetHeadRotation = cameraTransform.rotation * Quaternion.Euler(headRotationOffset);
-            headBone.rotation = Quaternion.Slerp(headBone.rotation, targetHeadRotation, headLookWeight);
-        }
-
-        // --- Логика процедурного поднятия руки (кости) ---
-        if (rightArmBone != null)
-        {
-            // Плавно меняем вес: 1, если предмет в руках, 0 — если руки пусты
-            float targetWeight = heldItem != null ? 1f : 0f;
-            holdWeight = Mathf.Lerp(holdWeight, targetWeight, Time.deltaTime * armRaiseSpeed);
-
-            if (holdWeight > 0.01f)
+            if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool) && tool.CanFix(part))
             {
-                // Смешиваем текущий поворот кости (от аниматора) с целевым
-                Quaternion raisedRot = Quaternion.Euler(raisedArmRotation);
-                rightArmBone.localRotation = Quaternion.Slerp(rightArmBone.localRotation, raisedRot, holdWeight);
+                FindFirstObjectByType<RepairUIManager>()?.OpenMiniGame(part, this);
+                return;
             }
         }
-    }
 
-    private void HandleFootsteps()
-    {
-        if (footstepSounds == null || footstepSounds.Length == 0 || footstepAudioSource == null) return;
+        NetworkIdentity rootIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
+        IInteractable interactable   = hit.collider.GetComponentInParent<IInteractable>();
 
-        Vector3 delta = transform.position - lastPosition;
-        delta.y = 0;
-        float currentSpeed = delta.magnitude / Time.deltaTime;
-        lastPosition = transform.position;
-
-        bool isGroundedNetworkSafe = Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.4f);
-
-        if (currentSpeed > 0.5f && isGroundedNetworkSafe && !isSitting)
+        if (rootIdentity != null && interactable != null)
         {
-            footstepTimer += Time.deltaTime;
-            float currentInterval = Mathf.Clamp(footstepInterval * (moveSpeed / Mathf.Max(currentSpeed, 1f)), 0.2f, footstepInterval);
-
-            if (footstepTimer >= currentInterval)
-            {
-                PlayRandomFootstep();
-                footstepTimer = 0f;
-            }
+            CmdInteract(rootIdentity, ((Component)interactable).gameObject.name);
+            // Процедурный IK-reach: рука тянется к точке взаимодействия
+            playerJuice?.ProceduralReachFor(hit.transform);
         }
         else
         {
-            footstepTimer = footstepInterval;
+            Debug.LogWarning("[Interact] IInteractable или NetworkIdentity не найден.");
         }
     }
 
-    private void PlayRandomFootstep()
+    private void OnDropPerformed(InputAction.CallbackContext ctx)
     {
-        footstepAudioSource.pitch = Random.Range(0.85f, 1.15f);
-        footstepAudioSource.PlayOneShot(footstepSounds[Random.Range(0, footstepSounds.Length)]);
+        if (isSitting || heldItem == null) return;
+        CmdDropItem();
+    }
+
+    private void OnUsePerformed(InputAction.CallbackContext ctx)
+    {
+        if (isSitting || heldItem == null) return;
+        CmdUseItem();
+    }
+
+    private void OnToggleLights(InputAction.CallbackContext ctx)
+    {
+        if (currentSeat != null && currentSeat.isDriverSeat)
+            currentSeat.carSystem.CmdToggleLights();
+    }
+
+    private void OnHorn(InputAction.CallbackContext ctx)
+    {
+        if (currentSeat != null && currentSeat.isDriverSeat)
+            currentSeat.carSystem.CmdHonkHorn();
     }
 
     private void HandleDriving()
     {
-        if (currentSeat != null && currentSeat.isDriverSeat && currentSeat.carSystem != null)
-        {
-            Vector2 inputDir = moveAction.action.ReadValue<Vector2>();
-            currentSeat.carSystem.LocalDrive(inputDir.x, inputDir.y);
-        }
+        if (currentSeat == null || !currentSeat.isDriverSeat || currentSeat.carSystem == null) return;
+        Vector2 input = moveAction.action.ReadValue<Vector2>();
+        currentSeat.carSystem.LocalDrive(input.x, input.y);
     }
 
-    private void HandleLook()
-    {
-        if (lookAction == null || cameraTransform == null) return;
-
-        Vector2 lookInput = lookAction.action.ReadValue<Vector2>();
-        float mouseX = lookInput.x * lookSensitivity;
-        float mouseY = lookInput.y * lookSensitivity;
-
-        // --- ЛОГИКА ОПЬЯНЕНИЯ ---
-        if (drunkTimer > 0)
-        {
-            drunkTimer -= Time.deltaTime;
-            float fadeMultiplier = Mathf.Clamp01(drunkTimer / 3f);
-            float drunkSwayX = Mathf.Sin(Time.time * 1.2f) * currentDrunkIntensity * fadeMultiplier * Time.deltaTime;
-            float drunkSwayY = Mathf.Cos(Time.time * 0.8f) * currentDrunkIntensity * fadeMultiplier * Time.deltaTime;
-
-            mouseX += drunkSwayX;
-            mouseY += drunkSwayY;
-        }
-        // -------------------------
-
-        xRotation = Mathf.Clamp(xRotation - mouseY, -90f, 90f);
-
-        if (isSitting)
-        {
-            yRotation = Mathf.Clamp(yRotation + mouseX, -110f, 110f);
-            Quaternion targetCamRot = Quaternion.Euler(xRotation, yRotation, 0f);
-            cameraTransform.localRotation = Quaternion.Slerp(cameraTransform.localRotation, targetCamRot, Time.deltaTime * lookSmoothness);
-        }
-        else
-        {
-            yRotation = 0f;
-            Quaternion targetCamRot = Quaternion.Euler(xRotation, 0f, 0f);
-            cameraTransform.localRotation = Quaternion.Slerp(cameraTransform.localRotation, targetCamRot, Time.deltaTime * lookSmoothness);
-            transform.Rotate(Vector3.up * mouseX);
-        }
-
-        HandleWeaponSway(lookInput.x, lookInput.y);
-    }
-
-    private void HandleWeaponSway(float mouseX, float mouseY)
-    {
-        if (rightHandSocket == null) return;
-  
-        float moveX = Mathf.Clamp(-mouseX * swayAmount, -maxSway, maxSway);
-        float moveY = Mathf.Clamp(-mouseY * swayAmount, -maxSway, maxSway);
-        Vector3 targetPosition = initialHandPosition + new Vector3(moveX, moveY, 0f);
-
-        float rotX = Mathf.Clamp(mouseY * swayRotationAmount, -maxRotationSway, maxRotationSway);
-        float rotY = Mathf.Clamp(-mouseX * swayRotationAmount, -maxRotationSway, maxRotationSway);
-        Quaternion targetRotation = initialHandRotation * Quaternion.Euler(rotX, rotY, 0f);
-
-        rightHandSocket.localPosition = Vector3.Lerp(rightHandSocket.localPosition, targetPosition, Time.deltaTime * swaySmoothness);
-        rightHandSocket.localRotation = Quaternion.Slerp(rightHandSocket.localRotation, targetRotation, Time.deltaTime * swayRotationSmoothness);
-    }
-
-    private void HandleMovement()
-    {
-        if (moveAction == null) return;
-        Vector2 inputDir = moveAction.action.ReadValue<Vector2>();
-        Vector3 move = transform.right * inputDir.x + transform.forward * inputDir.y;
-
-        characterController.Move(move * moveSpeed * Time.deltaTime);
-
-        if (animator != null)
-        {
-            Vector3 horizVelocity = characterController.velocity;
-            horizVelocity.y = 0;
-            animator.SetFloat(SpeedHash, horizVelocity.magnitude, 0.1f, Time.deltaTime);
-        }
-    }
-
-    private void ApplyGravityAndJump()
-    {
-        if (characterController.isGrounded && velocityY < 0) velocityY = -0.1f;
-
-        velocityY += gravity * Time.deltaTime;
-        characterController.Move(new Vector3(0, velocityY, 0) * Time.deltaTime);
-    }
-
-    private void OnJump(InputAction.CallbackContext ctx)
-    {
-        if (characterController.enabled && characterController.isGrounded)
-        {
-            velocityY = jumpForce;
-        }
-
-        if (currentSeat != null)
-        {
-            CmdLeaveSeat();
-        }
-    }
-
-    private void HandleCameraBobbing()
-    {
-        if (cameraTransform == null) return;
-
-        Vector3 horizVelocity = characterController.velocity;
-        horizVelocity.y = 0;
-        float speed = horizVelocity.magnitude;
-
-        if (speed > 0.1f && characterController.isGrounded)
-        {
-            bobbingTimer += Time.deltaTime * bobbingSpeed;
-            float newY = defaultCameraPos.y + Mathf.Sin(bobbingTimer * 2f) * bobbingAmount;
-            float newX = defaultCameraPos.x + Mathf.Cos(bobbingTimer) * bobbingAmount * 0.5f;
-            cameraTransform.localPosition = new Vector3(newX, newY, cameraTransform.localPosition.z);
-        }
-        else
-        {
-            bobbingTimer = 0f;
-            cameraTransform.localPosition = Vector3.Lerp(cameraTransform.localPosition, defaultCameraPos, Time.deltaTime * bobbingSpeed);
-        }
-    }
-
-    private void OnInteractPerformed(InputAction.CallbackContext context)
-    {
-        if (isSitting || cameraTransform == null || Time.time < lastInteractTime + 0.5f) return;
-        lastInteractTime = Time.time;
-
-        if (networkAnimator != null) animator.SetTrigger(InteractTriggerHash);
-
-        Debug.DrawRay(cameraTransform.position, cameraTransform.forward * interactRange, Color.red, 2f);
-
-        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactRange, interactLayerMask))
-        {
-            Debug.Log($"[ОТЛАДКА] Луч врезался в объект: {hit.collider.gameObject.name} (Тег: {hit.collider.tag})");
-
-            CarPart part = hit.collider.GetComponent<CarPart>() ?? hit.collider.GetComponentInParent<CarPart>();
-            if (part != null && part.isBroken)
-            {
-                if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool) && tool.CanFix(part))
-                {
-                    FindFirstObjectByType<RepairUIManager>()?.OpenMiniGame(part, this);
-                    return;
-                }
-            }
-
-            NetworkIdentity rootIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
-            IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
-
-            if (rootIdentity != null && interactable != null)
-            {
-                Debug.Log($"[ОТЛАДКА] Найден IInteractable на объекте: {((Component)interactable).gameObject.name}. Отправляем команду на сервер!");
-                CmdInteract(rootIdentity, ((Component)interactable).gameObject.name);
-            }
-            else
-            {
-                Debug.LogWarning("[ОТЛАДКА] Компонент IInteractable ИЛИ NetworkIdentity не найден на этом объекте или его родителях!");
-            }
-        }
-        else
-        {
-            Debug.Log("[ОТЛАДКА] Луч пролетел мимо и ни во что не попал. Проверь дистанцию или слой!");
-        }
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Commands
+    // ─────────────────────────────────────────────────────────────────────────
 
     [Command]
     private void CmdInteract(NetworkIdentity rootIdentity, string targetName)
@@ -492,246 +297,151 @@ public class PlayerEntity : NetworkBehaviour
         }
     }
 
-    private void OnDropPerformed(InputAction.CallbackContext context)
-    {
-        if (isSitting || heldItem == null) return;
-        CmdDropItem();
-    }
-
     [Command]
     private void CmdDropItem()
     {
         if (heldItem == null) return;
 
-        GameObject itemToDrop = heldItem.gameObject;
-        inventory?.RemoveItem(itemToDrop);
+        Transform cam     = playerMovement.CameraTransform;
+        GameObject toDrop = heldItem.gameObject;
+        inventory?.RemoveItem(toDrop);
         heldItem = null;
 
-        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, maxDropDistance))
-        {
-            if (hit.distance < maxDropDistance)
-            {
-                itemToDrop.transform.position = hit.point;
-            }
-        }
+        if (cam != null && Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, maxDropDistance))
+            toDrop.transform.position = hit.point;
         else
-        {
-            itemToDrop.transform.position = cameraTransform.position + cameraTransform.forward * maxDropDistance;
-        }
-    }
-
-    [Server]
-    public void ServerEquipItem(NetworkIdentity item)
-    {
-        heldItem = item;
-    }
-
-    private void OnHeldItemChanged(NetworkIdentity oldItem, NetworkIdentity newItem)
-    {
-        if (oldItem != null)
-        {
-            oldItem.transform.SetParent(null);
-            if (oldItem.TryGetComponent(out Rigidbody rb)) rb.isKinematic = false;
-            foreach (var col in oldItem.GetComponents<Collider>()) col.enabled = true;
-            
-            currentGrabPoint = null; 
-        }
-
-        if (newItem != null && rightHandSocket != null)
-        {
-            newItem.transform.SetParent(rightHandSocket);
-            newItem.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-
-            if (newItem.TryGetComponent(out Rigidbody rb)) rb.isKinematic = true;
-            foreach (var col in newItem.GetComponents<Collider>()) col.enabled = false;
-
-            foreach (Transform child in newItem.GetComponentsInChildren<Transform>())
-            {
-                if (child.CompareTag("GrabPoint"))
-                {
-                    currentGrabPoint = child;
-                    break;
-                }
-            }
-        }
+            toDrop.transform.position = cam != null
+                ? cam.position + cam.forward * maxDropDistance
+                : transform.position + transform.forward * maxDropDistance;
     }
 
     [Command]
-    private void CmdLeaveSeat()
+    private void CmdLeaveSeat() => serverCurrentSeat?.ServerLeave(this);
+
+    [Command]
+    private void CmdUseItem()
     {
-        if (serverCurrentSeat != null)
-        {
-            serverCurrentSeat.ServerLeave(this);
-        }
-    }
-
-    [TargetRpc]
-    public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath)
-    {
-        EnterVehicle();
-
-        GameObject seatObj = GameObject.Find(seatPath);
-        if (seatObj == null || !seatObj.TryGetComponent(out currentSeat)) return;
-
-        characterController.enabled = false;
-        foreach (var col in allColliders)
-            if (col != null) col.enabled = false;
-
-        isSitting = true;
-
-        if (animator != null)
-        {
-            animator.SetBool(IsSittingHash, true);
-            animator.SetTrigger(SitTriggerHash);
-        }
-
-        Transform targetTransform = currentSeat.viewPoint != null ? currentSeat.viewPoint : currentSeat.transform;
-
-        transform.SetParent(targetTransform);
-        transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-
-        xRotation = 0f;
-        yRotation = 0f;
-        cameraTransform.localRotation = Quaternion.identity;
-    }
-
-    [TargetRpc]
-    public void TargetLeaveSeat()
-    {
-        ExitVehicle();
-        isSitting = false;
-
-        if (animator != null)
-        {
-            animator.SetBool(IsSittingHash, false);
-            animator.SetTrigger(StandTriggerHash);
-        }
-
-        transform.SetParent(null);
-        transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
-        transform.position = currentSeat != null && currentSeat.exitPoint != null ? currentSeat.exitPoint.position : transform.position + transform.right * 1.5f;
-
-        xRotation = 0f;
-        yRotation = 0f;
-
-        cameraTransform.localRotation = Quaternion.identity;
-        cameraTransform.localPosition = defaultCameraPos;
-        currentSeat = null;
-
-        foreach (var col in allColliders)
-            if (col != null) col.enabled = true;
-            
-        characterController.enabled = true;
+        if (heldItem != null && heldItem.TryGetComponent(out IUsableItem usable))
+            usable.ServerUse(this);
     }
 
     [Command]
     public void CmdFixPart(GameObject partObj)
     {
-        if (partObj != null && partObj.TryGetComponent(out CarPart part))
-        {
-            part.RepairPart(); 
-            if (heldItem != null && heldItem.TryGetComponent(out DuctTapeItem tape))
-            {
-                DestroyHeldItem(); 
-            }
-        }
+        if (partObj == null || !partObj.TryGetComponent(out CarPart part)) return;
+        part.RepairPart();
+        if (heldItem != null && heldItem.TryGetComponent(out DuctTapeItem _))
+            DestroyHeldItem();
     }
 
-    private void OnUsePerformed(InputAction.CallbackContext context)
-    {
-        if (isSitting || heldItem == null) return;
-        CmdUseItem(); 
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Server Methods
+    // ─────────────────────────────────────────────────────────────────────────
 
-    [Command]
-    private void CmdUseItem()
-    {
-        if (heldItem != null && heldItem.TryGetComponent(out IUsableItem usableItem))
-        {
-            usableItem.ServerUse(this);
-        }
-    }
+    [Server]
+    public void ServerEquipItem(NetworkIdentity item) => heldItem = item;
 
     [Server]
     public void DestroyHeldItem()
     {
         if (heldItem == null) return;
-        
-        GameObject itemObj = heldItem.gameObject;
-        heldItem = null; 
-        inventory?.RemoveItem(itemObj); 
-        NetworkServer.Destroy(itemObj); 
+        GameObject obj = heldItem.gameObject;
+        heldItem = null;
+        inventory?.RemoveItem(obj);
+        NetworkServer.Destroy(obj);
     }
-    
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Target RPCs
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [TargetRpc]
+    public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath)
+    {
+        EnableVehicleInput();
+
+        GameObject seatObj = GameObject.Find(seatPath);
+        if (seatObj == null || !seatObj.TryGetComponent(out currentSeat)) return;
+
+        // Только движение отключается — Look продолжает работать для обзора в машине
+        playerMovement.SetMovementEnabled(false);
+
+        foreach (var col in allColliders)
+            if (col != null) col.enabled = false;
+
+        isSitting = true;
+        animator?.SetBool(IsSittingHash, true);
+        animator?.SetTrigger(SitTriggerHash);
+
+        Transform mountPoint = currentSeat.viewPoint != null ? currentSeat.viewPoint : currentSeat.transform;
+        transform.SetParent(mountPoint);
+        transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+        playerMovement.ResetLookRotation();
+    }
+
+    [TargetRpc]
+    public void TargetLeaveSeat()
+    {
+        DisableVehicleInput();
+        isSitting = false;
+
+        animator?.SetBool(IsSittingHash, false);
+        animator?.SetTrigger(StandTriggerHash);
+
+        transform.SetParent(null);
+        transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+        transform.position = currentSeat?.exitPoint != null
+            ? currentSeat.exitPoint.position
+            : transform.position + transform.right * 1.5f;
+
+        playerMovement.ResetLookRotation();
+        currentSeat = null;
+
+        foreach (var col in allColliders)
+            if (col != null) col.enabled = true;
+
+        playerMovement.SetMovementEnabled(true);
+    }
+
     [TargetRpc]
     public void TargetApplyDrunkEffect(NetworkConnection target, float duration, float intensity)
     {
-        drunkTimer += duration; 
-        currentDrunkIntensity = intensity;
+        // Drunk-эффект живёт в PlayerMovement, т.к. он модифицирует Look
+        playerMovement.ApplyDrunkEffect(duration, intensity);
     }
 
-    private void EnterVehicle()
+    // ─────────────────────────────────────────────────────────────────────────
+    // SyncVar Hook
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void OnHeldItemChanged(NetworkIdentity oldItem, NetworkIdentity newItem)
     {
-        if (toggleLightsAction != null)
+        // Отпускаем старый предмет
+        if (oldItem != null)
         {
-            toggleLightsAction.action.Enable();
-            toggleLightsAction.action.performed += OnToggleLights;
+            oldItem.transform.SetParent(null);
+            if (oldItem.TryGetComponent(out Rigidbody oldRb)) oldRb.isKinematic = false;
+            foreach (var col in oldItem.GetComponents<Collider>()) col.enabled = true;
         }
 
-        if (hornAction != null)
+        // Берём новый предмет
+        Transform grabPoint = null;
+        if (newItem != null && rightHandSocket != null)
         {
-            hornAction.action.Enable();
-            hornAction.action.performed += OnHorn;
-        }
-    }
+            newItem.transform.SetParent(rightHandSocket);
+            newItem.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 
-    private void ExitVehicle()
-    {
-        if (toggleLightsAction != null)
-        {
-            toggleLightsAction.action.performed -= OnToggleLights;
-            toggleLightsAction.action.Disable();
-        }
+            if (newItem.TryGetComponent(out Rigidbody newRb)) newRb.isKinematic = true;
+            foreach (var col in newItem.GetComponents<Collider>()) col.enabled = false;
 
-        if (hornAction != null)
-        {
-            hornAction.action.performed -= OnHorn;
-            hornAction.action.Disable();
-        }
-    }
-    
-    private void OnToggleLights(InputAction.CallbackContext ctx)
-    {
-        Debug.Log("ToggleLights");
-        if (currentSeat.isDriverSeat)
-        {
-            currentSeat.carSystem.lightsOn = !currentSeat.carSystem.lightsOn;
-            currentSeat.carSystem.CmdToggleLights();
-        }
-    }
-    
-    private void OnHorn(InputAction.CallbackContext ctx)
-    {
-        if (currentSeat.isDriverSeat)
-        {
-            currentSeat?.carSystem.CmdHonkHorn();
-        }
-    }
-
-    private void OnAnimatorIK(int layerIndex)
-    {
-        if (animator == null) return;
-
-        if (currentGrabPoint == null)
-        {
-            animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 0f);
-            animator.SetIKRotationWeight(AvatarIKGoal.RightHand, 0f);
-            return;
+            foreach (Transform child in newItem.GetComponentsInChildren<Transform>())
+            {
+                if (child.CompareTag("GrabPoint")) { grabPoint = child; break; }
+            }
         }
 
-        animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 1f);
-        animator.SetIKRotationWeight(AvatarIKGoal.RightHand, 1f);
-        animator.SetIKPosition(AvatarIKGoal.RightHand, currentGrabPoint.position);
-        animator.SetIKRotation(AvatarIKGoal.RightHand, currentGrabPoint.rotation);
+        // Сообщаем PlayerJuiceAndIK о новой точке захвата для IK
+        playerJuice?.SetGrabPoint(grabPoint);
     }
 }

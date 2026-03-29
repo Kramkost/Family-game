@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fd27201303268baba467588300e75fb, type: 3}
+  m_Name: Forest_Biome
+  m_EditorClassIdentifier: Assembly-CSharp::ProceduralTerrain.Core.BiomeDefinition
+  BiomeName: Forest
+  BiomeType: 1
+  PrimarySplatLayer: 0
+  SecondarySplatLayer: 2
+  HeightScale: 1
+  HeightFrequency: 0.003
+  HeightOctaves: 5
+  HeightPersistence: 0.5
+  HeightLacunarity: 2
+  MoistureMin: 0
+  MoistureMax: 1
+  TemperatureMin: 0
+  TemperatureMax: 1
+  TreePrefabs:
+  - {fileID: 2300804585300708753, guid: 876bec1583d808faba2e3c9d603230d3, type: 3}
+  - {fileID: 6891835267694705205, guid: 19fedaa4c86c37de1a29ecec6b36752f, type: 3}
+  - {fileID: 2889294654405656353, guid: d67516e974ff60ef7a034b8d258728f4, type: 3}
+  BushPrefabs:
+  - {fileID: 6500595941915624001, guid: be88d21f11fc99f49bb65f512b518deb, type: 3}
+  - {fileID: 5375729295833575412, guid: 9f9e45c4d85a7a3b790ef9b224fb682d, type: 3}
+  - {fileID: 582546537655969084, guid: 42359788ed7eff75f9466d0b23c047ee, type: 3}
+  - {fileID: 809790520745386096, guid: e7937ec3190b1a6e4af75020aa92617c, type: 3}
+  TreeDensity: 0.3
+  BushDensity: 0.2
+  GrassDensity: 0.5
+  GrassDetailLayer: 0
+  HousePrefabs:
+  - {fileID: 8441531600042750799, guid: ea811fcaad2106242a27c2f14a55eea6, type: 3}
+  - {fileID: 7099887275337888593, guid: 8afbee6286c73914aaf7c51948407448, type: 3}
+  - {fileID: 3448084179340867125, guid: 61107604f21938c42823a137e360ed48, type: 3}
+  - {fileID: 7891701996445245857, guid: ba5fda95b0327174d9a85bad92352a8c, type: 3}
+  HouseSpawnProbability: 0.4
+  HouseRoadOffset: 8
+  HouseMinSpacing: 40

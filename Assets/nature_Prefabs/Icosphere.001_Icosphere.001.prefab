@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6769705376603437183}
   - component: {fileID: -3422412919373048270}
   - component: {fileID: 931546467992212701}
+  - component: {fileID: -8632029576593007949}
   m_Layer: 0
   m_Name: Icosphere.001_Icosphere.001
   m_TagString: PropSocket
@@ -144,3 +145,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e64b44305bc0ebbf8999181c4d94daf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OptimizedMesh
+--- !u!114 &-8632029576593007949
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5375729295833575412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 2050255043
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0

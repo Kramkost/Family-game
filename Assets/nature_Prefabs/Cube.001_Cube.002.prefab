@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 3925506872976142511}
   - component: {fileID: 8312848822823642565}
   - component: {fileID: 1802841911251887621}
+  - component: {fileID: 5430318274674293179}
   m_Layer: 0
   m_Name: Cube.001_Cube.002
   m_TagString: PropSocket
@@ -122,3 +123,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e64b44305bc0ebbf8999181c4d94daf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OptimizedMesh
+--- !u!114 &5430318274674293179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6500595941915624001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 2645435475
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0

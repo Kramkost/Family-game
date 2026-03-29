@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Kotenkoff
+namespace Health_Bar_System
 {
     public class SpectatorController : MonoBehaviour
     {

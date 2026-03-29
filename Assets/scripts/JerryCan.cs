@@ -1,6 +1,5 @@
 using Kotenkoff;
 using Mirror;
-using UnityEngine;
 
 /// <summary>
 /// Канистра, которую можно взять в руки.

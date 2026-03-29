@@ -1,8 +1,10 @@
-using UnityEngine;
-using Mirror;
 using System.Collections;
+using Health_Bar_System;
+using Kotenkoff;
+using Mirror;
+using UnityEngine;
 
-namespace Kotenkoff
+namespace Events
 {
     public class LightningBolt : NetworkBehaviour
     {

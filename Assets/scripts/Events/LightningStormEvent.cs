@@ -1,8 +1,8 @@
-using UnityEngine;
-using Mirror;
 using System.Collections;
+using Mirror;
+using UnityEngine;
 
-namespace Kotenkoff
+namespace Events
 {
     public class LightningStormEvent : NetworkBehaviour
     {

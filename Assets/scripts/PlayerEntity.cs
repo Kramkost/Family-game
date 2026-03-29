@@ -1,3 +1,4 @@
+using Breakdown;
 using Kotenkoff;
 using UnityEngine;
 using Mirror;
@@ -101,7 +102,7 @@ public class PlayerEntity : NetworkBehaviour
     private static readonly int StandTriggerHash = Animator.StringToHash("Stand");
 
     [Header("Drop settings")] 
-    [SerializeField] private float maxDropDistance = 1.5f;
+    [SerializeField, Tooltip("Максимальная дистанция дропа предмета")] private float maxDropDistance = 1.5f;
 
     private void Awake()
     {
@@ -702,7 +703,6 @@ public class PlayerEntity : NetworkBehaviour
     
     private void OnToggleLights(InputAction.CallbackContext ctx)
     {
-        Debug.Log("ToggleLights");
         if (currentSeat.isDriverSeat)
         {
             currentSeat.carSystem.lightsOn = !currentSeat.carSystem.lightsOn;

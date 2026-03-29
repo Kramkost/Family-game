@@ -1,7 +1,8 @@
-using UnityEngine;
+using Kotenkoff;
 using Mirror;
+using UnityEngine;
 
-namespace Kotenkoff
+namespace Health_Bar_System
 {
     [RequireComponent(typeof(PlayerStats))]
     public class PlayerDeathManager : NetworkBehaviour

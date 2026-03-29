@@ -1,6 +1,6 @@
+using Health_Bar_System;
 using UnityEngine;
 using Mirror;
-using Kotenkoff;
 
 /// <summary>
 /// Еда. Можно подобрать (Е) и съесть (ЛКМ).

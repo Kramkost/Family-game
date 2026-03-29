@@ -138,7 +138,7 @@ GameObject:
   - component: {fileID: 8141923898493209140}
   - component: {fileID: 4356197981501687542}
   - component: {fileID: 8478527410416533865}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: HealthBar_Fill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -311,7 +311,7 @@ GameObject:
   - component: {fileID: 4102561562864484732}
   - component: {fileID: 1575658781568906374}
   - component: {fileID: 2857996449329328706}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: PlayerHUD_Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -899,7 +899,7 @@ GameObject:
   - component: {fileID: 3184397152509986339}
   - component: {fileID: 2998106193908834400}
   - component: {fileID: 6832684283268549182}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Character_Adult
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1459,7 +1459,7 @@ GameObject:
   - component: {fileID: 6521853715679300531}
   - component: {fileID: 3952719539759167427}
   - component: {fileID: 7522961705621081788}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: RestartButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1717,7 +1717,7 @@ GameObject:
   - component: {fileID: 7803661999888079343}
   - component: {fileID: 1367125049771595088}
   - component: {fileID: 5045268354262256024}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: DarknessOverlay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1855,7 +1855,7 @@ GameObject:
   - component: {fileID: 1598259147512830113}
   - component: {fileID: 3382662470588825342}
   - component: {fileID: 3311659150413751612}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: DeathPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1933,7 +1933,7 @@ GameObject:
   - component: {fileID: 6048634275136377756}
   - component: {fileID: 4569904182304118483}
   - component: {fileID: 3618308194988606858}
-  m_Layer: 6
+  m_Layer: 2
   m_Name: SpectatorCamera
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2337,7 +2337,7 @@ GameObject:
   - component: {fileID: 6256616199234076446}
   - component: {fileID: 5011822841139095154}
   - component: {fileID: 3668225759265643368}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: HealthBar_BG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2576,7 +2576,7 @@ GameObject:
   - component: {fileID: 8448125117828162083}
   - component: {fileID: 8555446060104096514}
   - component: {fileID: 5114978883718513847}
-  m_Layer: 6
+  m_Layer: 2
   m_Name: Camera
   m_TagString: MainCamera
   m_Icon: {fileID: 0}
@@ -2637,7 +2637,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 499
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 8400000, guid: 876028ff07a29b9c08bb718d7b99a215, type: 2}
   m_TargetDisplay: 0
@@ -2827,7 +2827,7 @@ GameObject:
   - component: {fileID: 2400539974234361579}
   - component: {fileID: 6225497778400904340}
   - component: {fileID: 7894960175726045500}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3249,7 +3249,7 @@ GameObject:
   - component: {fileID: 4449079097463859320}
   - component: {fileID: 6625001766223295390}
   - component: {fileID: 4579115066381030981}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}

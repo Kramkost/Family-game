@@ -4,8 +4,14 @@ using UnityEngine;
 
 namespace Kotenkoff
 {
+    /// <summary>
+    ///  <para>Класс инвентаря игрока.</para>
+    /// </summary>
     public sealed class PlayerInventory : NetworkBehaviour
     {
+        /// <summary>
+        ///  <para>Инвентарь игрока.</para>
+        /// </summary>
         [SerializeField, Tooltip("Это инвентарь игрока. Добавляй или убирай элементы, чтобы менять количество слотов")]
         private InventoryItem[] inventory;
 

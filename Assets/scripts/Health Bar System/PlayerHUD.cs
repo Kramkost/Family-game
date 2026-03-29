@@ -1,8 +1,9 @@
-using UnityEngine;
-using UnityEngine.UI; 
+using Kotenkoff;
 using Mirror;
+using UnityEngine;
+using UnityEngine.UI;
 
-namespace Kotenkoff
+namespace Health_Bar_System
 {
     public class PlayerHUD : NetworkBehaviour
     {

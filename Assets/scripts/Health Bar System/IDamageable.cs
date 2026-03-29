@@ -1,4 +1,4 @@
-namespace Kotenkoff
+namespace Health_Bar_System
 {
     public interface IDamageable
     {

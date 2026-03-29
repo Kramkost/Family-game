@@ -1,48 +1,47 @@
-using UnityEngine;
 using Mirror;
+using UnityEngine;
 
-namespace Kotenkoff
+// ЧЕ ВЫЛУПИЛСЯ? ИДИ РАБОТАЙ.
+public class FlashlightItem : PickupableItem, IUsableItem
 {
-    // ЧЕ ВЫЛУПИЛСЯ? ИДИ РАБОТАЙ.
-    public class FlashlightItem : PickupableItem, IUsableItem
+    [Header("Flashlight Settings")]
+    [SerializeField] private Light spotLight;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip toggleSound;
+
+    [SyncVar(hook = nameof(OnLightStateChanged))]
+    private bool isLightOn = false;
+
+    public override void OnStartClient()
     {
-        [Header("Flashlight Settings")]
-        [SerializeField] private Light spotLight;
-        [SerializeField] private AudioSource audioSource;
-        [SerializeField] private AudioClip toggleSound;
+        base.OnStartClient();
+        UpdateLightVisuals(isLightOn);
+    }
 
-        [SyncVar(hook = nameof(OnLightStateChanged))]
-        private bool isLightOn = false;
+    [Server]
+    public void ServerUse(PlayerEntity player)
+    {
+        //Debug.Log(isLightOn);
+        
+        isLightOn = !isLightOn;
+    }
 
-        public override void OnStartClient()
+    private void OnLightStateChanged(bool oldState, bool newState)
+    {
+        UpdateLightVisuals(newState);
+
+        if (audioSource != null && toggleSound != null)
         {
-            base.OnStartClient();
-            UpdateLightVisuals(isLightOn);
+            audioSource.pitch = Random.Range(0.9f, 1.1f);
+            audioSource.PlayOneShot(toggleSound);
         }
+    }
 
-        [Server]
-        public void ServerUse(PlayerEntity player)
+    private void UpdateLightVisuals(bool state)
+    {
+        if (spotLight != null)
         {
-            isLightOn = !isLightOn;
-        }
-
-        private void OnLightStateChanged(bool oldState, bool newState)
-        {
-            UpdateLightVisuals(newState);
-
-            if (audioSource != null && toggleSound != null)
-            {
-                audioSource.pitch = Random.Range(0.9f, 1.1f);
-                audioSource.PlayOneShot(toggleSound);
-            }
-        }
-
-        private void UpdateLightVisuals(bool state)
-        {
-            if (spotLight != null)
-            {
-                spotLight.enabled = state;
-            }
+            spotLight.enabled = state;
         }
     }
 }

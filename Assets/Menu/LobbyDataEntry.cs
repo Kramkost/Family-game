@@ -24,6 +24,6 @@ public class LobbyDataEntry : MonoBehaviour
 
     public void JoinLobby()
     {
-        SteamLobby.JoinLobby(lobbyID);
+        SteamLobby.Instance.JoinLobby(lobbyID);
     }
 }

@@ -20,10 +20,13 @@ MonoBehaviour:
   RoadShoulderWidth: 4
   RoadMaxSlopeDeg: 8
   RoadSegmentLength: 4
+  RoadMaterial: {fileID: 2100000, guid: 179cdc52867bc7581b07e173fb02163a, type: 2}
+  RoadUVTileDistance: 10
   SafeZoneIntervalMeters: 1000
   SafeZonePrefab: {fileID: 487119667575471214, guid: d935afc0ae2775249876286871c22e0f, type: 3}
   MoistureFrequency: 0.0008
   TemperatureFrequency: 0.0006
+  FoliageExclusionBuffer: 4
   BiomeDefinitions:
   - {fileID: 11400000, guid: dafb007ddc242aa80b50b2f970b2eae4, type: 2}
   TerrainLayers:

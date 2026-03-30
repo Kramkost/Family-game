@@ -71,10 +71,10 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _HeightDensity: 0.8
+    - _HeightDensity: 0.3
     - _HeightEnd: 10
     - _HeightStart: 0
-    - _MaxFogOpacity: 0.9
+    - _MaxFogOpacity: 0.753
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1

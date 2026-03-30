@@ -425,9 +425,17 @@ MonoBehaviour:
   playersInCar: 0
   motorForce: 1500
   steerForce: 100
+  crashThreshold: 5
   engineAudio: {fileID: 0}
   idlePitch: 0.8
   maxPitch: 2
+  fxAudioSource: {fileID: 0}
+  hornSound: {fileID: 0}
+  lightSwitchSound: {fileID: 0}
+  brakeSquealSound: {fileID: 0}
+  engineStartSound: {fileID: 0}
+  engineStopSound: {fileID: 0}
+  crashSounds: []
   headlights: []
   steeringWheel: {fileID: 2187823578581892286}
   maxSteeringAngle: 90
@@ -442,7 +450,10 @@ MonoBehaviour:
   maxFOV: 85
   speedForMaxFOV: 25
   fovLerpSpeed: 3
+  engineSpeedModifier: 1
+  isEngineDead: 0
   lightsOn: 0
+  isEngineOn: 0
   isRoadMillMode: 0
 --- !u!114 &118289313770082668
 MonoBehaviour:
@@ -1703,11 +1714,9 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  maxHealth: 100
-  intactModel: {fileID: 0}
-  brokenModel: {fileID: 0}
-  audioSource: {fileID: 0}
-  breakSound: {fileID: 0}
+  partType: 0
+  stageVisuals: []
+  currentStage: 0
 --- !u!114 &8292456204325239269
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2022,11 +2031,9 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  maxHealth: 100
-  intactModel: {fileID: 0}
-  brokenModel: {fileID: 0}
-  audioSource: {fileID: 0}
-  breakSound: {fileID: 0}
+  partType: 0
+  stageVisuals: []
+  currentStage: 0
 --- !u!114 &2049901115475650209
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2155,11 +2162,9 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  maxHealth: 100
-  intactModel: {fileID: 5038669035823483370}
-  brokenModel: {fileID: 0}
-  audioSource: {fileID: 0}
-  breakSound: {fileID: 0}
+  partType: 0
+  stageVisuals: []
+  currentStage: 0
 --- !u!114 &4345934290772759370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2181,6 +2186,9 @@ MonoBehaviour:
   openRotation: {x: 0.0000010831543, y: 104.50113, z: -0.0000041879052}
   closedPosition: {x: 0, y: 0, z: 0}
   openPosition: {x: 0, y: 0, z: 0}
+  audioSource: {fileID: 0}
+  openSounds: []
+  closeSounds: []
   isOpen: 0
 --- !u!65 &3529064991377714956
 BoxCollider:
@@ -2723,7 +2731,7 @@ GameObject:
   - component: {fileID: 1418777055444652227}
   m_Layer: 0
   m_Name: Body
-  m_TagString: Untagged
+  m_TagString: PlayerCar
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

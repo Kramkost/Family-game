@@ -12,6 +12,8 @@ TagManager:
   - LootSocket
   - IN_Room
   - GrabPoint
+  - FxTemporaire
+  - PlayerCar
   layers:
   - Default
   - TransparentFX

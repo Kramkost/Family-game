@@ -1399,8 +1399,8 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   monsterPrefab: {fileID: 2857947131682815408, guid: f2d4aa4d409a904f2b3b6a0aab1d0a91, type: 3}
-  minSpawnInterval: 1
-  maxSpawnInterval: 3
+  minSpawnInterval: 5
+  maxSpawnInterval: 10
 --- !u!4 &1264757230
 Transform:
   m_ObjectHideFlags: 0

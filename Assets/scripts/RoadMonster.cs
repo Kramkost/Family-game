@@ -1,65 +1,82 @@
 using UnityEngine;
 using Mirror;
-using Kotenkoff; // Подключаем твой неймспейс
+using System.Collections;
+using Kotenkoff;
 
 public class RoadMonster : NetworkBehaviour
 {
-    [Header("Настройки видимости")]
-    [Tooltip("Как близко нужно подойти/подъехать, чтобы монстр среагировал на взгляд")]
+    [Header("Detection")]
     [SerializeField] private float sightRadius = 45f;
-    [Tooltip("Угол обзора камеры, при котором монстр считается замеченным")]
     [SerializeField] private float fieldOfView = 50f;
-    [Tooltip("Слои препятствий (чтобы не замечать монстра сквозь деревья)")]
     [SerializeField] private LayerMask obstacleLayer;
 
-    [Header("Столкновение с авто")]
-    [Tooltip("Сила, с которой машину отбросит назад при ДТП с монстром")]
+    [Header("Physics & Damage")]
     [SerializeField] private float repelForce = 80000f;
 
-    [Header("Аудио-Скример")]
+    [Header("Visuals & Sound")]
+    [SerializeField] private Animator animator;
     [SerializeField] private AudioClip scareSound;
+    [SerializeField] private float jumpscareDuration = 1.0f; 
 
-    // Синхронизируем состояние, чтобы никто не вызвал скример дважды
+    [Header("Spawn Animation")]
+    [SerializeField] private bool useScaleSpawn = true;
+    [SerializeField] private float spawnDuration = 1.5f;
+
     [SyncVar] private bool isTriggered = false;
+    private Camera mainCamera;
+    private static readonly int JumpscareTrigger = Animator.StringToHash("Jumpscare");
+    private static readonly int SpawnTrigger = Animator.StringToHash("Spawn");
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        mainCamera = Camera.main;
+
+        if (animator != null) animator.SetTrigger(SpawnTrigger);
+        if (useScaleSpawn) StartCoroutine(SpawnAnimationRoutine());
+    }
+
+    private IEnumerator SpawnAnimationRoutine()
+    {
+        Vector3 targetScale = transform.localScale;
+        transform.localScale = Vector3.zero;
+        float elapsed = 0f;
+
+        while (elapsed < spawnDuration)
+        {
+            transform.localScale = Vector3.Lerp(Vector3.zero, targetScale, elapsed / spawnDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        transform.localScale = targetScale;
+    }
 
     private void Update()
     {
-        // Проверка зрения работает ТОЛЬКО локально у каждого клиента
-        if (isServer && isTriggered) return; 
-        if (!isClient || isTriggered) return;
+        if (isServer && isTriggered) return;
+        if (!isClient || isTriggered || mainCamera == null) return;
 
-        Camera cam = Camera.main;
-        if (cam == null) return;
-
-        Vector3 dirToMonster = transform.position - cam.transform.position;
+        Vector3 dirToMonster = transform.position - mainCamera.transform.position;
         float distance = dirToMonster.magnitude;
 
-        // Если мы достаточно близко...
         if (distance <= sightRadius)
         {
-            // ...и смотрим примерно в его сторону
-            float angle = Vector3.Angle(cam.transform.forward, dirToMonster);
+            float angle = Vector3.Angle(mainCamera.transform.forward, dirToMonster);
             if (angle <= fieldOfView)
             {
-                // Проверяем, нет ли между камерой и монстром других объектов (деревьев, камней)
-                if (!Physics.Raycast(cam.transform.position, dirToMonster.normalized, distance, obstacleLayer))
+                if (!Physics.Raycast(mainCamera.transform.position, dirToMonster.normalized, distance, obstacleLayer))
                 {
-                    CmdPlayerSawMe(); // Бьем тревогу на сервер!
+                    CmdPlayerSawMe();
                 }
             }
         }
     }
 
-    // Command(requiresAuthority = false) позволяет ЛЮБОМУ игроку отправить эту команду,
-    // даже если он не "владелец" этого монстра по сети.
     [Command(requiresAuthority = false)]
     private void CmdPlayerSawMe()
     {
         if (isTriggered) return;
-        isTriggered = true;
-        
-        RpcDoJumpscare();
-        Invoke(nameof(DestroyMonster), 0.1f); 
+        TriggerJumpscareSequence();
     }
 
     [ServerCallback]
@@ -67,52 +84,50 @@ public class RoadMonster : NetworkBehaviour
     {
         if (isTriggered) return;
 
-        // Ищем твою систему машины в объекте, который в нас врезался
         CarHybridSystem car = other.GetComponentInParent<CarHybridSystem>();
-        
         if (car != null)
         {
-            isTriggered = true;
-            Rigidbody carRb = car.GetComponent<Rigidbody>();
-
-            // Если машина использует физику (не на беговой дорожке) - откидываем ее
-            if (carRb != null && !carRb.isKinematic)
-            {
-                carRb.linearVelocity = Vector3.zero; // Жестко гасим скорость
-                
-           
-                Vector3 pushDir = (carRb.position - transform.position).normalized;
-                pushDir.y = 0.5f; 
-                
-                carRb.AddForce(pushDir * repelForce, ForceMode.Impulse);
-            }
-            else if (car != null)
-            {
-                // Если включен RoadMill, просто глушим движок от страха
-                car.UpdateEngineState(3); 
-            }
-
-            RpcDoJumpscare();
-            DestroyMonster();
+            ApplyPhysicsImpulse(car);
+            TriggerJumpscareSequence();
         }
+    }
+
+    [Server]
+    private void TriggerJumpscareSequence()
+    {
+        isTriggered = true;
+        RpcDoJumpscare();
+        // Даем анимации проиграться перед удалением объекта
+        Invoke(nameof(DestroyMonster), jumpscareDuration);
     }
 
     [ClientRpc]
     private void RpcDoJumpscare()
     {
-        if (scareSound != null && Camera.main != null)
-        {
-          
-            AudioSource.PlayClipAtPoint(scareSound, Camera.main.transform.position, 1f);
-        }
+        if (animator != null) animator.SetTrigger(JumpscareTrigger);
 
-        
-        foreach (Renderer r in GetComponentsInChildren<Renderer>()) r.enabled = false;
+        if (scareSound != null && mainCamera != null)
+        {
+            AudioSource.PlayClipAtPoint(scareSound, mainCamera.transform.position, 1f);
+        }
+    }
+
+    private void ApplyPhysicsImpulse(CarHybridSystem car)
+    {
+        Rigidbody carRb = car.GetComponent<Rigidbody>();
+        if (carRb != null && !carRb.isKinematic)
+        {
+            carRb.linearVelocity = Vector3.zero;
+            Vector3 pushDir = (carRb.position - transform.position).normalized;
+            pushDir.y = 0.5f;
+            carRb.AddForce(pushDir * repelForce, ForceMode.Impulse);
+        }
+        else
+        {
+            car.UpdateEngineState(3);
+        }
     }
 
     [Server]
-    private void DestroyMonster()
-    {
-        NetworkServer.Destroy(gameObject);
-    }
+    private void DestroyMonster() => NetworkServer.Destroy(gameObject);
 }

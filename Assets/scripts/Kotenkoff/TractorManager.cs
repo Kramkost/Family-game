@@ -14,7 +14,7 @@ namespace Kotenkoff
         
         [Header("Виртуальная симуляция")]
         [Tooltip("Текущее расстояние до тягача")]
-        [SyncVar] public float distanceToTractor = 5000f;
+        [SyncVar] public float distanceToTractor = 1000f;
         [Tooltip("Сколько метров тягач проезжает за 1 секунду, пока его не видно")]
         [SerializeField] private float virtualSpeed = 5f;
 

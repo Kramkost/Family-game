@@ -2721,7 +2721,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PosterizeEffect
   effectMaterial: {fileID: 2100000, guid: 8e57630923cfed43abd2980b1bd6b039, type: 2}
-  colorSteps: 64
+  colorSteps: 136
 --- !u!114 &8448125117828162083
 MonoBehaviour:
   m_ObjectHideFlags: 0

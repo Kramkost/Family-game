@@ -141,9 +141,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -752683700368563431, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
+      propertyPath: m_Layer
+      value: 27
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
       propertyPath: m_Name
       value: House_2_Prefab
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
+      propertyPath: m_Layer
+      value: 27
+      objectReference: {fileID: 0}
+    - target: {fileID: 3837609276669961730, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
+      propertyPath: m_Layer
+      value: 27
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

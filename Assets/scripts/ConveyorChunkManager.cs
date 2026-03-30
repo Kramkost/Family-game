@@ -93,7 +93,7 @@ public class ConveyorChunkManager : MonoBehaviour
 
     private int highestWeightBiomeIndex = 0; 
 
-    public static event Action OnUpdateSurface;
+    public static event Action OnEndGeneration;
 
     private void Start()
     {
@@ -183,7 +183,7 @@ private void ManageChunks(int startIndex, int endIndex)
     
         if (chunksChanged)
         {
-            OnUpdateSurface?.Invoke();
+            OnEndGeneration?.Invoke();
         }
     }
 

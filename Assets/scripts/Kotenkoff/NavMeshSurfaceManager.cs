@@ -4,22 +4,23 @@ using Unity.AI.Navigation;
 
 namespace Kotenkoff
 {
+    /// <summary>
+    ///  <para>Менеджер для NavMesh Surface</para>
+    /// </summary>
     public class NavMeshSurfaceManager : NetworkBehaviour
     {
         [SerializeField] private NavMeshSurface surface;
 
-        public delegate void UpdateSurface();
-
         [Server]
         private void OnEnable()
         {
-            ConveyorChunkManager.OnUpdateSurface += UpdateNavMeshSurface;
+            ConveyorChunkManager.OnEndGeneration += UpdateNavMeshSurface;
         }
 
         [Server]
         private void OnDisable()
         {
-            ConveyorChunkManager.OnUpdateSurface -= UpdateNavMeshSurface;
+            ConveyorChunkManager.OnEndGeneration -= UpdateNavMeshSurface;
         }
 
         [Server]

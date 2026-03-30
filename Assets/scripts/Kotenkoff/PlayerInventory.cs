@@ -19,7 +19,7 @@ namespace Kotenkoff
         {
             if (inventory.Length <= 0)
             {
-                Debug.LogWarning("[Server] В инвентаре нет слотов!");
+                Debug.LogWarning("[Inventory] В инвентаре нет слотов! Слоты не будут добавлены во время игры.");
             }
         }
 

@@ -903,7 +903,7 @@ GameObject:
   - component: {fileID: 1809791319995980333}
   m_Layer: 0
   m_Name: Character_Adult
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2611,7 +2611,6 @@ GameObject:
   - component: {fileID: 3762507393151649599}
   - component: {fileID: 3671616773297462879}
   - component: {fileID: 8186672873814920463}
-  - component: {fileID: 8448125117828162083}
   - component: {fileID: 8555446060104096514}
   - component: {fileID: 5114978883718513847}
   m_Layer: 6
@@ -2722,22 +2721,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PosterizeEffect
   effectMaterial: {fileID: 2100000, guid: 8e57630923cfed43abd2980b1bd6b039, type: 2}
   colorSteps: 136
---- !u!114 &8448125117828162083
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6629517101996487750}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eda5218ad7cde008da851af5ca0470d6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  lowPassFilter: {fileID: 8555446060104096514}
-  muffleFrequency: 5000
-  normalFrequency: 22000
-  transitionSpeed: 2
 --- !u!169 &8555446060104096514
 AudioLowPassFilter:
   m_ObjectHideFlags: 0

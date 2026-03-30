@@ -18,6 +18,7 @@ namespace Kotenkoff.Monsters
 
         [SerializeField] private Transform target;
         public Transform Target => target;
+    
         
         private NavMeshAgent agent;
         [SerializeField, ReadOnly] private float distance;

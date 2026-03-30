@@ -6,7 +6,7 @@ using UnityEngine;
 public class AudioZoneTrigger : MonoBehaviour
 {
     [Header("Настройки фильтра")]
-    public AudioLowPassFilter lowPassFilter; // Перетащи сюда Main Camera
+    public AudioLowPassFilter lowPassFilter; 
     public float muffleFrequency = 1500f; // Глухой звук в салоне
     public float normalFrequency = 22000f; // Чистый звук на улице
     public float transitionSpeed = 5f; // Скорость перехода

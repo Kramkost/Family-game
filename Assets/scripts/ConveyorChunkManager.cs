@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 using Mirror;
 
@@ -92,6 +93,8 @@ public class ConveyorChunkManager : MonoBehaviour
 
     private int highestWeightBiomeIndex = 0; 
 
+    public static event Action OnUpdateSurface;
+
     private void Start()
     {
         InitializeStructures();
@@ -151,9 +154,10 @@ public class ConveyorChunkManager : MonoBehaviour
         foreach (var loot in globalLootTable) totalLootWeight += loot.weight;
     }
 
-    private void ManageChunks(int startIndex, int endIndex)
+private void ManageChunks(int startIndex, int endIndex)
     {
         keysToRemoveCache.Clear();
+        bool chunksChanged = false; // Флаг для отслеживания изменений
 
         foreach (var kvp in activeChunks)
         {
@@ -161,6 +165,7 @@ public class ConveyorChunkManager : MonoBehaviour
             {
                 DespawnChunk(kvp.Key);
                 keysToRemoveCache.Add(kvp.Key);
+                chunksChanged = true; // Чанк удален - нужны изменения
             }
         }
 
@@ -168,7 +173,17 @@ public class ConveyorChunkManager : MonoBehaviour
 
         for (int i = startIndex; i <= endIndex; i++)
         {
-            if (!activeChunks.ContainsKey(i)) SpawnChunk(i);
+            if (!activeChunks.ContainsKey(i)) 
+            {
+                SpawnChunk(i);
+                chunksChanged = true; 
+            }
+        }
+
+    
+        if (chunksChanged)
+        {
+            OnUpdateSurface?.Invoke();
         }
     }
 

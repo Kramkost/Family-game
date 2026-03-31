@@ -234,6 +234,37 @@ Transform:
   - {fileID: 43360673198035515}
   m_Father: {fileID: 2418902437876328239}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &975656419937008265
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1416487155613686004}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1416487155613686004
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 975656419937008265}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.6883546, y: 0, z: 0, w: 0.72537434}
+  m_LocalPosition: {x: -0.52, y: 8.49, z: 0.65}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1532277744003968315}
+  m_LocalEulerAnglesHint: {x: -87, y: 0, z: 0}
 --- !u!1 &1002614184030594934
 GameObject:
   m_ObjectHideFlags: 0
@@ -902,6 +933,7 @@ GameObject:
   - component: {fileID: 1669543956671479950}
   - component: {fileID: 1809791319995980333}
   - component: {fileID: -5867740379475178700}
+  - component: {fileID: 419790847555792072}
   m_Layer: 0
   m_Name: Character_Adult
   m_TagString: Player
@@ -926,6 +958,7 @@ Transform:
   - {fileID: 7859408330955442929}
   - {fileID: 1789292553424426668}
   - {fileID: 3312723361072814577}
+  - {fileID: 1416487155613686004}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &503767926053367193
@@ -1402,6 +1435,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41f84591ce72545258ea98cb7518d8b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Mirror::Mirror.NetworkStartPosition
+--- !u!114 &419790847555792072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164101469142759297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49ec53b339285f86e8207c9b79ac4838, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Kotenkoff.PlayerHatController
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  hatDatabase: {fileID: 11400000, guid: b3c3b252729be5ba79e25dfd52f89506, type: 2}
+  hatPlace: {fileID: 1416487155613686004}
+  currentHatId: 0
 --- !u!1 &2187859041725899747
 GameObject:
   m_ObjectHideFlags: 0

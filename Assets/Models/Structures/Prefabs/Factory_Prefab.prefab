@@ -1,5 +1,132 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3531751551393982451
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8494892586286614620}
+  m_Layer: 0
+  m_Name: LootSockets
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8494892586286614620
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3531751551393982451}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 4.2822313, y: -2.0088382, z: -0.9589146}
+  m_LocalScale: {x: 0.48522663, y: 0.48522663, z: 0.48522663}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3569560690675471908}
+  - {fileID: 3640947542693072065}
+  - {fileID: 1732947443234007565}
+  m_Father: {fileID: 5522762206315831884}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4122717620893542839
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3640947542693072065}
+  m_Layer: 0
+  m_Name: LootSocket
+  m_TagString: LootSocket
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3640947542693072065
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4122717620893542839}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -8.680957, y: 0.10342681, z: -3.4418666}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8494892586286614620}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7976977696823138325
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3569560690675471908}
+  m_Layer: 0
+  m_Name: LootSocket
+  m_TagString: LootSocket
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3569560690675471908
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7976977696823138325}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -8.427466, y: 4.6591396, z: -0.18771717}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8494892586286614620}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &9072680113696224677
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1732947443234007565}
+  m_Layer: 0
+  m_Name: LootSocket
+  m_TagString: LootSocket
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1732947443234007565
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9072680113696224677}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -7.990557, y: 0.10342681, z: -0.53600806}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8494892586286614620}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &5417394439403668903
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -97,7 +224,10 @@ PrefabInstance:
     - {fileID: 65702495048144492, guid: c836d1b858847112b97adae1e84f8a26, type: 3}
     - {fileID: -8700617353114198275, guid: c836d1b858847112b97adae1e84f8a26, type: 3}
     - {fileID: 8821623529969584324, guid: c836d1b858847112b97adae1e84f8a26, type: 3}
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: c836d1b858847112b97adae1e84f8a26, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8494892586286614620}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c836d1b858847112b97adae1e84f8a26, type: 3}
       insertIndex: -1
@@ -126,9 +256,37 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  lootSockets: []
-  lootPrefabs: []
-  spawnChancePerSocket: 0.5
+  lootSockets:
+  - {fileID: 3569560690675471908}
+  - {fileID: 3640947542693072065}
+  - {fileID: 1732947443234007565}
+  lootItems:
+  - prefab: {fileID: 5025381211819456010, guid: 420c8d6c0514ee341a9238c6863b1870, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.5
+  - prefab: {fileID: 676441500743402554, guid: 2a516d512248263d48dc9519f27d282b, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.5
+  - prefab: {fileID: 5805780673859503878, guid: f15c312d55fbaed66bae921c1b797f86, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.3
+  - prefab: {fileID: 6851090922046491734, guid: e62f7ef1c2e901041aca61f598b4afc9, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.2
+  - prefab: {fileID: 132576904456393316, guid: 0935b3b4d53652347bab7dce00cc28cb, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.4
+  - prefab: {fileID: 8340858473017383905, guid: 4c5e2f27b9e13214a9ddbb4e952323cb, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.2
+  - prefab: {fileID: 4422552630351278712, guid: bafe2eb0d7ae29bf480b89eff5a8a609, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.2
+  useWeightedSelection: 0
+  maxTotalWeight: 0
+  maxItemsPerBuilding: 3
+  minItemsGuaranteed: 0
+  enforceMinItems: 1
 --- !u!114 &3074831048163937457
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -146,3 +304,8 @@ MonoBehaviour:
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
+--- !u!4 &5522762206315831884 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: c836d1b858847112b97adae1e84f8a26, type: 3}
+  m_PrefabInstance: {fileID: 5417394439403668903}
+  m_PrefabAsset: {fileID: 0}

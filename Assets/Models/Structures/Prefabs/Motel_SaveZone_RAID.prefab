@@ -1,5 +1,132 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1620229199392118359
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6616822003642160239}
+  m_Layer: 0
+  m_Name: LootSockets
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6616822003642160239
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1620229199392118359}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 1.8681045, y: -2.0307834, z: -28.575611}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3502803504882122716}
+  - {fileID: 5048691800149932332}
+  - {fileID: 8200353385991088427}
+  m_Father: {fileID: 975390427932878548}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3109298814266479500
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8200353385991088427}
+  m_Layer: 0
+  m_Name: LootSocket
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8200353385991088427
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3109298814266479500}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.53729963, z: 0, w: 0.8433915}
+  m_LocalPosition: {x: -10.904, y: 4.5243845, z: 24.466}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6616822003642160239}
+  m_LocalEulerAnglesHint: {x: 0, y: 65, z: 0}
+--- !u!1 &3546388356396948034
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5048691800149932332}
+  m_Layer: 0
+  m_Name: LootSocket
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5048691800149932332
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3546388356396948034}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.53729963, z: 0, w: 0.8433914}
+  m_LocalPosition: {x: -12.51, y: 0.23021841, z: 21.146}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6616822003642160239}
+  m_LocalEulerAnglesHint: {x: 0, y: -65, z: 0}
+--- !u!1 &8639665153970014517
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3502803504882122716}
+  m_Layer: 0
+  m_Name: LootSocket
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3502803504882122716
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8639665153970014517}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.53729963, z: 0, w: 0.8433915}
+  m_LocalPosition: {x: -4.71, y: 4.5243855, z: 31.48}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6616822003642160239}
+  m_LocalEulerAnglesHint: {x: 0, y: 65, z: 0}
 --- !u!1001 &721685417824092479
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -54,11 +181,17 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6616822003642160239}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
       insertIndex: -1
       addedObject: {fileID: -1067361466338621136}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4655417600723580259}
   m_SourcePrefab: {fileID: 100100000, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
 --- !u!1 &487119667575471214 stripped
 GameObject:
@@ -82,3 +215,45 @@ MonoBehaviour:
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
+--- !u!114 &4655417600723580259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 487119667575471214}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e4c4f2c3f72c5224bafe0c010ca1907, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ServerLootSpawner
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  lootSockets:
+  - {fileID: 3502803504882122716}
+  - {fileID: 5048691800149932332}
+  - {fileID: 8200353385991088427}
+  lootItems:
+  - prefab: {fileID: 8340858473017383905, guid: 4c5e2f27b9e13214a9ddbb4e952323cb, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.7
+  - prefab: {fileID: 5805780673859503878, guid: f15c312d55fbaed66bae921c1b797f86, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.5
+  - prefab: {fileID: 9119131819218184256, guid: a48e6105db1aaf048927c0063dfc208f, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.4
+  - prefab: {fileID: 4422552630351278712, guid: bafe2eb0d7ae29bf480b89eff5a8a609, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.2
+  useWeightedSelection: 0
+  maxTotalWeight: 0
+  maxItemsPerBuilding: 3
+  minItemsGuaranteed: 1
+  enforceMinItems: 1
+--- !u!4 &975390427932878548 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
+  m_PrefabInstance: {fileID: 721685417824092479}
+  m_PrefabAsset: {fileID: 0}

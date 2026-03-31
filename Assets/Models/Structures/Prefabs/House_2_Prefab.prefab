@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6857735861957430289}
   m_Layer: 0
-  m_Name: SpawnLoot (2)
+  m_Name: LootSocket
   m_TagString: LootSocket
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -24,11 +24,45 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1930828021011592467}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5.239, y: 0.243, z: 3.813}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 7.4782195, y: -2.0607612, z: 4.388856}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
+  m_Father: {fileID: 14173098899629969}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2917823103810309218
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 14173098899629969}
+  m_Layer: 0
+  m_Name: LootSockets
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &14173098899629969
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2917823103810309218}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -2.2392201, y: 2.3037612, z: -0.5758562}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 170102760420104388}
+  - {fileID: 8162495838422458779}
+  - {fileID: 6857735861957430289}
   m_Father: {fileID: 3985014769115831679}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5372630455567438511
@@ -41,7 +75,7 @@ GameObject:
   m_Component:
   - component: {fileID: 170102760420104388}
   m_Layer: 0
-  m_Name: SpawnLoot
+  m_Name: LootSocket
   m_TagString: LootSocket
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -55,12 +89,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5372630455567438511}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.06, y: 1.674, z: 2.26}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 5.29922, y: -0.6297612, z: 2.8358562}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 3985014769115831679}
+  m_Father: {fileID: 14173098899629969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6507429735151381946
 GameObject:
@@ -72,7 +106,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8162495838422458779}
   m_Layer: 0
-  m_Name: SpawnLoot (1)
+  m_Name: LootSocket
   m_TagString: LootSocket
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -86,12 +120,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6507429735151381946}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.06, y: 1.674, z: -2.27}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 5.29922, y: -0.6297612, z: -1.6941438}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 3985014769115831679}
+  m_Father: {fileID: 14173098899629969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &7009180978657697008
 PrefabInstance:
@@ -162,13 +196,7 @@ PrefabInstance:
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 6199206154468622735, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 170102760420104388}
-    - targetCorrespondingSourceObject: {fileID: 6199206154468622735, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 8162495838422458779}
-    - targetCorrespondingSourceObject: {fileID: 6199206154468622735, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 6857735861957430289}
+      addedObject: {fileID: 14173098899629969}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
       insertIndex: -1
@@ -389,7 +417,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7891701996445245857}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2e4c4f2c3f72c5224bafe0c010ca1907, type: 3}
   m_Name: 
@@ -397,6 +425,20 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  lootSockets: []
-  lootPrefabs: []
-  spawnChancePerSocket: 0.5
+  lootSockets:
+  - {fileID: 170102760420104388}
+  - {fileID: 8162495838422458779}
+  - {fileID: 6857735861957430289}
+  lootItems:
+  - prefab: {fileID: 676441500743402554, guid: 2a516d512248263d48dc9519f27d282b, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.5
+  - prefab: {fileID: 5805780673859503878, guid: f15c312d55fbaed66bae921c1b797f86, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.3
+  - prefab: {fileID: 5025381211819456010, guid: 420c8d6c0514ee341a9238c6863b1870, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.5
+  useWeightedSelection: 0
+  maxTotalWeight: 0
+  maxItemsPerBuilding: 2

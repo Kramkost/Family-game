@@ -23,6 +23,14 @@ public class ServerLootSpawner : NetworkBehaviour
     [Tooltip("Префабы сетевого лута с настройками веса и шанса")]
     [SerializeField] private LootItem[] lootItems;
     
+    [Header("Контейнер для предметов")]
+    [Tooltip("Prop Container — пустой объект на сцене, куда будут складываться все созданные предметы.\n" +
+             "Если поле пустое, скрипт автоматически найдёт или создаст контейнер с именем 'Prop Container'")]
+    [SerializeField] private Transform propContainer;
+    
+    [Tooltip("Название объекта Prop Container на сцене")]
+    [SerializeField] private string propContainerName;
+    
     [Header("Ограничения")]
     [Tooltip("Учитывать суммарный вес предметов при спавне?")]
     [SerializeField] private bool useWeightedSelection = true; // Переключатель для учёта веса
@@ -91,6 +99,9 @@ public class ServerLootSpawner : NetworkBehaviour
         }
 
         isInitialized = true;
+        
+        // Автоматически находим или создаём Prop Container, если не назначен в инспекторе
+        ManagePropContainer();
     }
 
     /// <summary>
@@ -169,10 +180,13 @@ public class ServerLootSpawner : NetworkBehaviour
 
         if (Random.value > selectedItem.spawnChance)
             continue;
-
+        
         // Создаём объект в выбранной случайной точке
         GameObject lootInstance = Instantiate(prefabToSpawn, socket.position, socket.rotation);
-        Debug.Log("Объект создан: " + lootInstance.name);
+        Debug.Log("[ServerLootSpawner] Объект создан с шансом "+ selectedItem.spawnChance * 100 + "%: " + lootInstance.name);
+
+        // Устанавливаем родителя — Prop Container (гарантированно существует после Initialize)
+        lootInstance.transform.SetParent(propContainer);
 
         // СПАВНИМ В СЕТЬ (чтобы все клиенты его увидели)
         NetworkServer.Spawn(lootInstance);
@@ -214,8 +228,12 @@ public class ServerLootSpawner : NetworkBehaviour
 
             if (prefabToSpawn == null) continue;
 
+            // Принудительно создаём объект в выбранной случайной точке
             GameObject lootInstance = Instantiate(prefabToSpawn, socket.position, socket.rotation);
-            Debug.Log("Принудительно создан объект: " + lootInstance.name);
+            Debug.Log("[ServerLootSpawner] Принудительно создан объект: " + lootInstance.name);
+            
+            // Устанавливаем родителя — Prop Container
+            lootInstance.transform.SetParent(propContainer);
 
             // СПАВНИМ В СЕТЬ
             NetworkServer.Spawn(lootInstance);
@@ -328,6 +346,39 @@ public class ServerLootSpawner : NetworkBehaviour
         }
         // Полностью очищаем список после обработки всех элементов
         spawnedItems.Clear();
+    }
+    
+    /// <summary>
+    /// Находит или создаёт Prop Container для группировки созданных предметов.
+    /// Приоритет:
+    /// 1. Если propContainer уже назначен в инспекторе — используем его.
+    /// 2. Иначе ищем существующий объект с именем "Prop Container" на сцене.
+    /// 3. Если не найден — создаём новый пустой GameObject.
+    /// </summary>
+    private void ManagePropContainer()
+    {
+        // Если контейнер уже назначен в инспекторе, используем его и выходим
+        if (propContainer != null)
+        {
+            Debug.Log($"[ServerLootSpawner] Используется Prop Container из инспектора: {propContainer.name}");
+            propContainerName  = propContainer.name;
+            return;
+        }
+    
+        // Пытаемся найти существующий контейнер на сцене
+        propContainer = GameObject.Find(propContainerName)?.transform;
+    
+        if (propContainer != null)
+        {
+            Debug.Log("[ServerLootSpawner] Найден существующий Prop Container на сцене");
+            return;
+        }
+    
+        // Если не найден — создаём новый
+        GameObject containerObject = new GameObject(propContainerName);
+        propContainer = containerObject.transform;
+    
+        Debug.Log("[ServerLootSpawner] Создан новый Prop Container на сцене");
     }
 
 #if UNITY_EDITOR

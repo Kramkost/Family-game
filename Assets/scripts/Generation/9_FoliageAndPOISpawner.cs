@@ -109,16 +109,52 @@ namespace ProceduralTerrain.Spawning
             var terrainData   = terrain.terrainData;
             SetupTreePrototypes(terrainData);
 
+            // Вычисляем радиус исключения один раз — он одинаков для всех кандидатов.
+            // Это ВТОРОЙ, авторитетный барьер на главном потоке.
+            // Первый (Job) может пропустить кандидатов если splinePoints пуст
+            // или сэмплы редкие. Этот барьер гарантирует 100% результат.
+            float treeExclusionRadius = _settings.RoadWidth * 0.5f
+                                      + _settings.RoadShoulderWidth
+                                      + _settings.FoliageExclusionBuffer;
+
             for (int i = 0; i < totalCandidates; i++)
             {
                 var candidate = candidateResults[i];
                 if (!candidate.Valid) continue;
 
+                var candXZ = new Vector2(candidate.WorldPosition.x, candidate.WorldPosition.z);
+
+                // ── Барьер 1: зоны POI ──────────────────────────────────────────
                 bool excluded = false;
-                var  candXZ   = new Vector2(candidate.WorldPosition.x, candidate.WorldPosition.z);
                 foreach (var zone in exclusionZones)
                     if (zone.Contains(candXZ)) { excluded = true; break; }
                 if (excluded) continue;
+
+                // ── Барьер 2: коридор дороги (главный поток, сегментная проверка) ─
+                // Проверяем каждый сегмент спланка. PerpendicularDistToSegment
+                // возвращает кратчайшее расстояние от точки до ОТРЕЗКА (не точки),
+                // поэтому зазоров между сэмплами нет вообще.
+                bool onRoad = false;
+                for (int s = 0; s < splinePoints.Count - 1 && !onRoad; s++)
+                {
+                    float dist = PerpendicularDistToSegment(
+                        candXZ,
+                        new Vector2(splinePoints[s].Position.x,     splinePoints[s].Position.z),
+                        new Vector2(splinePoints[s + 1].Position.x, splinePoints[s + 1].Position.z));
+
+                    if (dist < treeExclusionRadius)
+                        onRoad = true;
+                }
+                // Проверка для последней точки (одиночная — на случай если 1 точка в чанке)
+                if (!onRoad && splinePoints.Count > 0)
+                {
+                    var last = splinePoints[splinePoints.Count - 1];
+                    if (Vector2.Distance(candXZ, new Vector2(last.Position.x, last.Position.z))
+                        < treeExclusionRadius)
+                        onRoad = true;
+                }
+                if (onRoad) continue;
+                // ────────────────────────────────────────────────────────────────
 
                 float normX = (candidate.WorldPosition.x - terrain.transform.position.x) / _settings.ChunkWorldSize;
                 float normZ = (candidate.WorldPosition.z - terrain.transform.position.z) / _settings.ChunkWorldSize;
@@ -127,14 +163,14 @@ namespace ProceduralTerrain.Spawning
                 treeInstances.Add(new TreeInstance
                 {
                     prototypeIndex = candidate.Scale > 1.1f
-                        ? 0    // Tall scale → tree prototype
-                        : 1 % Mathf.Max(1, terrainData.treePrototypes.Length), // short → bush
-                    position       = new Vector3(normX, 0f, normZ),
-                    rotation       = candidate.Rotation,
-                    widthScale     = candidate.Scale,
-                    heightScale    = candidate.Scale,
-                    color          = Color.white,
-                    lightmapColor  = Color.white
+                        ? 0
+                        : 1 % Mathf.Max(1, terrainData.treePrototypes.Length),
+                    position      = new Vector3(normX, 0f, normZ),
+                    rotation      = candidate.Rotation,
+                    widthScale    = candidate.Scale,
+                    heightScale   = candidate.Scale,
+                    color         = Color.white,
+                    lightmapColor = Color.white
                 });
             }
 

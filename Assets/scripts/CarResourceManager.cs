@@ -12,7 +12,12 @@ public class CarResourceManager : NetworkBehaviour
     [Tooltip("Ссылка на скрипт передвижения для проверки режима беговой дорожки")]
     [SerializeField] private CarHybridSystem hybridSystem;
 
-    [Header("Resources (Max 100)")]
+    [Header("Resource Capacities")]
+    public float maxGasoline = 100f;
+    public float maxWater = 100f;
+    public float maxEngineOil = 100f;
+
+    [Header("Current Resources")]
     [SyncVar] public float gasoline = 100f;
     [SyncVar] public float water = 100f;
     [SyncVar] public float engineOil = 100f;
@@ -43,7 +48,8 @@ public class CarResourceManager : NetworkBehaviour
 
         if (isMoving && gasoline > 0)
         {
-            gasoline = Mathf.Clamp(gasoline - gasConsumeRate * Time.deltaTime, 0, 100);
+            // Используем maxGasoline вместо хардкода 100
+            gasoline = Mathf.Clamp(gasoline - gasConsumeRate * Time.deltaTime, 0, maxGasoline);
             
             if (gasoline <= 0)
             {
@@ -51,8 +57,6 @@ public class CarResourceManager : NetworkBehaviour
                 // Вызов RPC звука глохнущего мотора
             }
         }
-
-        
     }
     
     [Server]
@@ -63,7 +67,7 @@ public class CarResourceManager : NetworkBehaviour
             if (!tractorIsMoving)
             {
                TractorMoving(true);
-                tractorIsMoving = true; 
+               tractorIsMoving = true; 
             }
         }
         
@@ -80,7 +84,8 @@ public class CarResourceManager : NetworkBehaviour
     [Server]
     public void Refuel(float amount)
     {
-        gasoline = Mathf.Clamp(gasoline + amount, 0, 100);
+        // Используем maxGasoline вместо хардкода 100
+        gasoline = Mathf.Clamp(gasoline + amount, 0, maxGasoline);
     }
     
     [Server]

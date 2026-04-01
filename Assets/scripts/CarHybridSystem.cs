@@ -1,9 +1,11 @@
 using UnityEngine;
 using Mirror;
+using System;
+using Random = UnityEngine.Random;
 
 /// <summary>
-/// Серверно-авторитетная система управления автомобилем с полным сетевым визуалом
-/// (звук, фары, руль, педали, гудок, аварии, запуск/остановка) и защитой от "игрока-халка".
+/// Серверно-авторитетная система управления автомобилем с сетевым визуалом
+/// и улучшенной физикой подвески/колес.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class CarHybridSystem : NetworkBehaviour
@@ -20,7 +22,7 @@ public class CarHybridSystem : NetworkBehaviour
     [Header("Driving Settings")]
     [SerializeField] private float motorForce = 1500f;
     [SerializeField] private float steerForce = 100f;
-    [SerializeField] private float crashThreshold = 5f; // Сила удара для воспроизведения звука аварии
+    [SerializeField] private float crashThreshold = 5f;
 
     [Header("Network Visuals & Audio")]
     [SerializeField] private AudioSource engineAudio;
@@ -33,22 +35,27 @@ public class CarHybridSystem : NetworkBehaviour
     [SerializeField] private AudioClip brakeSquealSound;
     [SerializeField] private AudioClip engineStartSound;
     [SerializeField] private AudioClip engineStopSound;
-    [SerializeField] private AudioClip[] crashSounds; // Массив звуков удара
+    [SerializeField] private AudioClip[] crashSounds;
     
     [SerializeField] private GameObject[] headlights; 
-    
+
+    [Header("Wheels & Steering")]
     [SerializeField] private Transform steeringWheel;
-    [SerializeField] private float maxSteeringAngle = 90f; 
+    [SerializeField] private float maxSteeringAngle = 90f;
+    [SerializeField] private Transform[] frontWheels; // ВАЖНО: оси колес должны быть выровнены по локальному Z вперед
+    [SerializeField] private Transform[] rearWheels;
+    [SerializeField] private float wheelVisualRadius = 0.35f;
     
+    [Header("Pedals")]
     [SerializeField] private Transform gasPedal;
     [SerializeField] private Transform brakePedal;
     [SerializeField] private Vector3 pedalTravel = new Vector3(0.05f, 0, 0); 
 
-    [Header("Visual Polish (Sway & Pitch)")]
+    [Header("Visual Polish (Body Sway)")]
     [SerializeField] private Transform carModel;
-    [SerializeField] private float pitchMultiplier = 3f; 
-    [SerializeField] private float rollMultiplier = 4f;  
-    [SerializeField] private float tiltLerpSpeed = 5f;
+    [SerializeField] private float maxPitchAngle = 4f; 
+    [SerializeField] private float maxRollAngle = 6f;  
+    [SerializeField] private float tiltSmoothTime = 0.15f;
 
     [Header("Camera Polish")]
     [SerializeField] private float minFOV = 60f;
@@ -59,19 +66,21 @@ public class CarHybridSystem : NetworkBehaviour
     [Header("Engine Health States")]
     [SyncVar] public float engineSpeedModifier = 1f;
     [SyncVar(hook = nameof(OnEngineDeadChanged))] public bool isEngineDead = false;      
-
     [SyncVar(hook = nameof(OnLightsChanged))] public bool lightsOn;
+    [SyncVar(hook = nameof(OnEngineOnChanged))] public bool isEngineOn = false;
+    [SyncVar(hook = nameof(OnModeChanged))] public bool isRoadMillMode = false;
+
+    // Синхронизируемые инпуты
     [SyncVar] private float syncSteer;
     [SyncVar] private float syncAccel;
-    [SyncVar(hook = nameof(OnEngineOnChanged))] public bool isEngineOn = false; // Состояние ВКЛ/ВЫКЛ двигателя
-    
-    [SyncVar(hook = nameof(OnModeChanged))] 
-    public bool isRoadMillMode = false;
 
+    // Локальные переменные
     private float currentSteer;
     private float currentAccel;
     private float lastSentSteer;
     private float lastSentAccel;
+    private float nextSyncTime;
+    private const float SYNC_RATE = 0.1f; // Лимит отправки пакетов ввода
 
     private Rigidbody rb;
     private Camera mainCam;
@@ -80,8 +89,19 @@ public class CarHybridSystem : NetworkBehaviour
     private Vector3 initialBrakePos;
     private Quaternion initialSteeringRot;
 
+    // Сглаживание крена
+    private float currentPitch;
+    private float currentRoll;
+    private float pitchVelocity;
+    private float rollVelocity;
+
+    // Вращение колес
+    private float wheelSpinAngle;
     private bool isBraking = false;
-    private bool wasEngineDead = false; // Для отслеживания остановки при поломке
+
+    // --- ПУБЛИЧНЫЕ СВОЙСТВА ДЛЯ UI ---
+    public float CurrentSpeedKMH => rb != null ? rb.linearVelocity.magnitude * 3.6f : 0f;
+    public float FuelNormalized => resourceManager != null ? Mathf.Clamp01(resourceManager.gasoline / resourceManager.maxGasoline) : 0f;
 
     private void Awake()
     {
@@ -98,16 +118,13 @@ public class CarHybridSystem : NetworkBehaviour
     private void Start()
     {
         mainCam = Camera.main;
-        
         if (engineAudio != null)
         {
             engineAudio.loop = true;
-            // Изначально выключен
             engineAudio.Stop(); 
         }
     }
 
-    // --- ЛОГИКА АВАРИИ (СТОЛКНОВЕНИЯ) ---
     [ServerCallback]
     private void OnCollisionEnter(Collision collision)
     {
@@ -131,15 +148,8 @@ public class CarHybridSystem : NetworkBehaviour
     {
         playersInCar += amount;
         
-        // Включаем движок, когда садится первый пассажир, выключаем, когда все выходят
-        if (playersInCar > 0 && !isEngineOn && !isEngineDead)
-        {
-            isEngineOn = true;
-        }
-        else if (playersInCar == 0 && isEngineOn)
-        {
-            isEngineOn = false;
-        }
+        if (playersInCar > 0 && !isEngineOn && !isEngineDead) isEngineOn = true;
+        else if (playersInCar == 0 && isEngineOn) isEngineOn = false;
         
         CheckMode();
     }
@@ -170,7 +180,6 @@ public class CarHybridSystem : NetworkBehaviour
         }
     }
 
-    // --- ХУКИ СОСТОЯНИЯ ДВИГАТЕЛЯ ---
     private void OnEngineOnChanged(bool oldState, bool newState)
     {
         if (newState)
@@ -187,12 +196,12 @@ public class CarHybridSystem : NetworkBehaviour
 
     private void OnEngineDeadChanged(bool oldState, bool newState)
     {
-        if (newState && isEngineOn) // Если сломался во время работы
+        if (newState && isEngineOn) 
         {
             if (engineStopSound != null) PlayRandomizedFX(engineStopSound);
             if (engineAudio != null) engineAudio.Stop();
         }
-        else if (!newState && isEngineOn) // Если починили и пассажир внутри
+        else if (!newState && isEngineOn) 
         {
             if (engineStartSound != null) PlayRandomizedFX(engineStartSound);
             if (engineAudio != null) engineAudio.Play();
@@ -208,11 +217,9 @@ public class CarHybridSystem : NetworkBehaviour
                 if (light != null) light.SetActive(newState);
             }
         }
-
         if (lightSwitchSound != null) PlayRandomizedFX(lightSwitchSound);
     }
 
-    // --- УНИВЕРСАЛЬНЫЙ МЕТОД ДЛЯ FX С ПИТЧЕМ ---
     private void PlayRandomizedFX(AudioClip clip, float volume = 1f)
     {
         if (fxAudioSource != null && clip != null)
@@ -229,7 +236,9 @@ public class CarHybridSystem : NetworkBehaviour
             worldContainer.Translate(-transform.forward * (virtualSpeed * engineSpeedModifier) * Time.deltaTime, Space.World);
         }
 
+        // Визуал работает для всех клиентов на основе синхронизированных переменных
         HandleVisualPolish();
+        HandleWheelsAnimation();
         HandleInteriorAnimation();
         HandleEngineSound();
         HandleBrakeSoundFX();
@@ -237,23 +246,12 @@ public class CarHybridSystem : NetworkBehaviour
         if (isOwned)
         {
             HandleCameraFOV();
-            //HandleLocalInputs(); 
         }
     }
 
-    // private void HandleLocalInputs()
-    // {
-    //     if (Input.GetKeyDown(KeyCode.L)) CmdToggleLights();
-    //     if (Input.GetKeyDown(KeyCode.H)) CmdHonkHorn();
-    // }
-
     public void ToggleLightsUI()
     {
-        if (isOwned)
-        {
-            lightsOn = !lightsOn;
-            CmdToggleLights();
-        }
+        if (isOwned) CmdToggleLights();
     }
 
     public void HonkUI()
@@ -264,13 +262,11 @@ public class CarHybridSystem : NetworkBehaviour
     [Command]
     public void CmdToggleLights()
     {
+        lightsOn = !lightsOn; // Раньше тут было пусто
     }
 
     [Command]
-    public void CmdHonkHorn()
-    {
-        RpcHonkHorn();
-    }
+    public void CmdHonkHorn() => RpcHonkHorn();
 
     [ClientRpc]
     private void RpcHonkHorn()
@@ -283,11 +279,16 @@ public class CarHybridSystem : NetworkBehaviour
         currentSteer = steerInput;
         currentAccel = accelInput;
 
-        if (Mathf.Abs(lastSentSteer - steerInput) > 0.05f || Mathf.Abs(lastSentAccel - accelInput) > 0.05f)
+        // Rate Limiting для сети, чтобы не спамить RPC каждый кадр
+        if (Time.time > nextSyncTime)
         {
-            CmdSyncInputs(steerInput, accelInput);
-            lastSentSteer = steerInput;
-            lastSentAccel = accelInput;
+            if (Mathf.Abs(lastSentSteer - steerInput) > 0.05f || Mathf.Abs(lastSentAccel - accelInput) > 0.05f)
+            {
+                CmdSyncInputs(steerInput, accelInput);
+                lastSentSteer = steerInput;
+                lastSentAccel = accelInput;
+                nextSyncTime = Time.time + SYNC_RATE;
+            }
         }
     }
 
@@ -300,14 +301,14 @@ public class CarHybridSystem : NetworkBehaviour
 
     private void FixedUpdate()
     {
-        if (!isOwned) return; 
-        if (isRoadMillMode) return;
+        if (!isOwned || isRoadMillMode) return; 
 
         if (resourceManager != null && resourceManager.gasoline <= 0 || isEngineDead || !isEngineOn)
         {
             currentAccel = 0f;
         }
 
+        // Физика
         Vector3 force = transform.forward * currentAccel * (motorForce * engineSpeedModifier) * Time.fixedDeltaTime;
         rb.AddForce(force, ForceMode.Acceleration);
 
@@ -321,14 +322,39 @@ public class CarHybridSystem : NetworkBehaviour
         ApplyLateralFriction();
     }
 
+    private void HandleWheelsAnimation()
+    {
+        // Вычисляем вращение колес на основе реальной скорости машины
+        float forwardSpeed = isRoadMillMode ? (virtualSpeed * engineSpeedModifier) : Vector3.Dot(rb.linearVelocity, transform.forward);
+        float spinDelta = (forwardSpeed / wheelVisualRadius) * Mathf.Rad2Deg * Time.deltaTime;
+        wheelSpinAngle += spinDelta;
+
+        float steerAngle = syncSteer * 35f; // Максимальный угол поворота передних колес
+
+        if (frontWheels != null)
+        {
+            foreach (var wheel in frontWheels)
+            {
+                if (wheel != null) wheel.localRotation = Quaternion.Euler(wheelSpinAngle, steerAngle, 0f);
+            }
+        }
+
+        if (rearWheels != null)
+        {
+            foreach (var wheel in rearWheels)
+            {
+                if (wheel != null) wheel.localRotation = Quaternion.Euler(wheelSpinAngle, 0f, 0f);
+            }
+        }
+    }
+
     private void HandleInteriorAnimation()
     {
         if (steeringWheel != null)
         {
             float targetAngle = syncSteer * -maxSteeringAngle;
             Quaternion zRotation = Quaternion.AngleAxis(targetAngle, Vector3.forward);
-            Quaternion targetRotation = initialSteeringRot * zRotation;
-            steeringWheel.localRotation = Quaternion.Lerp(steeringWheel.localRotation, targetRotation, Time.deltaTime * 10f);
+            steeringWheel.localRotation = Quaternion.Lerp(steeringWheel.localRotation, initialSteeringRot * zRotation, Time.deltaTime * 10f);
         }
 
         if (gasPedal != null)
@@ -351,10 +377,10 @@ public class CarHybridSystem : NetworkBehaviour
         float speed = rb.linearVelocity.magnitude;
         float pitchTarget = Mathf.Lerp(idlePitch, maxPitch, speed / speedForMaxFOV);
         
-        if (Mathf.Abs(syncAccel) > 0.1f && speed < 5f) pitchTarget += 0.3f;
+        if (Mathf.Abs(syncAccel) > 0.1f && speed < 5f) pitchTarget += 0.2f;
 
-        // Применяем рандомный разброс к основному звуку двигателя для большей живости
-        engineAudio.pitch = Mathf.Lerp(engineAudio.pitch, pitchTarget * Random.Range(0.98f, 1.02f), Time.deltaTime * 5f);
+        // Плавное изменение питча, без резких скачков от Random
+        engineAudio.pitch = Mathf.Lerp(engineAudio.pitch, pitchTarget, Time.deltaTime * 5f);
     }
 
     private void HandleBrakeSoundFX()
@@ -378,10 +404,19 @@ public class CarHybridSystem : NetworkBehaviour
     private void HandleVisualPolish()
     {
         if (carModel == null) return;
-        float targetPitch = syncAccel * -pitchMultiplier;
-        float targetRoll = syncSteer * -rollMultiplier;
-        Quaternion targetRotation = Quaternion.Euler(targetPitch, 0f, targetRoll);
-        carModel.localRotation = Quaternion.Lerp(carModel.localRotation, targetRotation, Time.deltaTime * tiltLerpSpeed);
+
+        // Крен зависит от ускорения и скорости поворота
+        float targetPitchAngle = syncAccel * -maxPitchAngle;
+        
+        float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
+        float speedFactor = Mathf.Clamp01(Mathf.Abs(forwardSpeed) / 15f);
+        float targetRollAngle = syncSteer * -maxRollAngle * speedFactor;
+
+        // SmoothDamp дает мягкое затухание, имитируя пружины подвески
+        currentPitch = Mathf.SmoothDamp(currentPitch, targetPitchAngle, ref pitchVelocity, tiltSmoothTime);
+        currentRoll = Mathf.SmoothDamp(currentRoll, targetRollAngle, ref rollVelocity, tiltSmoothTime);
+
+        carModel.localRotation = Quaternion.Euler(currentPitch, 0f, currentRoll);
     }
 
     private void HandleCameraFOV()

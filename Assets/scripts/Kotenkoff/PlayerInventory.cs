@@ -1,129 +1,169 @@
 using Mirror;
-using NaughtyAttributes;
 using UnityEngine;
+using UnityEngine.UI;
+
+using UnityEngine.InputSystem;
 
 namespace Kotenkoff
 {
-    /// <summary>
-    ///  <para>Класс инвентаря игрока.</para>
-    /// </summary>
+    // 1. Структура слота. Обязательно struct, чтобы Mirror мог её синхронизировать.
+    public struct SyncInventorySlot
+    {
+        public bool isClaimed;
+        public NetworkIdentity itemNetId; // Ссылка на предмет в сети
+    }
+
     public sealed class PlayerInventory : NetworkBehaviour
     {
-        /// <summary>
-        ///  <para>Инвентарь игрока.</para>
-        /// </summary>
-        [SerializeField, Tooltip("Это инвентарь игрока. Добавляй или убирай элементы, чтобы менять количество слотов")]
-        private InventoryItem[] inventory;
+        [Header("References")]
+        [SerializeField, Tooltip("Ссылка на хаб игрока")] 
+        private PlayerEntity playerEntity;
 
-        private void OnEnable()
+        [Header("Inventory Settings")]
+        [SerializeField, Tooltip("Количество слотов")] 
+        private int maxSlots = 5;
+
+        [Header("UI Settings (Local Player Only)")]
+        [SerializeField, Tooltip("Закинь сюда UI-контейнеры (RectTransform) слотов")] 
+        private RectTransform[] uiSlotContainers;
+        [SerializeField] private float activeScale = 1.2f;  // Размер выбранного слота
+        [SerializeField] private float normalScale = 1.0f;  // Размер обычного слота
+
+        // 2. SyncList — магический список Mirror. Сервер меняет, клиенты видят.
+        public readonly SyncList<SyncInventorySlot> slots = new SyncList<SyncInventorySlot>();
+
+        // Локальная переменная для UI (какой слот сейчас выбран колесиком)
+        private int currentSelectedIndex = 0;
+
+        public override void OnStartServer()
         {
-            if (inventory.Length <= 0)
+            // При старте сервера забиваем инвентарь пустыми слотами
+            for (int i = 0; i < maxSlots; i++)
             {
-                Debug.LogWarning("[Inventory] В инвентаре нет слотов! Слоты не будут добавлены во время игры.");
+                slots.Add(new SyncInventorySlot { isClaimed = false });
             }
         }
 
-        /// <summary>
-        /// <para>Добавляет указанный предмет в свободный слот инвентаря.</para>
-        /// </summary>
-        /// <param name="item">Предмет, который будет добавлен в инвентарь.</param>
-        [Server] // Добавляем предмет в слот
-        public void AddItem(GameObject item)
+        public override void OnStartLocalPlayer()
         {
-            foreach (var inventoryItem in inventory)
+            UpdateUI(); // Обновляем скейл UI при спавне
+        }
+
+        private void Update()
+        {
+            // UI и инпуты обрабатываем ТОЛЬКО для локального игрока
+            if (!isLocalPlayer || playerEntity.IsSitting) return;
+
+            HandleScrollInput();
+        }
+
+        // --- УПРАВЛЕНИЕ UI И КОЛЕСИКОМ ---
+
+    private void HandleScrollInput()
+    {
+    
+    if (Mouse.current == null) return;
+
+
+    float scroll = Mouse.current.scroll.ReadValue().y;
+
+    if (scroll != 0)
+    {
+        
+        if (scroll > 0) currentSelectedIndex--;
+        else currentSelectedIndex++;
+
+        // Круговая прокрутка (от последнего к первому и наоборот)
+        if (currentSelectedIndex < 0) currentSelectedIndex = maxSlots - 1;
+        if (currentSelectedIndex >= maxSlots) currentSelectedIndex = 0;
+
+        UpdateUI();
+        CmdSelectSlot(currentSelectedIndex); // Сервер, дай мне предмет из этого слота
+    }
+    }
+
+        private void UpdateUI()
+        {
+            if (uiSlotContainers == null || uiSlotContainers.Length == 0) return;
+
+            for (int i = 0; i < uiSlotContainers.Length; i++)
             {
-                // В поисках пустого слота
-                if (!inventoryItem.IsClimed)
+                if (uiSlotContainers[i] != null)
                 {
-                    if (item.TryGetComponent(out JerryCan jerryCan))
-                    {
-                        inventoryItem.UpdateItemInfo(InventoryItem.ItemType.JerryCan, jerryCan.gameObject);
-                        break;
-                    }
+                    // Делаем активный слот больше, остальные — стандартного размера
+                    float targetScale = (i == currentSelectedIndex) ? activeScale : normalScale;
+                    uiSlotContainers[i].localScale = Vector3.one * targetScale;
                 }
             }
         }
-        
-        /// <summary>
-        ///  <para>Удаляет указанный предмет из инвентаря.</para>
-        /// </summary>
-        /// <param name="item">Предмет, который будет удалён из инвентаря.</param>
-        [Server] // Очищаем слот
-        public void RemoveItem(GameObject item)
+
+        // --- СЕТЕВАЯ ЛОГИКА ---
+
+        [Command]
+        private void CmdSelectSlot(int index)
         {
-            foreach (var inventoryItem in inventory)
+            if (index < 0 || index >= slots.Count) return;
+
+            var slot = slots[index];
+            
+            // Если в слоте есть предмет, берем его. Если пусто — прячем текущий.
+            if (slot.isClaimed && slot.itemNetId != null)
             {
-                if (inventoryItem.IsClimed && inventoryItem.ItemObject == item)
+                playerEntity.ServerEquipItem(slot.itemNetId);
+            }
+            else
+            {
+                playerEntity.ServerEquipItem(null); 
+            }
+        }
+
+        [Server]
+        public bool AddItem(GameObject itemObj)
+        {
+            if (!itemObj.TryGetComponent(out NetworkIdentity netId)) return false;
+
+            for (int i = 0; i < slots.Count; i++)
+            {
+                // Ищем первый пустой слот
+                if (!slots[i].isClaimed)
                 {
-                    inventoryItem.UpdateItemInfo(InventoryItem.ItemType.None, null);
+                    slots[i] = new SyncInventorySlot
+                    {
+                        isClaimed = true,
+                        itemNetId = netId
+                    };
+
+                    // Если мы подобрали предмет в ТОТ ЖЕ слот, который сейчас выбран в UI,
+                    // заставляем клиента дернуть предмет в руку.
+                    TargetCheckAutoEquip(netId.connectionToClient);
+
+                    return true;
+                }
+            }
+            Debug.LogWarning("[Inventory] Инвентарь полон!");
+            return false;
+        }
+
+        [Server]
+        public void RemoveItem(GameObject itemObj)
+        {
+            if (!itemObj.TryGetComponent(out NetworkIdentity netId)) return;
+
+            for (int i = 0; i < slots.Count; i++)
+            {
+                if (slots[i].isClaimed && slots[i].itemNetId == netId)
+                {
+                    slots[i] = new SyncInventorySlot { isClaimed = false };
                     break;
                 }
             }
         }
-    }
 
-    [System.Serializable]
-    public sealed class InventoryItem
-    {
-        [SerializeField, Tooltip("Занят ли этот слот")]
-        private bool isClimed;
-        /// <summary>
-        ///  <para>Занят ли этот слот.</para>
-        /// </summary>
-        internal bool IsClimed => isClimed;
-        
-        /// <summary>
-        ///  <para>Список возможных предметов в инвентаре.</para>
-        /// </summary>
-        public enum ItemType { None , JerryCan }
-        [SerializeField, Tooltip("Тип предмета")]
-        private ItemType itemType;
-        
-        [SerializeField, ShowAssetPreview, Tooltip("GameObject предмета")]
-        private GameObject itemObject;
-        /// <summary>
-        ///  <para>Предмет, который занимает этот слот.</para>
-        /// </summary>
-        public GameObject ItemObject => itemObject;
-        
-        /// <summary>
-        ///  <para>Обновляет информацию слота.</para>
-        /// </summary>
-        /// <param name="type">Тип предмета, который будет добавлен ('None' если нужно очистить слот).</param>
-        /// <param name="item">Предмет, который будет добавлен (или удален).</param>
-        [Server] // Обновляем информацию слота
-        public void UpdateItemInfo(ItemType type, GameObject item)
+        // Вызываем у клиента, чтобы он обновил руки, если предмет упал в активный слот
+        [TargetRpc]
+        private void TargetCheckAutoEquip(NetworkConnection target)
         {
-            // Если у слота тип предмета None (т.е. предмета нет)
-            if (itemType == ItemType.None)
-            {
-                if (type == ItemType.JerryCan)
-                {
-                    JerryCanItem(item);
-                }
-                isClimed = true;
-            }
-            // Если тип не None 
-            else
-            {
-                // Сбрасывание слота до пустого
-                
-                itemType = ItemType.None;
-                itemObject = null;
-                
-                isClimed = false;
-            }
-        }
-        
-        /// <summary>
-        ///  <para>Метод, который добавляет JerryCan в слот.</para>
-        /// </summary>
-        /// <param name="item">Предмет, который займет слот</param>
-        [Server]
-        private void JerryCanItem(GameObject item)
-        {
-            itemType = ItemType.JerryCan;
-            itemObject = item;
+            CmdSelectSlot(currentSelectedIndex);
         }
     }
 }

@@ -422,11 +422,33 @@ public class PlayerEntity : NetworkBehaviour
         if (oldItem != null)
         {
             oldItem.transform.SetParent(null);
-            if (oldItem.TryGetComponent(out Rigidbody oldRb)) oldRb.isKinematic = false;
-            foreach (var col in oldItem.GetComponents<Collider>()) col.enabled = true;
+            
+            // ФИКС: Включаем физику ТОЛЬКО если предмета больше нет в инвентаре (выбросили)
+            // Если он есть в инвентаре, мы просто его прячем
+            bool isStillInInventory = false;
+            foreach (var slot in inventory.slots)
+            {
+                if (slot.isClaimed && slot.itemNetId == oldItem)
+                {
+                    isStillInInventory = true;
+                    break;
+                }
+            }
+
+            if (!isStillInInventory)
+            {
+                if (oldItem.TryGetComponent(out Rigidbody oldRb)) oldRb.isKinematic = false;
+                foreach (var col in oldItem.GetComponents<Collider>()) col.enabled = true;
+                foreach (var ren in oldItem.GetComponentsInChildren<Renderer>()) ren.enabled = true;
+            }
+            else
+            {
+                // Предмет убрали в рюкзак. Выключаем рендер, чтобы он не висел в воздухе невидимым
+                foreach (var ren in oldItem.GetComponentsInChildren<Renderer>()) ren.enabled = false;
+            }
         }
 
-        // Берём новый предмет
+        // Берём новый предмет (Тут твой старый код без изменений)
         Transform grabPoint = null;
         if (newItem != null && rightHandSocket != null)
         {
@@ -435,6 +457,7 @@ public class PlayerEntity : NetworkBehaviour
 
             if (newItem.TryGetComponent(out Rigidbody newRb)) newRb.isKinematic = true;
             foreach (var col in newItem.GetComponents<Collider>()) col.enabled = false;
+            foreach (var ren in newItem.GetComponentsInChildren<Renderer>()) ren.enabled = true; // Обязательно включаем рендер!
 
             foreach (Transform child in newItem.GetComponentsInChildren<Transform>())
             {
@@ -442,7 +465,6 @@ public class PlayerEntity : NetworkBehaviour
             }
         }
 
-        // Сообщаем PlayerJuiceAndIK о новой точке захвата для IK
         playerJuice?.SetGrabPoint(grabPoint);
     }
 }

@@ -17,7 +17,8 @@ GameObject:
   - component: {fileID: 5325568006776738522}
   - component: {fileID: 923725962570351374}
   - component: {fileID: 7210472266401524232}
-  m_Layer: 0
+  - component: {fileID: 6777876660280253751}
+  m_Layer: 3
   m_Name: "\u041F\u043E\u043D\u0447\u0438\u043A"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -230,3 +231,16 @@ MonoBehaviour:
   precomputeOutline: 0
   bakeKeys: []
   bakeValues: []
+--- !u!114 &6777876660280253751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 924495065034642633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abdf9d60e09678addadef068f6a0ee17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Kotenkoff.InteractableTooltip
+  promptText: '[E] Interact'

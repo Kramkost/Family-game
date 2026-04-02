@@ -124,6 +124,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 949c45c94c68c7caf942350d7d5d9b80, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2351365752427616048}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 949c45c94c68c7caf942350d7d5d9b80, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -3711764435895660002}
   m_SourcePrefab: {fileID: 100100000, guid: 949c45c94c68c7caf942350d7d5d9b80, type: 3}
 --- !u!4 &1181572868408102295 stripped
 Transform:
@@ -246,3 +249,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Kotenkoff.InteractableTooltip
   promptText: '[E] Interact'
+--- !u!114 &-3711764435895660002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1958532505560946477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df1768142ee234c96915e6d9940959bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Kotenkoff.ItemDetails
+  itemName: Dact tape
+  itemDescription: ...
+  actionHint: '[E] Use on broken parts'

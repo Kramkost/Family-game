@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 923725962570351374}
   - component: {fileID: 7210472266401524232}
   - component: {fileID: 6777876660280253751}
+  - component: {fileID: -1973369789229266516}
   m_Layer: 3
   m_Name: "\u041F\u043E\u043D\u0447\u0438\u043A"
   m_TagString: Untagged
@@ -244,3 +245,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Kotenkoff.InteractableTooltip
   promptText: '[E] Interact'
+--- !u!114 &-1973369789229266516
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 924495065034642633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df1768142ee234c96915e6d9940959bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Kotenkoff.ItemDetails
+  itemName: Donut
+  itemDescription: Food
+  actionHint: '[E] Eat'

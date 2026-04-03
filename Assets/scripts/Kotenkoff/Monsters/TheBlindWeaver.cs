@@ -2,104 +2,168 @@ using System.Collections;
 using UnityEngine;
 using Mirror;
 using UnityEngine.AI;
+using Health_Bar_System;
 
 namespace Kotenkoff.Monsters
 {
+    [RequireComponent(typeof(NavMeshAgent), typeof(Animator), typeof(NetworkAnimator))]
     public sealed class TheBlindWeaver : Monster
     {
-        [SerializeField] private float maxHealth;
+        [Header("Статистика")]
+        [SerializeField] private float maxHealth = 100f;
         public override float MaxHealth => maxHealth;
 
+        [SyncVar] 
         [SerializeField] private float health;
-        public override float Health =>  health;
+        public override float Health => health;
 
-
-        private GameObject triggerObject;
-
+        [Header("Наведение и Агрессия")]
         [SerializeField] private Transform target;
         public Transform Target => target;
-    
         
-        private NavMeshAgent agent;
         [SerializeField, ReadOnly] private float distance;
-        
-        
-        
+
+        [SyncVar]
         [SerializeField] private bool isAggressive;
         public bool IsAggressive => isAggressive;
 
-        [SerializeField] private float aggressiveTime;
-        [SerializeField] private float aggressiveDistance;
+        [SerializeField] private float aggressiveTime = 5f;
+        [SerializeField] private float aggressiveDistance = 15f;
         
-        [SerializeField, ReadOnly] private bool isCoroutine;
+        private bool isBreakingAggressive; 
+
+        [Header("Бой")]
+        [SerializeField] private float attackRange = 2f;    
+        [SerializeField] private float damage = 15f;         
+        [SerializeField] private float attackCooldown = 1.5f;
+        private float lastAttackTime;                       
+
+        private NavMeshAgent agent;
+        private Animator animator;
+        private NetworkAnimator networkAnimator; // ВАЖНО: Нужен для синхронизации триггеров
+
+        private const string IsWalkingParameter = "IsWalking";
+        private const string AttackTrigger = "Attack";
+        private const string FoundEnemyTrigger = "FoundEnemy";
 
         public override void OnStartServer()
         {
             agent = GetComponent<NavMeshAgent>();
+            animator = GetComponent<Animator>();
+            networkAnimator = GetComponent<NetworkAnimator>();
             
+            health = maxHealth;
             isAggressive = false;
         }
 
+        [ServerCallback] 
         void Update()
         {
-            if (Target != null) distance = Vector3.Distance(transform.position, target.position);
-
-            if (distance > aggressiveDistance && IsAggressive && !isCoroutine)
+            // Защита: если игрок вышел с сервера, сбрасываем таргет
+            if (target == null && isAggressive)
             {
-                StartCoroutine(nameof(BreakAggressive));
-                isCoroutine = true;
+                ChangeTarget(null);
+                ChangeIsAggressive(false);
             }
 
-            if (distance < aggressiveDistance && IsAggressive && isCoroutine)
+            if (target != null)
             {
-                StopCoroutine(nameof(BreakAggressive));
-                isCoroutine = false;
+                distance = Vector3.Distance(transform.position, target.position);
             }
-            
-            if (IsAggressive && Target != null)
+
+            HandleAggressionLoss();
+
+            if (isAggressive && target != null)
             {
-                agent.SetDestination(target.position);
+                if (distance <= attackRange)
+                {
+                    agent.isStopped = true;
+                    animator.SetBool(IsWalkingParameter, false);
+
+                    if (Time.time >= lastAttackTime + attackCooldown)
+                    {
+                        PerformAttack();
+                    }
+                }
+                else
+                {
+                    agent.isStopped = false;
+                    agent.SetDestination(target.position);
+                    animator.SetBool(IsWalkingParameter, true);
+                }
+            }
+            else
+            {
+                // Убеждаемся, что монстр точно стоит, если нет агрессии
+                if (agent.isOnNavMesh) agent.isStopped = true; 
+                animator.SetBool(IsWalkingParameter, false);
             }
         }
-        
-        /// <summary>
-        ///   <para>Меняет текущую цель монстра.</para>
-        /// </summary>
-        /// <param name="newTarget">Новая цель монстра</param>
+
+        [Server]
+        private void HandleAggressionLoss()
+        {
+            if (!isAggressive || target == null) return;
+
+            if (distance > aggressiveDistance && !isBreakingAggressive)
+            {
+                StartCoroutine(nameof(BreakAggressiveCoroutine));
+                isBreakingAggressive = true;
+            }
+            else if (distance <= aggressiveDistance && isBreakingAggressive)
+            {
+                StopCoroutine(nameof(BreakAggressiveCoroutine));
+                isBreakingAggressive = false;
+            }
+        }
+
+        [Server]
+        private void PerformAttack()
+        {
+            lastAttackTime = Time.time;
+            
+            // ВАЖНО: Используем NetworkAnimator, чтобы удар увидели все клиенты
+            networkAnimator.SetTrigger(AttackTrigger);
+
+            if (target.TryGetComponent(out IDamageable damageableTarget))
+            {
+                damageableTarget.TakeDamage(damage); 
+            }
+        }
+
         [Server]
         public void ChangeTarget(Transform newTarget)
         {
+            if (target == null && newTarget != null)
+            {
+                // ВАЖНО: Синхронизируем рев/замечание врага через сеть
+                networkAnimator.SetTrigger(FoundEnemyTrigger);
+            }
             target = newTarget;
         }
         
-        /// <summary>
-        ///   <para>Изменяет состояние агрессии монстра.</para>
-        /// </summary>
-        /// <param name="newIsAggressive">Новое значение агрессии</param>
         [Server]
         public void ChangeIsAggressive(bool newIsAggressive)
         {
             isAggressive = newIsAggressive;
         }
 
-        private IEnumerator BreakAggressive()
+        private IEnumerator BreakAggressiveCoroutine() 
         {
             yield return new WaitForSeconds(aggressiveTime);
-            
-            isCoroutine = false;
-            
+            isBreakingAggressive = false;
             ChangeIsAggressive(false);
             ChangeTarget(null);
         }
 
-        /// <summary>
-        ///   <para>Изменяет здоровье монстра.</para>
-        /// </summary>
-        /// <param name="value">Значение, которое прибавится к текущему значению здоровья (вводите отрицательное число, чтобы уменьшить значение здоровья)</param>
         [Server]
         public void ChangeHealth(float value)
         {
             health = Mathf.Clamp(health + value, 0, maxHealth);
+            if (health == 0)
+            {
+                // Логика смерти
+            }
         }
     }
 }

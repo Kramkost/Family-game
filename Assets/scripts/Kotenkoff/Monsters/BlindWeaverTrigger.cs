@@ -7,18 +7,16 @@ namespace Kotenkoff.Monsters
     {
         [SerializeField] private TheBlindWeaver monster;
 
-        [Server]
+        // ВАЖНО: Для событий Unity (OnTriggerEnter, Update) всегда используем [ServerCallback]
+        [ServerCallback]
         private void OnTriggerEnter(Collider other)
         {
             if (other.gameObject.TryGetComponent(out PlayerEntity player))
             {
-                if (!monster.IsAggressive)
+                if (!monster.IsAggressive && monster.Target == null)
                 {
-                    if (monster.Target == null)
-                    {
-                        monster.ChangeTarget(player.transform);
-                        monster.ChangeIsAggressive(true);
-                    }
+                    monster.ChangeTarget(player.transform);
+                    monster.ChangeIsAggressive(true);
                 }
             }
         }

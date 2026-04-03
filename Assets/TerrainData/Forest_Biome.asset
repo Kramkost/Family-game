@@ -21,6 +21,9 @@ MonoBehaviour:
   HeightOctaves: 5
   HeightPersistence: 0.5
   HeightLacunarity: 2
+  HeightExponent: 1
+  RidgeWeight: 0
+  TerraceCount: 0
   MoistureMin: 0
   MoistureMax: 1
   TemperatureMin: 0
@@ -29,6 +32,9 @@ MonoBehaviour:
   - {fileID: 2300804585300708753, guid: 876bec1583d808faba2e3c9d603230d3, type: 3}
   - {fileID: 6891835267694705205, guid: 19fedaa4c86c37de1a29ecec6b36752f, type: 3}
   - {fileID: 2889294654405656353, guid: d67516e974ff60ef7a034b8d258728f4, type: 3}
+  - {fileID: 5375729295833575412, guid: 9f9e45c4d85a7a3b790ef9b224fb682d, type: 3}
+  - {fileID: 582546537655969084, guid: 42359788ed7eff75f9466d0b23c047ee, type: 3}
+  - {fileID: 809790520745386096, guid: e7937ec3190b1a6e4af75020aa92617c, type: 3}
   BushPrefabs:
   - {fileID: 6500595941915624001, guid: be88d21f11fc99f49bb65f512b518deb, type: 3}
   - {fileID: 5375729295833575412, guid: 9f9e45c4d85a7a3b790ef9b224fb682d, type: 3}

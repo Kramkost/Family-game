@@ -283,22 +283,26 @@ public class PlayerJuiceAndIK : MonoBehaviour
     {
         if (rightHandSocket == null) return;
 
-        // Сглаживаем сам инпут (важно для резких движений мыши)
+        // 1. Сглаживаем инпут мыши для плавности (SmoothDamp отрабатывает отлично)
         currentSwayInput = Vector2.SmoothDamp(currentSwayInput, targetSwayInput, ref swayInputVelocity, swaySmoothTime);
 
-        float moveX = Mathf.Clamp(-currentSwayInput.x * swayAmount, -maxSway, maxSway);
-        float moveY = Mathf.Clamp(-currentSwayInput.y * swayAmount, -maxSway, maxSway);
-        Vector3 targetPos = initialHandLocalPos + new Vector3(moveX, moveY, 0f);
-
+        // 2. ВРАЩЕНИЕ (Rotation Sway)
+        // Ограничиваем углы, чтобы игрок не вывернул руку наизнанку
         float rotX = Mathf.Clamp(currentSwayInput.y * swayRotationAmount, -maxRotationSway, maxRotationSway);
         float rotY = Mathf.Clamp(-currentSwayInput.x * swayRotationAmount, -maxRotationSway, maxRotationSway);
-        Quaternion targetRot = initialHandLocalRot * Quaternion.Euler(rotX, rotY, 0f);
+        
+        // Добавляем наклон (Roll) по оси Z для сочности. 
+        // При резком повороте камеры вправо, ствол слегка заваливается влево.
+        float rotZ = currentSwayInput.x * (swayRotationAmount * 0.8f); 
 
-        // Применяем поверх анимации (в LateUpdate)
-        rightHandSocket.localPosition = targetPos;
+        // Вычисляем финальное вращение относительно стартового положения кости
+        Quaternion targetRot = initialHandLocalRot * Quaternion.Euler(rotX, rotY, rotZ);
+
+        // 3. Применяем ТОЛЬКО вращение поверх анимации (в LateUpdate)
+        // Позицию (localPosition) НЕ ТРОГАЕМ, чтобы не рвать 3D-модель руки!
         rightHandSocket.localRotation = targetRot;
 
-        // Сброс инпута (чтобы рука возвращалась в центр, если мышь не двигается)
+        // Сброс инпута (чтобы рука плавно возвращалась в центр, если мышь стоит на месте)
         targetSwayInput = Vector2.zero; 
     }
 

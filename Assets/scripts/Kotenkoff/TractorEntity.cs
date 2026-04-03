@@ -1,22 +1,16 @@
 using UnityEngine;
 using Mirror;
+using System; // Нужно для событий
 
 namespace Kotenkoff
 {
-    /// <summary>
-    /// Физическая модель тягача. Догоняет игроков, крутит колеса, издает звуки.
-    /// Работает в связке с NetworkTransform для плавной синхронизации движений.
-    /// </summary>
-
     [RequireComponent(typeof(Rigidbody))]
     public class TractorEntity : NetworkBehaviour
     {
         [Header("Движение")]
-        [Tooltip("Скорость сближения с машиной игроков (насколько он быстрее их)")]
         [SerializeField] private float catchUpSpeed = 6f;
         
         [Header("Визуал")]
-        [Tooltip("Массив колес для вращения")]
         [SerializeField] private Transform[] wheels;
         [SerializeField] private float wheelRadius = 1f;
 
@@ -27,19 +21,26 @@ namespace Kotenkoff
 
         private Rigidbody rb;
 
+        // --- СЕНЬОРСКАЯ ФИШКА: Статическое событие ---
+        // Любой скрипт в игре (например, UI) сможет подписаться на это и узнать, есть ли тягач на карте.
+        public static event Action<bool> OnTractorPresenceChanged;
+
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
             rb.isKinematic = true; 
         }
 
-        private void Start()
+        // Вызывается Mirror у ВСЕХ клиентов, когда объект появляется в их зоне видимости
+        public override void OnStartClient()
         {
-            // При спавне (у всех клиентов) воспроизводим рев сирены/гудка
+            base.OnStartClient();
+            
+            // Сообщаем всему локальному UI: "ТЯГАЧ ЗДЕСЬ! ПОКАЖИ ТЕКСТ!"
+            OnTractorPresenceChanged?.Invoke(true);
+
             if (hornAudio != null && appearHornSound != null)
-            {
                 hornAudio.PlayOneShot(appearHornSound);
-            }
 
             if (engineAudio != null)
             {
@@ -48,11 +49,17 @@ namespace Kotenkoff
             }
         }
 
+        // Вызывается Mirror, когда объект уничтожается или игрок отходит далеко
+        public override void OnStopClient()
+        {
+            base.OnStopClient();
+            
+            // Сообщаем локальному UI: "Тягач пропал, прячь текст"
+            OnTractorPresenceChanged?.Invoke(false);
+        }
+
         private void Update()
         {
-            // --- ЛОКАЛЬНЫЙ ВИЗУАЛ (Колеса и звук) ---
-            
-      
             float distanceThisFrame = catchUpSpeed * Time.deltaTime;
             float rotationAngle = (distanceThisFrame / (2 * Mathf.PI * wheelRadius)) * 360f;
 
@@ -60,7 +67,6 @@ namespace Kotenkoff
             {
                 if (wheel != null)
                 {
-                    
                     wheel.Rotate(Vector3.right, rotationAngle, Space.Self);
                 }
             }
@@ -68,24 +74,16 @@ namespace Kotenkoff
 
         private void FixedUpdate()
         {
-            // --- СЕРВЕРНАЯ ФИЗИКА (Движение) ---
             if (!isServer) return;
-
-            
             rb.MovePosition(rb.position + transform.forward * catchUpSpeed * Time.fixedDeltaTime);
         }
 
-        // --- ЛОГИКА СТОЛКНОВЕНИЯ ---
         [ServerCallback]
         private void OnTriggerEnter(Collider other)
         {
-            // Если тягач догнал машину игроков (предполагаем, что у нее тег "PlayerCar")
             if (other.CompareTag("PlayerCar"))
             {
                 Debug.Log("ТЯГАЧ ДОГНАЛ МАШИНУ! КОНЕЦ ИГРЫ!");
-                
-                // Здесь ты можешь вызвать взрыв, нанести урон или перезапустить уровень
-                // например: other.GetComponent<CarHybridSystem>().Explode();
             }
         }
     }

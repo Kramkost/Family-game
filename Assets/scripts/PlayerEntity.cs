@@ -228,8 +228,15 @@ public class PlayerEntity : NetworkBehaviour
         {
             if (heldItem != null && heldItem.TryGetComponent(out IRepairTool tool) && tool.CanFix(part))
             {
-                FindFirstObjectByType<RepairUIManager>()?.OpenMiniGame(part, this);
-                return;
+                if (part.gameObject.TryGetComponent(out RadioController radio))
+                {
+                    CmdFixPart(part.gameObject);
+                }
+                else
+                {
+                    FindFirstObjectByType<RepairUIManager>()?.OpenMiniGame(part, this);
+                    return;
+                }
             }
         }
 
@@ -330,7 +337,16 @@ public class PlayerEntity : NetworkBehaviour
     public void CmdFixPart(GameObject partObj)
     {
         if (partObj == null || !partObj.TryGetComponent(out CarPart part)) return;
-        part.RepairPart();
+
+        if (partObj.TryGetComponent(out RadioController radio))
+        {
+            radio.CmdRepairRadio();
+        }
+        else
+        {
+            part.RepairPart();
+        }
+        
         if (heldItem != null && heldItem.TryGetComponent(out DuctTapeItem _))
             DestroyHeldItem();
     }

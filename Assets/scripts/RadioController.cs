@@ -29,10 +29,13 @@ public class RadioController : NetworkBehaviour
     [Tooltip("Максимальный уровень громкости для эффектов помех")]
     public float maxVolume = 0.7f;
 
-    private bool isBroken = false;
+    public bool IsBroken { get; private set; }
     
     [Tooltip("Включить постоянные помехи, когда радио сломано")]
     public bool constantNoiseEnabled = false;
+    
+    [SerializeField, Tooltip("Ссылка на компонент CarPart.")]
+    private CarPart carPart;
 
     private List<int> lastPlayedIndices = new();
     private const int maxLastPlayed = 3; // Максимальное количество запоминаемых последних треков
@@ -60,19 +63,19 @@ public class RadioController : NetworkBehaviour
     }
 
     /// <summary>
-    /// Основная корутина, управляющая воспроизведением радио.
-    /// Логика:
-    /// - Если радио работает: воспроизводит случайную музыку → помехи между треками
-    /// - Если сломано и включены помехи: воспроизводит постоянные помехи
+    /// Основная корутина, управляющая воспроизведением радио. <br/>
+    /// Логика: <br/>
+    /// - Если радио работает: воспроизводит случайную музыку → помехи между треками <br/>
+    /// - Если сломано и включены помехи: воспроизводит постоянные помехи <br/>
     /// - Если сломано без помех: ждёт
-    /// Периодически (10 % шанс) ломает радио.
+    /// Периодически (10 % шанс) ломает радио. <br/>
     /// </summary>
     [Server]
     private IEnumerator PlayRadioSequence()
     {
         while (true)
         {
-            if (!isBroken)
+            if (!IsBroken)
             {
                 // Выбираем случайную мелодию, исключая последние 3
                 int nextTrackIndex = GetRandomTrackIndex();
@@ -111,7 +114,7 @@ public class RadioController : NetworkBehaviour
             }
 
             // Периодически ломаем радио (10 % шанс каждую минуту)
-            if (Random.Range(0f, 100f) < 10f && !isBroken)
+            if (Random.Range(0f, 100f) < 10f && !IsBroken)
             {
                 BreakRadio();
             }
@@ -119,7 +122,7 @@ public class RadioController : NetworkBehaviour
     }
 
     /// <summary>
-    /// Выбирает случайный трек, исключая последние несколько сыгранных.
+    /// Выбирает случайный трек, исключая последние несколько сыгранных. <br/>
     /// Если все треки были сыграны, сбрасывает историю и выбирает случайный.
     /// </summary>
     /// <returns>Индекс выбранного трека или -1, если выбор невозможен</returns>
@@ -198,7 +201,9 @@ public class RadioController : NetworkBehaviour
     [Server]
     private void RepairRadio()
     {
-        isBroken = false;
+        carPart.currentStage = 0;
+        
+        IsBroken = false;
         constantNoiseEnabled = false;
 
         // Останавливаем постоянные помехи, если они играют
@@ -213,17 +218,18 @@ public class RadioController : NetworkBehaviour
     }
 
     /// <summary>
-    /// Ломает радио (устанавливает флаг isBroken = true).
+    /// Ломает радио (устанавливает флаг isBroken = true). <br/>
     /// Помехи включаются только если constantNoiseEnabled == true.
     /// </summary>
     [Server]
     private void BreakRadio()
     {
-        isBroken = true;
+        IsBroken = true;
+        carPart.currentStage = 1;
     }
 
     /// <summary>
-    /// Команда от клиента для включения/выключения постоянных помех при поломке.
+    /// Команда от клиента для включения/выключения постоянных помех при поломке. <br/>
     /// Обновляет значение constantNoiseEnabled на сервере.
     /// </summary>
     /// <param name="enable">Флаг включения помех (true — включить, false — выключить)</param>

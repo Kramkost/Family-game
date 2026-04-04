@@ -204,6 +204,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3059535067523721252}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1307649099105633917}
     - targetCorrespondingSourceObject: {fileID: -752683700368563431, guid: 5cf7e0f8fb734ac27aee3e6bf5e2ab90, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4339463378724659048}
@@ -446,3 +449,24 @@ MonoBehaviour:
   maxItemsPerBuilding: 2
   minItemsGuaranteed: 1
   enforceMinItems: 1
+--- !u!114 &1307649099105633917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7891701996445245857}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c201ac498d96a2b45b2cd06431131eb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteriorGenerator
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  minTotalItems: 1
+  maxTotalItems: 3
+  spawnableItems: []
+  propContainer: {fileID: 0}
+  propContainerName: Prop Container
+  debugMode: 1

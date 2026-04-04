@@ -640,6 +640,7 @@ GameObject:
   - component: {fileID: 3660413666255549597}
   - component: {fileID: 3462226580543665157}
   - component: {fileID: 5402169312227067122}
+  - component: {fileID: 5604027211672498709}
   m_Layer: 0
   m_Name: ForGenerationFactory_RAID 1
   m_TagString: Untagged
@@ -730,6 +731,27 @@ MonoBehaviour:
   maxItemsPerBuilding: 3
   minItemsGuaranteed: 1
   enforceMinItems: 1
+--- !u!114 &5604027211672498709
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7099887275337888593}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c201ac498d96a2b45b2cd06431131eb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteriorGenerator
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  minTotalItems: 1
+  maxTotalItems: 3
+  spawnableItems: []
+  propContainer: {fileID: 0}
+  propContainerName: Prop Container
+  debugMode: 1
 --- !u!1 &8012524989514731963
 GameObject:
   m_ObjectHideFlags: 0

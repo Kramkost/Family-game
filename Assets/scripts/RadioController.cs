@@ -24,9 +24,9 @@ public class RadioController : NetworkBehaviour
     public float minPitch = 0.8f;
     [Tooltip("Максимальная высота тона для эффектов помех")]
     public float maxPitch = 1.2f;
-    [Tooltip("Максимальный уровень громкости для эффектов помех")]
-    public float minVolume = 0.3f;
     [Tooltip("Минимальный уровень громкости для эффектов помех")]
+    public float minVolume = 0.3f;
+    [Tooltip("Максимальный уровень громкости для эффектов помех")]
     public float maxVolume = 0.7f;
 
     private bool isBroken = false;

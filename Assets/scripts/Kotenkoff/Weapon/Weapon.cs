@@ -67,7 +67,8 @@ namespace Kotenkoff.Weapon
         public WeaponSounds WeaponSoundsList => weaponSounds;
         
         /// <summary>
-        ///  <para>Экземпляр класса наследуемого от интерфейса ISoundSource.</para>
+        /// Экземпляр класса наследуемого от интерфейса <b>
+        /// <see cref="ISoundSource"/> </b> .
         /// </summary>
         protected ISoundSource SoundSource;
         

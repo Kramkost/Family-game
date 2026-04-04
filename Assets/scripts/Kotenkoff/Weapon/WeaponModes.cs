@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace Kotenkoff.Weapon
 {
     /// <summary>
@@ -8,10 +10,12 @@ namespace Kotenkoff.Weapon
         /// <summary>
         ///  <para>Автоматический режим стрельбы.</para>
         /// </summary>
+        [Tooltip("Автоматический режим стрельбы.")]
         Automatic,
         /// <summary>
         ///  <para>Одиночный режим стрельбы.</para>
         /// </summary>
+        [Tooltip("Одиночный режим стрельбы.")]
         Single
     }
 }

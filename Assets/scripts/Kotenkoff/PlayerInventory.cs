@@ -37,7 +37,7 @@ namespace Kotenkoff
                 {
                     if (item.TryGetComponent(out JerryCan jerryCan))
                     {
-                        inventoryItem.UpdateItemInfo(InventoryItem.ItemType.JerryCan, jerryCan.gameObject);
+                        inventoryItem.UpdateItemInfo(jerryCan.gameObject, InventoryItem.ItemType.JerryCan);
                         break;
                     }
                 }
@@ -55,7 +55,7 @@ namespace Kotenkoff
             {
                 if (inventoryItem.IsClimed && inventoryItem.ItemObject == item)
                 {
-                    inventoryItem.UpdateItemInfo(InventoryItem.ItemType.None, null);
+                    inventoryItem.UpdateItemInfo(null);
                     break;
                 }
             }
@@ -85,14 +85,14 @@ namespace Kotenkoff
         ///  <para>Предмет, который занимает этот слот.</para>
         /// </summary>
         public GameObject ItemObject => itemObject;
-        
+
         /// <summary>
         ///  <para>Обновляет информацию слота.</para>
         /// </summary>
-        /// <param name="type">Тип предмета, который будет добавлен ('None' если нужно очистить слот).</param>
         /// <param name="item">Предмет, который будет добавлен (или удален).</param>
+        /// <param name="type">Тип предмета, который будет добавлен ('None' если нужно очистить слот).</param>
         [Server] // Обновляем информацию слота
-        public void UpdateItemInfo(ItemType type, GameObject item)
+        public void UpdateItemInfo(GameObject item, ItemType type = ItemType.None)
         {
             // Если у слота тип предмета None (т.е. предмета нет)
             if (itemType == ItemType.None)

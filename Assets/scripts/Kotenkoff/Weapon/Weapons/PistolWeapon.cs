@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 namespace Kotenkoff.Weapon.Weapons
 {
     [RequireComponent(typeof(NetworkIdentity))]
-    public class PistolWeapon : Weapon
+    public sealed class PistolWeapon : Weapon
     {
         [Header("Другое:")]
         [SerializeField, Tooltip("Слои, с которыми взаимодействует raycast оружия.")]
@@ -16,6 +16,8 @@ namespace Kotenkoff.Weapon.Weapons
         
         [SerializeField] private Camera raycastCamera;
         private Ray ray;
+        
+        private ISoundSource testSoundSource;
 
         private void OnEnable()
         {

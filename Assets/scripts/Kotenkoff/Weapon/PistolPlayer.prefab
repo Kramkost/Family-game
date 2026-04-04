@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5912163778862193875}
   - component: {fileID: 2768663147690567288}
   m_Layer: 0
-  m_Name: Camera
+  m_Name: PistolPlayer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

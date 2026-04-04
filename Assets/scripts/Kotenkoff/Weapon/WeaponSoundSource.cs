@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Kotenkoff.Weapon
 {
-    public class WeaponSoundSource
+    public sealed class WeaponSoundSource : ISoundSource
     {
         private readonly Weapon weapon;
 
@@ -10,19 +10,47 @@ namespace Kotenkoff.Weapon
         {
             this.weapon = weapon;
         }
+
+        public void PlaySound(string action)
+        {
+            switch (action)
+            {
+                case "reload":
+                    PlayReloadSound();
+                    break;
+                case "shoot":
+                    PlayShootSound();
+                    break;
+            }
+        }
         
-        public void PlayShotSound()
+        private void PlayShootSound()
         {
             var list = weapon.WeaponSoundsList.ShotSounds;
-            var clip = list[Random.Range(0, list.Count - 1)];
-            weapon.AudioSource.PlayOneShot(clip);
+
+            if (list.Count <= 0)
+            {
+                var clip = list[Random.Range(0, list.Count - 1)]; 
+                weapon.AudioSource.PlayOneShot(clip); 
+            }
+            else
+            {
+                Debug.LogWarning("Лист звуков для стрельбы пуст.");
+            }
         }
 
-        public void PlayReloadSound()
+        private void PlayReloadSound()
         {
             var list = weapon.WeaponSoundsList.ReloadSounds;
-            var clip = list[Random.Range(0, list.Count - 1)];
-            weapon.AudioSource.PlayOneShot(clip);
+            if (list.Count <= 0)
+            {
+                var clip = list[Random.Range(0, list.Count - 1)];
+                weapon.AudioSource.PlayOneShot(clip);
+            }
+            else
+            {
+                Debug.LogWarning("Лист звуков для перезарядки пуст.");
+            }
         }
     }
 }

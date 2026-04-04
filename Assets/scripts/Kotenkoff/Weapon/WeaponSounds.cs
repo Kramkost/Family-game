@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Kotenkoff.Weapon
 {
-    public class WeaponSounds : MonoBehaviour
+    public sealed class WeaponSounds : MonoBehaviour
     {
         [SerializeField, Tooltip("Список звуков для выстрела.")]
         private List<AudioClip> shotSounds;

@@ -69,7 +69,7 @@ namespace Kotenkoff.Weapon
         /// <summary>
         ///  <para>Экземпляр класса наследуемого от интерфейса ISoundSource.</para>
         /// </summary>
-        protected WeaponSoundSource SoundSource;
+        protected ISoundSource SoundSource;
         
         /// <summary>
         ///  <para>Метод выстрела оружия.</para>

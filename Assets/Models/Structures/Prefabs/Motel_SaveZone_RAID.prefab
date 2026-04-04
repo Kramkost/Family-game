@@ -34,6 +34,71 @@ Transform:
   - {fileID: 8200353385991088427}
   m_Father: {fileID: 975390427932878548}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2158676575923481957
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2884970511237060415}
+  m_Layer: 0
+  m_Name: ChairSpawnPoint1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2884970511237060415
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2158676575923481957}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.5962637, y: -0.37999454, z: -0.37986192, w: 0.5964719}
+  m_LocalPosition: {x: -7.5376844, y: 5.293783, z: 3.5603495}
+  m_LocalScale: {x: 3.733259, y: 30.79938, z: 3.7783446}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 691923515699257239}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2952001712641155932
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 691923515699257239}
+  m_Layer: 0
+  m_Name: InteriorSpawnPoints
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &691923515699257239
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2952001712641155932}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -3.7963152, y: -2.0307834, z: -8.0203495}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6110744187675451999}
+  - {fileID: 2884970511237060415}
+  - {fileID: 3080206569392207458}
+  m_Father: {fileID: 975390427932878548}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3109298814266479500
 GameObject:
   m_ObjectHideFlags: 0
@@ -90,12 +155,74 @@ Transform:
   m_GameObject: {fileID: 3546388356396948034}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.53729963, z: 0, w: 0.8433914}
-  m_LocalPosition: {x: -12.51, y: 0.23021841, z: 21.146}
+  m_LocalPosition: {x: -7.534, y: 0.23021841, z: 21.146}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6616822003642160239}
   m_LocalEulerAnglesHint: {x: 0, y: -65, z: 0}
+--- !u!1 &6469213439653064712
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3080206569392207458}
+  m_Layer: 0
+  m_Name: 'ChairSpawnPoint2 '
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3080206569392207458
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6469213439653064712}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.3798619, y: -0.5964719, z: -0.5962637, w: 0.3799945}
+  m_LocalPosition: {x: -0.49468517, y: 5.293783, z: 2.7803497}
+  m_LocalScale: {x: 3.7332592, y: 30.799381, z: 3.7783446}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 691923515699257239}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6865375259966542935
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6110744187675451999}
+  m_Layer: 0
+  m_Name: TableSpawnPoint1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6110744187675451999
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6865375259966542935}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071067}
+  m_LocalPosition: {x: -7.3136845, y: 1.5157834, z: 0.9003506}
+  m_LocalScale: {x: 130, y: 129.99997, z: 9.356158}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 691923515699257239}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8639665153970014517
 GameObject:
   m_ObjectHideFlags: 0
@@ -185,6 +312,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6616822003642160239}
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 691923515699257239}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
       insertIndex: -1
@@ -192,6 +322,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4655417600723580259}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 122508543042267924}
   m_SourcePrefab: {fileID: 100100000, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}
 --- !u!1 &487119667575471214 stripped
 GameObject:
@@ -254,6 +387,40 @@ MonoBehaviour:
   maxItemsPerBuilding: 3
   minItemsGuaranteed: 1
   enforceMinItems: 1
+--- !u!114 &122508543042267924
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 487119667575471214}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c201ac498d96a2b45b2cd06431131eb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteriorGenerator
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  minTotalItems: 1
+  maxTotalItems: 3
+  spawnableItems:
+  - prefab: {fileID: 7132745382768299006, guid: 1cfbbbb76c22d834488fb7aee11c711d, type: 3}
+    spawnChance: 80
+    minCount: 0
+    maxCount: 1
+    spawnPoints:
+    - {fileID: 6110744187675451999}
+  - prefab: {fileID: 2594388284012617567, guid: 8439db61537cde94e98b16e6d7986319, type: 3}
+    spawnChance: 50
+    minCount: 0
+    maxCount: 2
+    spawnPoints:
+    - {fileID: 2884970511237060415}
+    - {fileID: 3080206569392207458}
+  propContainer: {fileID: 0}
+  propContainerName: Prop Container
+  debugMode: 1
 --- !u!4 &975390427932878548 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ee42117865d3abb5ebb6aae5f56aff9c, type: 3}

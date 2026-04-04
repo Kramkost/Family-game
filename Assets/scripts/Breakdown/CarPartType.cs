@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace Breakdown
 {
     public enum CarPartType
@@ -5,6 +7,11 @@ namespace Breakdown
         Engine,
         Door,
         Wires,
-        Wheel
+        Wheel,
+        /// <summary>
+        /// Нечто другое
+        /// </summary>
+        [Tooltip("Что-то другое.")]
+        Other
     }
 }

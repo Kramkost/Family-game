@@ -7,6 +7,7 @@ namespace Kotenkoff
     /// <summary>
     ///  <para>Менеджер для NavMesh Surface</para>
     /// </summary>
+    [RequireComponent(typeof(NavMeshSurface)), RequireComponent(typeof(NetworkIdentity))]
     public class NavMeshSurfaceManager : NetworkBehaviour
     {
         [SerializeField] private NavMeshSurface surface;

@@ -46,7 +46,7 @@ TagManager:
   - ForNavMeshSurface
   - 
   - 
-  - 
+  - Player
   - 
   m_SortingLayers:
   - name: Default

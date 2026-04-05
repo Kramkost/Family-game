@@ -483,4 +483,14 @@ public class PlayerEntity : NetworkBehaviour
 
         playerJuice?.SetGrabPoint(grabPoint);
     }
+
+    [TargetRpc]
+    public void TargetApplyExternalForce(NetworkConnection target, Vector3 force)
+    {
+        // Проверяем, что мы не сидим в машине, иначе нас вырвет прямо из кресла
+        if (isSitting || playerMovement == null) return;
+
+        // Передаем силу в скрипт передвижения
+        playerMovement.ApplyExternalForce(force);
+    }
 }

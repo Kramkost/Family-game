@@ -204,4 +204,19 @@ public class PlayerMovement : MonoBehaviour
         // Уведомляем PlayerJuiceAndIK о движении мыши для weapon sway
         playerEntity.PlayerJuice?.OnLookInput(raw.x, raw.y);
     }
+
+    /// <summary>
+    /// Применяет внешние силы (Торнадо, взрывы, отталкивания)
+    /// </summary>
+    public void ApplyExternalForce(Vector3 forceDelta)
+    {
+        // Если у тебя CharacterController называется как-то иначе (например, controller), 
+        // замени charController на свое название переменной.
+        if (TryGetComponent(out CharacterController charController))
+        {
+            // Обязательно отключаем встроенную гравитацию на мгновение, 
+            // если торнадо тянет нас вверх, иначе они будут бороться друг с другом
+            charController.Move(forceDelta);
+        }
+    }
 }

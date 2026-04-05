@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6630137279750419939}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: upper_arm.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -43,7 +43,7 @@ GameObject:
   - component: {fileID: 6298792044174797635}
   - component: {fileID: 707401071713336014}
   - component: {fileID: 4659820646250396437}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: ItemNameText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -178,7 +178,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5571219151236678227}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: hand.R
   m_TagString: Hand
   m_Icon: {fileID: 0}
@@ -210,7 +210,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 267022617661468285}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: heel.02.R_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -241,7 +241,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1121483602065023416}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: thigh.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -275,7 +275,7 @@ GameObject:
   - component: {fileID: 8141923898493209140}
   - component: {fileID: 4356197981501687542}
   - component: {fileID: 8478527410416533865}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: HealthBar_Fill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -348,7 +348,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1910163109599187566}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine.004
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -382,7 +382,7 @@ GameObject:
   - component: {fileID: 8162471789531453970}
   - component: {fileID: 8614021361162028919}
   - component: {fileID: 3555193289817170567}
-  m_Layer: 0
+  m_Layer: 30
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -561,7 +561,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1416487155613686004}
-  m_Layer: 0
+  m_Layer: 30
   m_Name: GameObject
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -592,7 +592,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5516522447950020872}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: shoulder.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -624,7 +624,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6988227133003725373}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: pelvis.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -660,7 +660,7 @@ GameObject:
   - component: {fileID: 4102561562864484732}
   - component: {fileID: 1575658781568906374}
   - component: {fileID: 2857996449329328706}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: PlayerHUD_Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -864,7 +864,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4480949362814201739}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: heel.02.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -898,7 +898,7 @@ GameObject:
   - component: {fileID: 7804389258962203359}
   - component: {fileID: 4080836986539290148}
   - component: {fileID: 2464243217043691701}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Image (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -973,7 +973,7 @@ GameObject:
   - component: {fileID: 4040982653662204702}
   - component: {fileID: 4433370446644060167}
   - component: {fileID: 4486278053953017643}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: WarningUItext
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1108,7 +1108,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6349118158018249429}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1147,7 +1147,7 @@ GameObject:
   - component: {fileID: 7357050619590774606}
   - component: {fileID: 2859016909695254429}
   - component: {fileID: 8633723713878187692}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1168,6 +1168,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7202988622991479084}
+  - {fileID: 4577409397485606525}
   m_Father: {fileID: 1532277744003968315}
   m_LocalEulerAnglesHint: {x: -90, y: -90, z: 0}
 --- !u!137 &7357050619590774606
@@ -1389,7 +1390,7 @@ GameObject:
   - component: {fileID: 2663986619875955219}
   - component: {fileID: 5699864885131073778}
   - component: {fileID: 1614516973986020215}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: UsingText (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1524,7 +1525,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8967778448124882436}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: breast.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1557,7 +1558,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5521113333351135145}
   - component: {fileID: 4913000399385513854}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Text Area
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1608,7 +1609,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2329378576809041836}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: thigh.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1662,7 +1663,7 @@ GameObject:
   - component: {fileID: 6345153946087394848}
   - component: {fileID: 3024199837722869294}
   - component: {fileID: 2486258430368834001}
-  m_Layer: 0
+  m_Layer: 30
   m_Name: Character_Adult
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -2144,12 +2145,17 @@ MonoBehaviour:
   playerEntity: {fileID: 8748327918552428277}
   playerMovement: {fileID: 1669543956671479950}
   animator: {fileID: 5108710359567493460}
+  visualModel: {fileID: 7202988622991479084}
+  jumpStretchScale: {x: 1, y: 1.1, z: 1}
+  landSquashScale: {x: 1.1, y: 1, z: 1.1}
+  squashRecoverySpeed: 8
   bobbingSpeed: 14
   bobbingAmount: 0.05
   cameraPivot: {fileID: 9112815921741643602}
   fallTiltMultiplier: 1.5
   maxFallTilt: 15
   tiltSmoothTime: 0.15
+  landingCameraKickForce: 5
   walkDustPrefab: {fileID: 9081117150219745624, guid: de287905d9050935d84e39254f07019d, type: 3}
   jumpDustPrefab: {fileID: 8036547842247873541, guid: c50521dde6de6f1358fcdcae8072d339, type: 3}
   landDustPrefab: {fileID: 5815207049680928034, guid: ff975386b74992af0b627c6699cfa1b7, type: 3}
@@ -2161,8 +2167,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 5cd31176296954121aa77f42ad942ebf, type: 3}
   footstepInterval: 0.4
   effectsAudioSource: {fileID: 0}
-  jumpSound: {fileID: 0}
-  landSound: {fileID: 0}
+  jumpSounds: []
+  landSounds: []
   rightHandSocket: {fileID: 5571219151236678227}
   swayAmount: 0.02
   maxSway: 0.06
@@ -2170,7 +2176,9 @@ MonoBehaviour:
   swayRotationAmount: 2
   maxRotationSway: 5
   rightArmBone: {fileID: 5475314453862942091}
+  rightForearmBone: {fileID: 0}
   raisedArmRotation: {x: -60, y: 0, z: 0}
+  bentForearmRotation: {x: 0, y: 0, z: 90}
   armRaiseSpeed: 8
   headBone: {fileID: 3300710679881712874}
   headRotationOffset: {x: 0, y: 0, z: 0}
@@ -2304,7 +2312,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3070036819615491085}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: hand.L
   m_TagString: Hand
   m_Icon: {fileID: 0}
@@ -2339,7 +2347,7 @@ GameObject:
   - component: {fileID: 3891756672667358199}
   - component: {fileID: 8868712942003889414}
   - component: {fileID: 1138151355899587333}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Resume_Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2459,7 +2467,7 @@ GameObject:
   - component: {fileID: 3512812303964331827}
   - component: {fileID: 4013019040725840734}
   - component: {fileID: 1118645284453444849}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2594,7 +2602,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8487611368704326239}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: foot.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2629,7 +2637,7 @@ GameObject:
   - component: {fileID: 1357983450359247921}
   - component: {fileID: 3289132154509408173}
   - component: {fileID: 5683908801384242465}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2766,7 +2774,7 @@ GameObject:
   - component: {fileID: 64459174194145928}
   - component: {fileID: 5716890561282686680}
   - component: {fileID: 4453613663606949916}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Setting_Panel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2840,7 +2848,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8145130956575423128}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: heel.02.L_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2874,7 +2882,7 @@ GameObject:
   - component: {fileID: 6521853715679300531}
   - component: {fileID: 3952719539759167427}
   - component: {fileID: 7522961705621081788}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: RestartButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3007,7 +3015,7 @@ GameObject:
   - component: {fileID: 8294330388862020994}
   - component: {fileID: 6744159097113134822}
   - component: {fileID: 6096439926155081212}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: InputField (TMP)
   m_TagString: ChatInput
   m_Icon: {fileID: 0}
@@ -3182,7 +3190,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3997802907155244104}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: toe.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3214,7 +3222,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5744004392264396941}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: breast.R_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3245,7 +3253,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6069761775393909731}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: toe.L_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3276,7 +3284,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2344648664784417558}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: toe.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3310,7 +3318,7 @@ GameObject:
   - component: {fileID: 7803661999888079343}
   - component: {fileID: 1367125049771595088}
   - component: {fileID: 5045268354262256024}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: DarknessOverlay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3383,7 +3391,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3300710679881712874}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine.007
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3415,7 +3423,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3370983972289476514}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: pelvis.R_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3448,7 +3456,7 @@ GameObject:
   - component: {fileID: 1598259147512830113}
   - component: {fileID: 3382662470588825342}
   - component: {fileID: 3311659150413751612}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: DeathPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3526,7 +3534,7 @@ GameObject:
   - component: {fileID: 6048634275136377756}
   - component: {fileID: 4569904182304118483}
   - component: {fileID: 3618308194988606858}
-  m_Layer: 6
+  m_Layer: 30
   m_Name: SpectatorCamera
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3676,7 +3684,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3050202165726499130}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: foot.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3709,7 +3717,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 43360673198035515}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine.005
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3745,7 +3753,7 @@ GameObject:
   - component: {fileID: 5182156779660135940}
   - component: {fileID: 4349018327769931952}
   - component: {fileID: 1646755841998088455}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Exit_Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3864,7 +3872,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2418902437876328239}
   - component: {fileID: 2521755913875551809}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine.003
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3924,7 +3932,7 @@ GameObject:
   - component: {fileID: 7628502903493520581}
   - component: {fileID: 3658508707720785572}
   - component: {fileID: 4400589804923910207}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: PauseMenu_Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4023,7 +4031,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8801216979877951486}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine.006
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4055,7 +4063,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5059481244135772510}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: forearm.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4087,7 +4095,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5475314453862942091}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: upper_arm.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4119,7 +4127,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7202988622991479084}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: metarig
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4152,7 +4160,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4889986135221710339}
   - component: {fileID: 6319144011136325857}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Roblox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4204,7 +4212,7 @@ GameObject:
   - component: {fileID: 4594073892831591751}
   - component: {fileID: 5796796953602729877}
   - component: {fileID: 7103750137787001676}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4342,7 +4350,7 @@ GameObject:
   - component: {fileID: 5011822841139095154}
   - component: {fileID: 3668225759265643368}
   - component: {fileID: 7641759239160128574}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: HealthBar_BG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4428,7 +4436,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2015277073233050155}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: shoulder.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4460,7 +4468,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8986504801908666611}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: breast.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4492,7 +4500,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3739182256891147103}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: forearm.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4526,7 +4534,7 @@ GameObject:
   - component: {fileID: 1611987879157820914}
   - component: {fileID: 3814804508028946938}
   - component: {fileID: 7301305387680732085}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4663,7 +4671,7 @@ GameObject:
   - component: {fileID: 3046746214701188315}
   - component: {fileID: 2221778857566307696}
   - component: {fileID: 2101237412000572969}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Panel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4740,7 +4748,7 @@ GameObject:
   m_Component:
   - component: {fileID: 185182521571525734}
   - component: {fileID: 3589534088026011853}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: WarnunUI_Parent
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4792,7 +4800,7 @@ GameObject:
   - component: {fileID: 4037100963351525554}
   - component: {fileID: 7389637152579279267}
   - component: {fileID: 1675570841407457663}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Setting_Button (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4910,7 +4918,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3263803651026758928}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: hand.R_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4941,7 +4949,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 557479853122640902}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: hand.L_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4973,7 +4981,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6060137258269973617}
   - component: {fileID: 7357783301726417347}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: ItemInfoPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5022,7 +5030,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9112815921741643602}
-  m_Layer: 0
+  m_Layer: 30
   m_Name: CameraPivot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5057,7 +5065,7 @@ GameObject:
   - component: {fileID: 2508215723034943464}
   - component: {fileID: 2983523617449836881}
   - component: {fileID: 6974596613376216580}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Quit_Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5182,7 +5190,7 @@ GameObject:
   - component: {fileID: 8555446060104096514}
   - component: {fileID: 5114978883718513847}
   - component: {fileID: 3029335010456443306}
-  m_Layer: 6
+  m_Layer: 30
   m_Name: Camera
   m_TagString: MainCamera
   m_Icon: {fileID: 0}
@@ -5405,7 +5413,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 914582929639648486}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: pelvis.L_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5438,7 +5446,7 @@ GameObject:
   - component: {fileID: 2400539974234361579}
   - component: {fileID: 6225497778400904340}
   - component: {fileID: 7894960175726045500}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5573,7 +5581,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8772093294264079210}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine.001
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5605,7 +5613,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4350041026656686684}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: heel.02.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5637,7 +5645,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5143124091106807077}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine.002
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5671,7 +5679,7 @@ GameObject:
   - component: {fileID: 5388692100374241463}
   - component: {fileID: 4101347184841747242}
   - component: {fileID: 7826203143819006071}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Image (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5744,7 +5752,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 802113955519292821}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine.007_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5775,7 +5783,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5355058334012951665}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: breast.L_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5808,7 +5816,7 @@ GameObject:
   - component: {fileID: 7656794658375908431}
   - component: {fileID: 1062638078089759443}
   - component: {fileID: 5247372867575602243}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: ActionText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5946,7 +5954,7 @@ GameObject:
   - component: {fileID: 1935820220776554031}
   - component: {fileID: 5283474780651626087}
   - component: {fileID: 1802712940016498231}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6137,7 +6145,7 @@ GameObject:
   - component: {fileID: 4435007795856850369}
   - component: {fileID: 5273651092801695885}
   - component: {fileID: 583320103466645244}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Image
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6212,7 +6220,7 @@ GameObject:
   - component: {fileID: 6571056502220307706}
   - component: {fileID: 3181297767383885665}
   - component: {fileID: 496206586958165513}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6347,7 +6355,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1801516402732613211}
-  m_Layer: 0
+  m_Layer: 30
   m_Name: Text_Place
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6379,7 +6387,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4256633670959744876}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: shin.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6413,7 +6421,7 @@ GameObject:
   - component: {fileID: 5077469021590408595}
   - component: {fileID: 5678712676263804888}
   - component: {fileID: 8820768369617206802}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: ItemDescText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6548,7 +6556,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1225126738771252589}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: spine.006_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6570,6 +6578,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8801216979877951486}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8474384462559488829
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4577409397485606525}
+  m_Layer: 30
+  m_Name: Visuals_Pivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4577409397485606525
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8474384462559488829}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.5, y: 0.5, z: 0.5, w: 0.5}
+  m_LocalPosition: {x: -0.0083, y: -0.081499994, z: -0.0069999998}
+  m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2392001768665577054}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8524556624950777398
 GameObject:
   m_ObjectHideFlags: 0
@@ -6579,7 +6618,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2012304230344776479}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: shin.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6614,7 +6653,7 @@ GameObject:
   - component: {fileID: 1680020654453194959}
   - component: {fileID: 1830377054316495439}
   - component: {fileID: 4414224645420777586}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Placeholder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6769,7 +6808,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2742555866583439795}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: pelvis.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6803,7 +6842,7 @@ GameObject:
   - component: {fileID: 4449079097463859320}
   - component: {fileID: 6625001766223295390}
   - component: {fileID: 4579115066381030981}
-  m_Layer: 5
+  m_Layer: 30
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6938,7 +6977,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7944854789991223242}
-  m_Layer: 2
+  m_Layer: 30
   m_Name: toe.R_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}

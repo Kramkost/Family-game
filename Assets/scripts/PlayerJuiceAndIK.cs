@@ -4,7 +4,6 @@ using UnityEngine.Pool;
 
 /// <summary>
 /// Отвечает за Juice: звуки, процедурные анимации, IK и визуальные эффекты.
-/// Адаптировано под Mirror: локальные эффекты (камера) отделены от глобальных (партиклы, звук).
 /// </summary>
 public class PlayerJuiceAndIK : MonoBehaviour
 {
@@ -17,26 +16,28 @@ public class PlayerJuiceAndIK : MonoBehaviour
     [Header("Camera & Bobbing")]
     [SerializeField] private float bobbingSpeed = 14f;
     [SerializeField] private float bobbingAmount = 0.05f;
-    [SerializeField] private Transform cameraPivot; // ВАЖНО: вращать саму камеру нельзя (перебьет мышь), нужен родительский пивот для Tilt/Bob
+    [SerializeField] private Transform cameraPivot; 
 
-    [Header("Camera Tilt (Fall)")]
+    [Header("Camera Tilt & Kick (Juice)")]
     [SerializeField] private float fallTiltMultiplier = 1.5f;
     [SerializeField] private float maxFallTilt = 15f;
     [SerializeField] private float tiltSmoothTime = 0.15f;
+    [Tooltip("Сила клевка камеры вниз при жестком приземлении")]
+    [SerializeField] private float landingCameraKickForce = 5f; 
 
     [Header("Effects (Pooling)")]
     [SerializeField] private ParticleSystem walkDustPrefab;
     [SerializeField] private ParticleSystem jumpDustPrefab;
     [SerializeField] private ParticleSystem landDustPrefab;
-    [SerializeField] private Transform feetTransform; // Точка спавна эффектов
+    [SerializeField] private Transform feetTransform; 
 
     [Header("Audio")]
     [SerializeField] private AudioSource footstepAudioSource;
     [SerializeField] private AudioClip[] footstepSounds;
     [SerializeField] private float footstepInterval = 0.4f;
     [SerializeField] private AudioSource effectsAudioSource;
-    [SerializeField] private AudioClip jumpSound;
-    [SerializeField] private AudioClip landSound;
+    [SerializeField] private AudioClip[] jumpSounds;
+    [SerializeField] private AudioClip[] landSounds;
 
     [Header("Weapon Sway")]
     [SerializeField] private Transform rightHandSocket; 
@@ -46,10 +47,13 @@ public class PlayerJuiceAndIK : MonoBehaviour
     [SerializeField] private float swayRotationAmount = 2f;
     [SerializeField] private float maxRotationSway = 5f;
 
-    [Header("Arm Raise & IK")]
+    [Header("Arm Raise & IK (Polished)")]
     [SerializeField] private Transform rightArmBone;
+    [SerializeField] private Transform rightForearmBone; 
     [SerializeField] private Vector3 raisedArmRotation = new Vector3(-60f, 0f, 0f);
+    [SerializeField] private Vector3 bentForearmRotation = new Vector3(0f, 0f, 90f); 
     [SerializeField] private float armRaiseSpeed = 8f;
+    
     [SerializeField] private Transform headBone;
     [SerializeField] private Vector3 headRotationOffset;
     [SerializeField, Range(0f, 1f)] private float headLookWeight = 1f;
@@ -58,21 +62,20 @@ public class PlayerJuiceAndIK : MonoBehaviour
     private Transform cameraTransform;
     private Vector3 defaultCameraPos;
     private float bobbingTimer;
-    
-    // Fall Tilt
+
+    // Tilt & Kick
     private float currentTiltVelocity;
     private float currentTiltAngle;
+    private float currentCameraKick; 
 
     // Footsteps & Velocity
     private float footstepTimer;
     private Vector3 lastPosition;
     private float currentVerticalVelocity;
 
-    // Sway (Используем SmoothDamp для лучшего feel'а)
+    // Sway
     private Vector3 initialHandLocalPos;
     private Quaternion initialHandLocalRot;
-    private Vector3 currentSwayPos;
-    private Vector3 swayPosVelocity;
     private Vector2 targetSwayInput;
     private Vector2 currentSwayInput;
     private Vector2 swayInputVelocity;
@@ -107,7 +110,6 @@ public class PlayerJuiceAndIK : MonoBehaviour
 
         lastPosition = transform.position;
 
-        // Инициализация пулов (Unity 2021+)
         InitPool(ref walkPool, walkDustPrefab);
         InitPool(ref jumpPool, jumpDustPrefab);
         InitPool(ref landPool, landDustPrefab);
@@ -128,7 +130,7 @@ public class PlayerJuiceAndIK : MonoBehaviour
     private void Update()
     {
         CalculateVelocities();
-        HandleFootsteps(); // Звуки и пыль от шагов работают для всех клиентов
+        HandleFootsteps(); 
 
         if (!playerEntity.isLocalPlayer) return;
 
@@ -137,7 +139,6 @@ public class PlayerJuiceAndIK : MonoBehaviour
 
     private void LateUpdate()
     {
-        // ВАЖНО: Sway и IK должны быть в LateUpdate, чтобы перезаписывать трансформации после Animator'а
         if (!playerEntity.isLocalPlayer) return;
 
         HandleWeaponSway();
@@ -146,7 +147,7 @@ public class PlayerJuiceAndIK : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Object Pooling Setup
+    // Object Pooling
     // ─────────────────────────────────────────────────────────────────────────
 
     private void InitPool(ref ObjectPool<ParticleSystem> pool, ParticleSystem prefab)
@@ -178,7 +179,7 @@ public class PlayerJuiceAndIK : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Public API (Inputs)
+    // Public API
     // ─────────────────────────────────────────────────────────────────────────
 
     public void OnLookInput(float mouseX, float mouseY)
@@ -197,7 +198,7 @@ public class PlayerJuiceAndIK : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Logic
+    // Logic: Dynamics & Juice
     // ─────────────────────────────────────────────────────────────────────────
 
     private void CalculateVelocities()
@@ -209,24 +210,28 @@ public class PlayerJuiceAndIK : MonoBehaviour
 
     private void HandleJumped()
     {
-        if (jumpSound) effectsAudioSource?.PlayOneShot(jumpSound);
+        PlayRandomSound(jumpSounds);
         SpawnEffect(jumpPool, feetTransform.position);
     }
 
     private void HandleLanded()
     {
-        if (landSound) effectsAudioSource?.PlayOneShot(landSound);
+        PlayRandomSound(landSounds);
         SpawnEffect(landPool, feetTransform.position);
+
+        if (currentVerticalVelocity < -5f && playerEntity.isLocalPlayer)
+        {
+            float impactSeverity = Mathf.Clamp01(Mathf.Abs(currentVerticalVelocity) / 15f);
+            currentCameraKick = landingCameraKickForce * impactSeverity;
+        }
     }
 
     private void HandleFootsteps()
     {
         if (footstepSounds == null || footstepSounds.Length == 0 || footstepAudioSource == null) return;
 
-        Vector3 horizontalVelocity = playerMovement.HorizontalVelocity;
-        float speed = horizontalVelocity.magnitude;
+        float speed = playerMovement.HorizontalVelocity.magnitude;
 
-        // Надежнее проверять статус через стейт-машину, а не пускать рейкасты каждый кадр
         if (speed > 0.5f && playerMovement.IsGrounded && !playerEntity.IsSitting)
         {
             footstepTimer += Time.deltaTime;
@@ -245,6 +250,13 @@ public class PlayerJuiceAndIK : MonoBehaviour
         {
             footstepTimer = footstepInterval;
         }
+    }
+
+    private void PlayRandomSound(AudioClip[] clips)
+    {
+        if (clips == null || clips.Length == 0 || effectsAudioSource == null) return;
+        effectsAudioSource.pitch = Random.Range(0.9f, 1.1f);
+        effectsAudioSource.PlayOneShot(clips[Random.Range(0, clips.Length)]);
     }
 
     private void HandleCameraBobbingAndTilt()
@@ -268,41 +280,37 @@ public class PlayerJuiceAndIK : MonoBehaviour
 
         cameraPivot.localPosition = Vector3.Lerp(cameraPivot.localPosition, targetLocalPos, Time.deltaTime * 10f);
 
-        // 2. Fall Tilt (Наклон камеры по оси X при быстром падении)
+        // 2. Fall Tilt & Landing Kick
         float targetTilt = 0f;
         if (!playerMovement.IsGrounded && currentVerticalVelocity < -2f)
         {
             targetTilt = Mathf.Clamp(currentVerticalVelocity * -fallTiltMultiplier, 0f, maxFallTilt);
         }
 
+        // Затухание импульса клевка после приземления
+        currentCameraKick = Mathf.Lerp(currentCameraKick, 0f, Time.deltaTime * 8f);
+
         currentTiltAngle = Mathf.SmoothDamp(currentTiltAngle, targetTilt, ref currentTiltVelocity, tiltSmoothTime);
-        cameraPivot.localRotation = Quaternion.Euler(-currentTiltAngle, 0f, 0f);
+        
+        // Совмещаем наклон от падения и импульс от приземления
+        cameraPivot.localRotation = Quaternion.Euler(-currentTiltAngle + currentCameraKick, 0f, 0f);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Logic: Animation & IK
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void HandleWeaponSway()
     {
         if (rightHandSocket == null) return;
 
-        // 1. Сглаживаем инпут мыши для плавности (SmoothDamp отрабатывает отлично)
         currentSwayInput = Vector2.SmoothDamp(currentSwayInput, targetSwayInput, ref swayInputVelocity, swaySmoothTime);
 
-        // 2. ВРАЩЕНИЕ (Rotation Sway)
-        // Ограничиваем углы, чтобы игрок не вывернул руку наизнанку
         float rotX = Mathf.Clamp(currentSwayInput.y * swayRotationAmount, -maxRotationSway, maxRotationSway);
         float rotY = Mathf.Clamp(-currentSwayInput.x * swayRotationAmount, -maxRotationSway, maxRotationSway);
-        
-        // Добавляем наклон (Roll) по оси Z для сочности. 
-        // При резком повороте камеры вправо, ствол слегка заваливается влево.
         float rotZ = currentSwayInput.x * (swayRotationAmount * 0.8f); 
 
-        // Вычисляем финальное вращение относительно стартового положения кости
-        Quaternion targetRot = initialHandLocalRot * Quaternion.Euler(rotX, rotY, rotZ);
-
-        // 3. Применяем ТОЛЬКО вращение поверх анимации (в LateUpdate)
-        // Позицию (localPosition) НЕ ТРОГАЕМ, чтобы не рвать 3D-модель руки!
-        rightHandSocket.localRotation = targetRot;
-
-        // Сброс инпута (чтобы рука плавно возвращалась в центр, если мышь стоит на месте)
+        rightHandSocket.localRotation = initialHandLocalRot * Quaternion.Euler(rotX, rotY, rotZ);
         targetSwayInput = Vector2.zero; 
     }
 
@@ -315,20 +323,30 @@ public class PlayerJuiceAndIK : MonoBehaviour
 
     private void HandleArmRaise()
     {
-        if (rightArmBone == null) return;
         float targetWeight = playerEntity.HeldItem != null ? 1f : 0f;
         holdWeight = Mathf.Lerp(holdWeight, targetWeight, Time.deltaTime * armRaiseSpeed);
 
         if (holdWeight > 0.01f)
         {
-            rightArmBone.localRotation = Quaternion.Slerp(
-                rightArmBone.localRotation,
-                Quaternion.Euler(raisedArmRotation),
-                holdWeight);
+            if (rightArmBone != null)
+            {
+                rightArmBone.localRotation = Quaternion.Slerp(
+                    rightArmBone.localRotation,
+                    Quaternion.Euler(raisedArmRotation),
+                    holdWeight);
+            }
+            
+            if (rightForearmBone != null)
+            {
+                rightForearmBone.localRotation = Quaternion.Slerp(
+                    rightForearmBone.localRotation,
+                    Quaternion.Euler(bentForearmRotation),
+                    holdWeight);
+            }
         }
     }
 
-    public void HandleAnimatorIK(int layerIndex)
+    private void OnAnimatorIK(int layerIndex)
     {
         if (animator == null) return;
 
@@ -352,8 +370,6 @@ public class PlayerJuiceAndIK : MonoBehaviour
             animator.SetIKRotationWeight(AvatarIKGoal.RightHand, 0f);
         }
     }
-
-    private void OnAnimatorIK(int layerIndex) => HandleAnimatorIK(layerIndex);
 
     private IEnumerator ReachForRoutine(Transform target)
     {

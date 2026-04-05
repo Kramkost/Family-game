@@ -1,73 +1,78 @@
 using System.Collections;
 using Mirror;
 using UnityEngine;
+using Health_Bar_System; // Подключаем систему здоровья
 
-/// <summary>
-/// Кислотный дождь. Наносит урон игрокам, если они не находятся под укрытием.
-/// </summary>
-public class AcidRainEvent : NetworkBehaviour
+namespace Game_Multiplayer_System
 {
-    [Header("Настройки Дождя")]
-    [Tooltip("Радиус действия дождя (чтобы не бить игроков на другом конце карты)")]
-    [SerializeField] private float rainRadius = 200f;
-        
-    [Tooltip("Урон в секунду")]
-    [SerializeField] private int damagePerSecond = 5;
-        
-    [Tooltip("Слой укрытий (машина, крыши зданий). Дождь не пробьет эти слои.")]
-    [SerializeField] private LayerMask roofLayerMask;
-
-    [Header("Визуал и Звук")]
-    [SerializeField] private AudioSource rainAudio;
-
-    public override void OnStartServer()
+    public class AcidRainEvent : NetworkBehaviour
     {
+        [Header("Настройки Дождя")]
+        [SerializeField] private float rainRadius = 200f;
+        [SerializeField] private float damagePerSecond = 5f; // Float для IDamageable
+        
+        [Tooltip("Слой укрытий (крыши зданий, кузов машины).")]
+        [SerializeField] private LayerMask roofLayerMask;
 
-        StartCoroutine(DamageLoop());
-    }
+        [Header("Визуал и Звук")]
+        [SerializeField] private AudioSource rainAudio;
+        
+        // Zero GC массив
+        private Collider[] overlapResults = new Collider[20];
 
-    private void Start()
-    {
-          
-        if (rainAudio != null)
+        public override void OnStartServer()
         {
-            rainAudio.loop = true;
-            rainAudio.Play();
+            StartCoroutine(DamageLoop());
         }
-    }
 
-    [Server]
-    private IEnumerator DamageLoop()
-    {
-        while (true)
+        private void Start()
         {
-            yield return new WaitForSeconds(1f);
-
-           
-            Collider[] hits = Physics.OverlapSphere(transform.position, rainRadius);
-            foreach (var hit in hits)
+            // Start отрабатывает и на сервере, и на клиенте. Звук будет у всех.
+            if (rainAudio != null)
             {
-                if (hit.TryGetComponent(out PlayerEntity player))
-                {
-                       
-                    bool isUnderRoof = Physics.Raycast(player.transform.position, Vector3.up, 20f, roofLayerMask);
+                rainAudio.loop = true;
+                rainAudio.pitch = Random.Range(0.95f, 1.05f); // Немного рандома для атмосферы
+                rainAudio.Play();
+            }
+        }
 
-                    if (!isUnderRoof)
+        [Server]
+        private IEnumerator DamageLoop()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(1f);
+
+                int hitCount = Physics.OverlapSphereNonAlloc(transform.position, rainRadius, overlapResults);
+                
+                for (int i = 0; i < hitCount; i++)
+                {
+                    Collider hit = overlapResults[i];
+                    if (hit == null) continue;
+
+                    // Проверяем наличие интерфейса здоровья (сработает и на игроках, и на ломающихся пропсах)
+                    IDamageable damageable = hit.GetComponentInParent<IDamageable>();
+                    
+                    if (damageable != null)
                     {
-                        // TODO: ЕСЛИ ВЫ ЭТО ЧИТАЕТЕ ДОБАВЬТЕ СЮДА систему здоровья
-                          
-                        Debug.Log($"[AcidRain] Игрок {player.name} обжигается кислотой! Урон: {damagePerSecond}");
+                        // Смещаем старт луча на 1 метр вверх (уровень груди), чтобы не попасть в собственные ноги
+                        Vector3 rayStart = hit.transform.position + Vector3.up * 1f;
+
+                        // Пускаем луч вверх на 20 метров. Если ничего из roofLayerMask не задели — получаем урон
+                        if (!Physics.Raycast(rayStart, Vector3.up, 20f, roofLayerMask))
+                        {
+                            damageable.TakeDamage(damagePerSecond);
+                            // Debug.Log($"[AcidRain] Цель {hit.name} получает урон от кислоты!");
+                        }
                     }
                 }
             }
         }
-    }
 
-#if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(0, 1, 0, 0.2f);
-        Gizmos.DrawWireSphere(transform.position, rainRadius);
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = new Color(0, 1, 0, 0.2f);
+            Gizmos.DrawWireSphere(transform.position, rainRadius);
+        }
     }
-#endif
 }

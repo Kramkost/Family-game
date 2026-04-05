@@ -1,121 +1,117 @@
 using Mirror;
 using UnityEngine;
 
-/// <summary>
-/// Торнадо. Бродит по локации и засасывает игроков (CharacterController) и машины/пропсы (Rigidbody).
-/// </summary>
-[RequireComponent(typeof(Rigidbody))]
-public class TornadoEvent : NetworkBehaviour
+namespace Game_Multiplayer_System
 {
-    [Header("Настройки Торнадо")]
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float pullRadius = 40f;
-    [SerializeField] private float pullForce = 50f;
-    [SerializeField] private float liftForce = 20f;
-
-    [Header("Визуал")]
-    [Tooltip("Объект воронки (для вращения)")]
-    [SerializeField] private Transform tornadoMesh;
-    [SerializeField] private float spinSpeed = 300f;
-
-    private Rigidbody rb;
-    private Vector2 moveDirection;
-    private float directionChangeTimer;
-
-    private void Awake()
+    [RequireComponent(typeof(Rigidbody))]
+    public class TornadoEvent : NetworkBehaviour
     {
-        rb = GetComponent<Rigidbody>();
-        rb.isKinematic = true; 
-    }
+        [Header("Настройки Торнадо")]
+        [SerializeField] private float moveSpeed = 5f;
+        [SerializeField] private float pullRadius = 40f;
+        [SerializeField] private float pullForce = 50f;
+        [SerializeField] private float liftForce = 20f;
 
-    private void Update()
-    {
-        if (tornadoMesh != null)
+        [Header("Визуал")]
+        [SerializeField] private Transform tornadoMesh;
+        [SerializeField] private float spinSpeed = 300f;
+
+        private Rigidbody rb;
+        private Vector2 moveDirection;
+        private float directionChangeTimer;
+
+        // Zero GC массив для физики
+        private Collider[] overlapResults = new Collider[20];
+
+        private void Awake()
         {
-            tornadoMesh.Rotate(Vector3.up, spinSpeed * Time.deltaTime, Space.Self);
-        }
-    }
-
-    private void FixedUpdate()
-    {
-        if (!isServer) return; 
-
-        HandleRandomMovement();
-        SuckObjects();
-    }
-
-    [Server]
-    private void HandleRandomMovement()
-    {
-        directionChangeTimer -= Time.fixedDeltaTime;
-        if (directionChangeTimer <= 0)
-        {
-            moveDirection = Random.insideUnitCircle.normalized;
-            directionChangeTimer = Random.Range(3f, 6f);
+            rb = GetComponent<Rigidbody>();
+            rb.isKinematic = true; 
         }
 
-        Vector3 movement = new Vector3(moveDirection.x, 0, moveDirection.y) * moveSpeed * Time.fixedDeltaTime;
-        rb.MovePosition(rb.position + movement);
-    }
-
-    [Server]
-    private void SuckObjects()
-    {
-        Collider[] colliders = Physics.OverlapSphere(transform.position, pullRadius);
-
-        foreach (var col in colliders)
+        private void Update()
         {
-                
-            Vector3 directionToTornado = transform.position - col.transform.position;
-            float distance = directionToTornado.magnitude;
-                
-              
-            if (distance < 0.1f) distance = 0.1f; 
-                
-            float forceMultiplier = 1f - (distance / pullRadius);
-
-            Vector3 pull = directionToTornado.normalized * pullForce * forceMultiplier;
-            Vector3 swirl = Vector3.Cross(directionToTornado.normalized, Vector3.up) * pullForce * forceMultiplier;
-            Vector3 lift = Vector3.up * liftForce * forceMultiplier;
-
-            Vector3 totalForce = (pull + swirl + lift) * Time.fixedDeltaTime;
-
-            // --- 1. ЕСЛИ ЭТО ИГРОК (CharacterController) ---
-            if (col.TryGetComponent(out CharacterController charController))
+            if (tornadoMesh != null)
             {
-                charController.Move(totalForce);
-                continue; 
+                tornadoMesh.Rotate(Vector3.up, spinSpeed * Time.deltaTime, Space.Self);
+            }
+        }
+
+        private void FixedUpdate()
+        {
+            if (!isServer) return; 
+
+            HandleRandomMovement();
+            SuckObjects();
+        }
+
+        [Server]
+        private void HandleRandomMovement()
+        {
+            directionChangeTimer -= Time.fixedDeltaTime;
+            if (directionChangeTimer <= 0)
+            {
+                moveDirection = Random.insideUnitCircle.normalized;
+                directionChangeTimer = Random.Range(3f, 6f);
             }
 
-            // --- 2. ЕСЛИ ЭТО МАШИНА ИЛИ ФИЗИЧЕСКИЙ ПРОП (Rigidbody) ---
-            if (col.TryGetComponent(out Rigidbody targetRb))
-            {
-                if (targetRb == rb) continue; 
+            Vector3 movement = new Vector3(moveDirection.x, 0, moveDirection.y) * moveSpeed * Time.fixedDeltaTime;
+            rb.MovePosition(rb.position + movement);
+        }
 
-                   
-                if (targetRb.isKinematic)
+        [Server]
+        private void SuckObjects()
+        {
+            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, pullRadius, overlapResults);
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider col = overlapResults[i];
+                if (col == null) continue;
+
+                Vector3 directionToTornado = transform.position - col.transform.position;
+                float distance = Mathf.Max(directionToTornado.magnitude, 0.1f);
+                float forceMultiplier = 1f - (distance / pullRadius);
+
+                Vector3 pull = directionToTornado.normalized * pullForce * forceMultiplier;
+                Vector3 swirl = Vector3.Cross(directionToTornado.normalized, Vector3.up) * pullForce * forceMultiplier;
+                Vector3 lift = Vector3.up * liftForce * forceMultiplier;
+
+                Vector3 totalForce = (pull + swirl + lift) * Time.fixedDeltaTime;
+
+                // --- 1. ИГРОКИ ---
+                // Вместо прямого Move, отправляем силу на клиент
+                if (col.TryGetComponent(out PlayerEntity player))
                 {
-                       
-                    if (col.GetComponent<CarHybridSystem>())
-                    {
-                        targetRb.isKinematic = false; 
-                    }
-                    else
-                    {
-                        continue; 
-                    }
+                    // Вызываем метод у игрока (тебе нужно будет добавить его в PlayerEntity)
+                    player.TargetApplyExternalForce(player.connectionToClient, totalForce);
+                    continue; 
                 }
 
-                targetRb.AddForce(totalForce, ForceMode.VelocityChange);
+                // --- 2. МАШИНА И ПРОПСЫ ---
+                if (col.TryGetComponent(out Rigidbody targetRb))
+                {
+                    if (targetRb == rb) continue; 
+
+                    if (targetRb.isKinematic)
+                    {
+                        // Твоя логика гибридной машины
+                        if (col.GetComponent("CarHybridSystem")) // Проверка строкой, если нет using
+                        {
+                            targetRb.isKinematic = false; 
+                        }
+                        else continue; 
+                    }
+
+                    targetRb.AddForce(totalForce, ForceMode.VelocityChange);
+                }
             }
         }
-    }
 
-#if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(1, 0, 0, 0.3f);
-        Gizmos.DrawWireSphere(transform.position, pullRadius);
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = new Color(1, 0, 0, 0.3f);
+            Gizmos.DrawWireSphere(transform.position, pullRadius);
+        }
     }
-#endif
 }

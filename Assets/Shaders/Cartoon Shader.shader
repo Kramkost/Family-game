@@ -2,6 +2,9 @@ Shader "Kotenkoff/CartoonToonTexture_WithDirt"
 {
     Properties 
     {
+        [Header(Lighting Mode)]
+        [Toggle(_UNLIT)] _IsUnlit ("Unlit Mode", Float) = 0 // Тумблер в инспекторе
+
         [Header(Base Textures)]
         _MainTex ("Texture (Albedo)", 2D) = "white" {}
         _Color ("Tint Color", Color) = (1,1,1,1)
@@ -37,6 +40,9 @@ Shader "Kotenkoff/CartoonToonTexture_WithDirt"
         CGPROGRAM
         #pragma surface surf ToonSpecular fullforwardshadows vertex:vert addshadow
         #pragma target 3.0
+        
+        // Директива для создания двух вариантов шейдера (Lit и Unlit)
+        #pragma shader_feature _UNLIT 
 
         sampler2D _MainTex;
         fixed4 _Color;
@@ -76,9 +82,13 @@ Shader "Kotenkoff/CartoonToonTexture_WithDirt"
             v.vertex.z += wave * _WindStrength * heightMask * 0.5;
         }
 
-        // --- ОСВЕЩЕНИ---
+        // --- ОСВЕЩЕНИЕ ---
         float4 LightingToonSpecular(SurfaceOutput s, float3 lightDir, float3 viewDir, float atten) 
         {
+            // Если включен режим Unlit, полностью игнорируем свет, тени и блики
+            #if _UNLIT
+            return float4(0, 0, 0, s.Alpha);
+            #else
             float NdotL = dot(s.Normal, lightDir);
             float lightIntensity = smoothstep(_ToonThreshold - _ToonSmoothness, _ToonThreshold + _ToonSmoothness, NdotL);
             float4 diffuseColor = lerp(_ShadowColor, _LightColor0, lightIntensity);
@@ -91,40 +101,35 @@ Shader "Kotenkoff/CartoonToonTexture_WithDirt"
             float4 specColor = specIntensity * _HlColor * _LightColor0;
 
             float4 c;
-            // Учитываем Альбедо с грязью в финальном освещении
             c.rgb = (s.Albedo * diffuseColor.rgb + specColor.rgb) * atten;
             c.a = s.Alpha;
             return c;
+            #endif
         }
 
         void surf (Input IN, inout SurfaceOutput o) 
         {
-          
             fixed4 baseColor = tex2D(_MainTex, IN.uv_MainTex) * _Color;
 
             // --- DIRT SYSTEM START ---
-            
-   
             fixed4 dirtColorSample = tex2D(_DirtTex, IN.uv_DirtTex) * _DirtColor;
-            float dirtMaskSample = tex2D(_DirtMask, IN.uv_DirtTex).r; // Берем красный канал маски
+            float dirtMaskSample = tex2D(_DirtMask, IN.uv_DirtTex).r; 
 
-   
- 
-
-            
-            float dirtThreshold = 1.0 - _DirtLevel; // Переворачиваем: 1-чисто, 0-грязно
+            float dirtThreshold = 1.0 - _DirtLevel; 
             float dirtAmount = smoothstep(dirtThreshold, dirtThreshold + 0.1, dirtMaskSample);
             
-        
             fixed3 finalAlbedo = lerp(baseColor.rgb, dirtColorSample.rgb, dirtAmount);
-            
-     
-            o.Albedo = finalAlbedo;
-            
-         
-            o.Alpha = lerp(baseColor.a, 0.0, dirtAmount * 0.5); 
-            
             // --- DIRT SYSTEM END ---
+
+            // Перенаправляем вывод цвета в зависимости от режима
+            #if _UNLIT
+            o.Emission = finalAlbedo; // Выводим цвет напрямую, игнорируя Ambient-освещение Unity
+            o.Albedo = 0;             // Обнуляем Albedo, чтобы базовый свет не влиял
+            #else
+            o.Albedo = finalAlbedo;   // Стандартный рендер
+            #endif
+            
+            o.Alpha = lerp(baseColor.a, 0.0, dirtAmount * 0.5); 
         }
         ENDCG
     }

@@ -15,7 +15,7 @@ RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
   m_Fog: 1
-  m_FogColor: {r: 0.36538804, g: 0.37204975, b: 0.4811321, a: 1}
+  m_FogColor: {r: 0.50853276, g: 0.49528304, b: 0.6603774, a: 0.9372549}
   m_FogMode: 3
   m_FogDensity: 0.02
   m_LinearFogStart: 0
@@ -1876,7 +1876,7 @@ Transform:
   m_GameObject: {fileID: 1535451987}
   serializedVersion: 2
   m_LocalRotation: {x: -1, y: 0, z: 0, w: 0}
-  m_LocalPosition: {x: 20.93794, y: 60, z: 31.4306}
+  m_LocalPosition: {x: 20.93794, y: 50, z: 31.4306}
   m_LocalScale: {x: 500, y: 1, z: 500}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1935,19 +1935,32 @@ MonoBehaviour:
   minInterval: 30
   maxInterval: 180
   referencePoint: {fileID: 7901260175048883074}
+  globalAudioSource: {fileID: 0}
   events:
   - eventName: Tornado
     eventPrefab: {fileID: 8496979840417753507, guid: 5711a9b4d036b5f699958343874af39a, type: 3}
     spawnWeight: 5
     duration: 60
+    spawnOffset: {x: 0, y: 0, z: 0}
+    followReference: 0
+    startAlertSounds: []
+    endAlertSounds: []
   - eventName: Rain DEF
     eventPrefab: {fileID: 3143047609463255828, guid: fdcfece541d3012459c8d88e16598bbe, type: 3}
     spawnWeight: 100
     duration: 120
+    spawnOffset: {x: 0, y: 0, z: 0}
+    followReference: 0
+    startAlertSounds: []
+    endAlertSounds: []
   - eventName: LigitingStormEvent
     eventPrefab: {fileID: 1964578190023154130, guid: 787812bb2f76b6e6e9f428fe14afde03, type: 3}
     spawnWeight: 100
     duration: 120
+    spawnOffset: {x: 0, y: 0, z: 0}
+    followReference: 0
+    startAlertSounds: []
+    endAlertSounds: []
 --- !u!4 &1555828635
 Transform:
   m_ObjectHideFlags: 0
@@ -2695,7 +2708,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!108 &2017821356
 Light:
   m_ObjectHideFlags: 0
@@ -2706,7 +2719,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 1
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
+  m_Color: {r: 0.2264151, g: 0.20517886, b: 0.15272339, a: 1}
   m_Intensity: 0.8
   m_Range: 10
   m_SpotAngle: 30
@@ -2717,7 +2730,7 @@ Light:
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
-    m_Bias: 0.05
+    m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.2
     m_CullingMatrixOverride:
@@ -3371,11 +3384,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1545282690094442393, guid: af416839f027e864fa5bc3d70dca30a2, type: 3}
       propertyPath: rearWheels.Array.size
-      value: 2
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1545282690094442393, guid: af416839f027e864fa5bc3d70dca30a2, type: 3}
       propertyPath: frontWheels.Array.size
-      value: 2
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1545282690094442393, guid: af416839f027e864fa5bc3d70dca30a2, type: 3}
       propertyPath: 'rearWheels.Array.data[0]'

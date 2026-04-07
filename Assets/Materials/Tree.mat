@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Brown_Bricks
+  m_Name: Tree
   m_Shader: {fileID: 4800000, guid: 8eaaaa367b34964468bbddc527fca11b, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -52,8 +52,8 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: d870d30becfccd6698afc2d9975cc914, type: 3}
-        m_Scale: {x: 25, y: 25}
+        m_Texture: {fileID: 2800000, guid: 4cb3856cd5a8a41e89341d8b3e45a319, type: 3}
+        m_Scale: {x: 0.25, y: 2}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 0}
@@ -74,7 +74,7 @@ Material:
     - _DetailNormalMapScale: 1
     - _DirtLevel: 0
     - _DstBlend: 0
-    - _Gloss: 150
+    - _Gloss: 32
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
@@ -88,13 +88,13 @@ Material:
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _ToonSmoothness: 0.05
-    - _ToonThreshold: 0.95
+    - _ToonThreshold: 0
     - _UVSec: 0
-    - _WindSpeed: 0
-    - _WindStrength: 0
+    - _WindSpeed: 1
+    - _WindStrength: 0.05
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 0.9056604, g: 0.38083035, b: 0, a: 0.84313726}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DirtColor: {r: 0.5, g: 0.39999998, b: 0.29999998, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _HlColor: {r: 1, g: 1, b: 1, a: 1}

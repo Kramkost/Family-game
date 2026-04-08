@@ -17,11 +17,11 @@ MonoBehaviour:
   PrimarySplatLayer: 0
   SecondarySplatLayer: 2
   HeightScale: 1
-  HeightFrequency: 0.003
+  HeightFrequency: 0
   HeightOctaves: 5
   HeightPersistence: 0.5
   HeightLacunarity: 2
-  HeightExponent: 1
+  HeightExponent: 0.1
   RidgeWeight: 0
   TerraceCount: 0
   MoistureMin: 0
@@ -40,7 +40,7 @@ MonoBehaviour:
   - {fileID: 5375729295833575412, guid: 9f9e45c4d85a7a3b790ef9b224fb682d, type: 3}
   - {fileID: 582546537655969084, guid: 42359788ed7eff75f9466d0b23c047ee, type: 3}
   - {fileID: 809790520745386096, guid: e7937ec3190b1a6e4af75020aa92617c, type: 3}
-  TreeDensity: 0.3
+  TreeDensity: 0.1
   BushDensity: 0.2
   GrassDensity: 0.5
   GrassDetailLayer: 0
@@ -49,6 +49,6 @@ MonoBehaviour:
   - {fileID: 7099887275337888593, guid: 8afbee6286c73914aaf7c51948407448, type: 3}
   - {fileID: 3448084179340867125, guid: 61107604f21938c42823a137e360ed48, type: 3}
   - {fileID: 7891701996445245857, guid: ba5fda95b0327174d9a85bad92352a8c, type: 3}
-  HouseSpawnProbability: 0.4
+  HouseSpawnProbability: 0.15
   HouseRoadOffset: 8
   HouseMinSpacing: 40

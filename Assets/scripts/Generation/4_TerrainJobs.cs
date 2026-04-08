@@ -1,11 +1,3 @@
-// =============================================================================
-// FILE 4: TerrainJobs.cs  (MODIFIED — Requirements 2 & 3)
-// Changes:
-//   [REQ-3] HeightmapGenerationJob: RidgeWeight, HeightExponent, TerraceCount
-//   [REQ-3] BurstNoise: added FBMRidged01
-//   [REQ-2] FoliageCandidateJob: ExclusionBuffer field + per-segment corridor check
-// =============================================================================
-
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -14,15 +6,10 @@ using UnityEngine;
 
 namespace ProceduralTerrain.Jobs
 {
-    // =========================================================================
-    // Noise helper
-    // =========================================================================
-
     public static class BurstNoise
     {
         [BurstCompile]
-        public static float FBM(float2 p, int octaves, float frequency,
-                                float persistence, float lacunarity, int seed)
+        public static float FBM(float2 p, int octaves, float frequency, float persistence, float lacunarity, int seed)
         {
             float value     = 0f;
             float amplitude = 1f;
@@ -41,29 +28,24 @@ namespace ProceduralTerrain.Jobs
         }
 
         [BurstCompile]
-        public static float FBM01(float2 p, int octaves, float frequency,
-                                   float persistence, float lacunarity, int seed)
+        public static float FBM01(float2 p, int octaves, float frequency, float persistence, float lacunarity, int seed)
             => (FBM(p, octaves, frequency, persistence, lacunarity, seed) + 1f) * 0.5f;
 
-        // NEW [REQ-3] — Ridged multifractal: produces sharp mountain ridges.
-        // Each octave uses (1 - |noise|) instead of raw noise, creating
-        // high values along narrow ridges and low values in broad valleys.
         [BurstCompile]
-        public static float FBMRidged01(float2 p, int octaves, float frequency,
-                                         float persistence, float lacunarity, int seed)
+        public static float FBMRidged01(float2 p, int octaves, float frequency, float persistence, float lacunarity, int seed)
         {
             float value     = 0f;
             float amplitude = 1f;
             float maxValue  = 0f;
             float2 offset   = new float2(seed * 0.31f + 100f, seed * 0.17f + 100f);
-            float  weight   = 1f;   // "erosion" weight: ridges cut into each other
+            float  weight   = 1f;
 
             for (int o = 0; o < octaves; o++)
             {
                 float2 samplePos = (p + offset) * frequency;
                 float  s         = noise.snoise(samplePos);
                 float  ridged    = (1f - math.abs(s)) * weight;
-                weight           = math.saturate(ridged * 2f); // feedback for next octave
+                weight           = math.saturate(ridged * 2f);
 
                 value    += ridged * amplitude;
                 maxValue += amplitude;
@@ -72,12 +54,7 @@ namespace ProceduralTerrain.Jobs
             }
             return math.saturate(value / maxValue);
         }
-        // END NEW
     }
-
-    // =========================================================================
-    // JOB 1: Heightmap Generation  (MODIFIED — REQ-3)
-    // =========================================================================
 
     [BurstCompile]
     public struct HeightmapGenerationJob : IJobParallelFor
@@ -91,28 +68,9 @@ namespace ProceduralTerrain.Jobs
         [ReadOnly] public int    Octaves;
         [ReadOnly] public float  Persistence;
         [ReadOnly] public float  Lacunarity;
-
-        // NEW [REQ-3] — Topography shaping parameters
-        /// <summary>
-        /// Power-curve exponent applied AFTER noise is computed.
-        /// > 1.0 → flattens plains, sharpens peaks (realistic mountains).
-        /// < 1.0 → rounds everything into gentle rolling hills.
-        /// 1.0   → no redistribution (original behaviour).
-        /// </summary>
-        [ReadOnly] public float HeightExponent;
-
-        /// <summary>
-        /// Blend weight between standard fBm (0) and ridged multifractal (1).
-        /// Use ~0.6–0.8 for biomes that should have jagged mountain ridges.
-        /// </summary>
-        [ReadOnly] public float RidgeWeight;
-
-        /// <summary>
-        /// Number of discrete terrace steps. 0 = disabled.
-        /// Creates Minecraft-style flat shelves — good for canyon/mesa biomes.
-        /// </summary>
-        [ReadOnly] public int TerraceCount;
-        // END NEW
+        [ReadOnly] public float  HeightExponent;
+        [ReadOnly] public float  RidgeWeight;
+        [ReadOnly] public int    TerraceCount;
 
         [WriteOnly] public NativeArray<float> Heightmap;
 
@@ -126,34 +84,23 @@ namespace ProceduralTerrain.Jobs
                 (float)z / (Resolution - 1) * WorldSize
             );
 
-            // NEW [REQ-3] — Two noise layers blended by RidgeWeight
             float standard = BurstNoise.FBM01(worldXZ, Octaves, Frequency, Persistence, Lacunarity, Seed);
             float ridged   = BurstNoise.FBMRidged01(worldXZ, Octaves, Frequency, Persistence, Lacunarity, Seed);
             float h        = math.lerp(standard, ridged, RidgeWeight);
 
-            // Power-curve redistribution — key for natural looking terrain
-            // math.pow requires h > 0, which FBM01/ridged already guarantee (saturated)
             h = math.pow(h, HeightExponent);
 
-            // Smooth terracing (if enabled)
             if (TerraceCount > 0)
             {
                 float step  = 1f / TerraceCount;
                 float lower = math.floor(h / step) * step;
-                // Smooth blend within each step using smoothstep
-                // This avoids the hard aliased look of floor-only terracing
                 float blend = math.smoothstep(0f, 1f, (h - lower) / step);
                 h = lower + blend * step;
             }
-            // END NEW
 
             Heightmap[index] = math.saturate(h);
         }
     }
-
-    // =========================================================================
-    // JOB 2: Biome-Weighted Heightmap Blending (unchanged)
-    // =========================================================================
 
     [BurstCompile]
     public struct BiomeHeightBlendJob : IJobParallelFor
@@ -174,10 +121,6 @@ namespace ProceduralTerrain.Jobs
             OutputHeightmap[vertexIndex] = math.saturate(blendedHeight);
         }
     }
-
-    // =========================================================================
-    // JOB 3: Biome Weight Calculation (unchanged)
-    // =========================================================================
 
     [BurstCompile]
     public struct BiomeWeightJob : IJobParallelFor
@@ -228,10 +171,6 @@ namespace ProceduralTerrain.Jobs
         }
     }
 
-    // =========================================================================
-    // JOB 4: Splatmap Generation (unchanged)
-    // =========================================================================
-
     [BurstCompile]
     public struct SplatmapGenerationJob : IJobParallelFor
     {
@@ -280,10 +219,6 @@ namespace ProceduralTerrain.Jobs
         }
     }
 
-    // =========================================================================
-    // JOB 5: Road Carving (unchanged)
-    // =========================================================================
-
     [BurstCompile]
     public struct RoadCarvingJob : IJobParallelFor
     {
@@ -291,8 +226,12 @@ namespace ProceduralTerrain.Jobs
         [ReadOnly] public float  WorldSize;
         [ReadOnly] public float2 ChunkOriginXZ;
         [ReadOnly] public float  HeightScale;
+        
         [ReadOnly] public float  RoadHalfWidth;
-        [ReadOnly] public float  ShoulderHalfWidth;
+        [ReadOnly] public float  ShoulderHalfWidth; // Используется для UV/материалов, но рельеф сглаживаем по Clearance
+        [ReadOnly] public float  ClearanceRadius;  
+        [ReadOnly] public float  EmbankmentHeight; 
+
         [ReadOnly] public NativeArray<float3> SplinePoints;
         public NativeArray<float> Heightmap;
 
@@ -317,27 +256,22 @@ namespace ProceduralTerrain.Jobs
                 if (dist < minDist) { minDist = dist; roadH = sp.y; }
             }
 
-            float totalHalfWidth = RoadHalfWidth + ShoulderHalfWidth;
-            if (minDist >= totalHalfWidth) return;
+            if (minDist >= ClearanceRadius) return;
 
             float currentH = Heightmap[index];
+            float targetRoadHeight = roadH + (EmbankmentHeight / HeightScale);
 
             if (minDist <= RoadHalfWidth)
             {
-                Heightmap[index] = roadH;
+                Heightmap[index] = targetRoadHeight;
             }
             else
             {
-                float t = (minDist - RoadHalfWidth) / ShoulderHalfWidth;
-                t = t * t * (3f - 2f * t);
-                Heightmap[index] = math.lerp(roadH, currentH, t);
+                float smoothT = math.smoothstep(RoadHalfWidth, ClearanceRadius, minDist);
+                Heightmap[index] = math.lerp(targetRoadHeight, currentH, smoothT);
             }
         }
     }
-
-    // =========================================================================
-    // JOB 6: Foliage Placement  (MODIFIED — REQ-2)
-    // =========================================================================
 
     [BurstCompile]
     public struct FoliageCandidateJob : IJobParallelFor
@@ -347,24 +281,12 @@ namespace ProceduralTerrain.Jobs
         [ReadOnly] public float2 ChunkOriginXZ;
         [ReadOnly] public int    Seed;
         [ReadOnly] public float  HeightScale;
-
-        // NEW [REQ-2] — Decomposed exclusion parameters for 100% reliable road exclusion
-        /// <summary>Half road width in world meters (RoadWidth * 0.5).</summary>
-        [ReadOnly] public float RoadHalfWidth;
-        /// <summary>Shoulder blend zone width in world meters.</summary>
-        [ReadOnly] public float ShoulderHalfWidth;
-        /// <summary>
-        /// Additional buffer in world meters beyond the shoulder.
-        /// Total exclusion from road center = RoadHalfWidth + ShoulderHalfWidth + ExclusionBuffer.
-        /// </summary>
-        [ReadOnly] public float ExclusionBuffer;
-        // END NEW
-
+        [ReadOnly] public float  RoadHalfWidth;
+        [ReadOnly] public float  ShoulderHalfWidth;
+        [ReadOnly] public float  ExclusionBuffer;
         [ReadOnly] public int    NumSplinePoints;
         [ReadOnly] public NativeArray<float3> SplinePoints;
-        // NEW [REQ-2] — Per-point tangents for corridor-based check (not just distance)
         [ReadOnly] public NativeArray<float3> SplineTangents;
-        // END NEW
         [ReadOnly] public NativeArray<float>  Heightmap;
 
         [WriteOnly] public NativeArray<FoliagePlacement> Results;
@@ -392,11 +314,6 @@ namespace ProceduralTerrain.Jobs
             float heightNorm = math.lerp(math.lerp(h00, h10, tx), math.lerp(h01, h11, tx), tz);
             float worldY     = heightNorm * HeightScale;
 
-            // NEW [REQ-2] — Corridor-based exclusion test.
-            // For each spline segment we compute:
-            //   1. Perpendicular distance from the candidate to the segment line
-            //   2. Compare against (RoadHalfWidth + ShoulderHalfWidth + ExclusionBuffer)
-            // This catches diagonal candidates that slip through point-distance checks.
             float totalExclusionRadius = RoadHalfWidth + ShoulderHalfWidth + ExclusionBuffer;
             bool  valid                = true;
 
@@ -407,11 +324,9 @@ namespace ProceduralTerrain.Jobs
                 float3 sp  = SplinePoints[i];
                 float2 spXZ = new float2(sp.x, sp.z);
 
-                // Point-distance fast reject (large radius)
                 float pointDist = math.distance(candidateXZ, spXZ);
-                if (pointDist > totalExclusionRadius * 3f) continue; // far away, skip expensive test
+                if (pointDist > totalExclusionRadius * 3f) continue;
 
-                // Segment-based perpendicular distance to road center line
                 if (i < NumSplinePoints - 1)
                 {
                     float3 next  = SplinePoints[i + 1];
@@ -424,12 +339,10 @@ namespace ProceduralTerrain.Jobs
                 }
                 else
                 {
-                    // Last point: fallback to point distance
                     if (pointDist < totalExclusionRadius)
                         valid = false;
                 }
             }
-            // END NEW
 
             uint  hash2 = Hash(hash ^ 0xDEADBEEF);
             float rot   = (float)(hash2 & 0xFFFF) / 65535f * math.PI * 2f;
@@ -444,19 +357,16 @@ namespace ProceduralTerrain.Jobs
             };
         }
 
-        // NEW [REQ-2] — Returns the perpendicular (shortest) distance from point P
-        // to the finite line segment AB. This is the correct road-corridor check.
         private static float PerpendicularDistanceToSegment(float2 p, float2 a, float2 b)
         {
             float2 ab = b - a;
             float  lenSq = math.dot(ab, ab);
-            if (lenSq < 1e-6f) return math.distance(p, a); // degenerate segment
+            if (lenSq < 1e-6f) return math.distance(p, a); 
 
             float  t   = math.saturate(math.dot(p - a, ab) / lenSq);
             float2 proj = a + t * ab;
             return math.distance(p, proj);
         }
-        // END NEW
 
         private static uint Hash(uint x)
         {
@@ -467,7 +377,6 @@ namespace ProceduralTerrain.Jobs
         }
     }
 
-    // Blittable placement result (unchanged)
     public struct FoliagePlacement
     {
         public float3 WorldPosition;

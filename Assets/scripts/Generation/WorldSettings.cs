@@ -17,15 +17,17 @@ namespace ProceduralTerrain.Core
         public float RoadMaxSlopeDeg    = 8f;
         public float RoadSegmentLength  = 20f;
 
-        // NEW — Requirement 1: material for the procedural road mesh
-        [Header("Road Mesh (NEW)")]
-        [Tooltip("Material applied to the procedural road mesh. " +
-                 "Use a tiling road texture. UV.x = across width, UV.y = along road.")]
+        [Header("Road Mesh")]
+        [Tooltip("Material applied to the procedural road mesh. Use a tiling road texture. UV.x = across width, UV.y = along road.")]
         public Material RoadMaterial;
-
         [Tooltip("Texture tile distance in world meters. UV.y repeats every N meters.")]
         public float RoadUVTileDistance = 10f;
-        // END NEW
+
+        [Header("Road Clearance & Embankment")]
+        [Tooltip("Высота насыпи дороги над базовым рельефом (в метрах)")]
+        public float RoadEmbankmentHeight = 1.5f; 
+        [Tooltip("Радиус полной очистки и сглаживания гор вокруг дороги (зона отчуждения)")]
+        public float RoadClearanceRadius = 25f;
 
         [Header("Safe Zones")]
         public float SafeZoneIntervalMeters = 1000f;
@@ -35,12 +37,9 @@ namespace ProceduralTerrain.Core
         public float MoistureFrequency   = 0.0008f;
         public float TemperatureFrequency = 0.0006f;
 
-        // NEW — Requirement 2: configurable foliage exclusion around road
-        [Header("Foliage Exclusion (NEW)")]
-        [Tooltip("Extra buffer in meters added on top of RoadWidth/2 + RoadShoulderWidth. " +
-                 "All foliage (trees, grass) is blocked within this total radius from road center.")]
+        [Header("Foliage Exclusion")]
+        [Tooltip("Extra buffer in meters added on top of RoadWidth/2 + RoadShoulderWidth. All foliage (trees, grass) is blocked within this total radius from road center.")]
         public float FoliageExclusionBuffer = 4f;
-        // END NEW
 
         [Header("Biomes")]
         public BiomeDefinition[] BiomeDefinitions;

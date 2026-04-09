@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/MirrorMenu.unity
+    guid: 1d4762e63854ecc48b8af5629a881f66
+  - enabled: 1
     path: Assets/Scenes/BaseScene.unity
     guid: d301e04e01cb284988083c48b5454cd6
   - enabled: 0

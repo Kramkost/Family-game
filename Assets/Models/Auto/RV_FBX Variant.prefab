@@ -680,6 +680,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  useAudioLowPassFilter: 0
   muffleFrequency: 1500
   normalFrequency: 22000
   filterTransitionSpeed: 5
@@ -688,8 +689,8 @@ MonoBehaviour:
   muteLevel: 0.4
   blacklistedAudioSources:
   - {fileID: 355270870699408233}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 246898935853467401}
+  - {fileID: 8730249037753168989}
 --- !u!1 &2547438060196247444
 GameObject:
   m_ObjectHideFlags: 0
@@ -2498,6 +2499,7 @@ MonoBehaviour:
   minVolume: 0.3
   maxVolume: 0.7
   constantNoiseEnabled: 1
+  carPart: {fileID: 0}
 --- !u!1 &5083958641826465217 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1672150080875473869, guid: 24383c8696704cbaab8592c39f108007, type: 3}

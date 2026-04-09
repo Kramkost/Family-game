@@ -10,6 +10,7 @@ using System.Collections.Generic;
 public class AudioZoneController : NetworkBehaviour
 {
     [Header("Настройки фильтра низких частот")]
+    public bool useAudioLowPassFilter = true; // Переключатель
     public float muffleFrequency = 1500f; // Глухой звук в салоне
     public float normalFrequency = 22000f; // Чистый звук на улице
     public float filterTransitionSpeed = 5f; // Скорость перехода фильтра
@@ -52,18 +53,21 @@ public class AudioZoneController : NetworkBehaviour
 
     void Update()
     {
-        // Обновляем фильтры для всех игроков в зоне
-        foreach (var kvp in playerFiltersInZone)
+        // Обновляем фильтры для всех игроков в зоне, только если переключатель включён
+        if (useAudioLowPassFilter)
         {
-            AudioLowPassFilter filter = kvp.Value;
-            if (filter != null)
+            foreach (var kvp in playerFiltersInZone)
             {
-                float targetFreq = muffleFrequency; // Игрок внутри зоны — глухой звук
-                filter.cutoffFrequency = Mathf.Lerp(
-                    filter.cutoffFrequency,
-            targetFreq,
-            Time.deltaTime * filterTransitionSpeed
-        );
+                AudioLowPassFilter filter = kvp.Value;
+                if (filter != null)
+                {
+                    float targetFreq = muffleFrequency; // Игрок внутри зоны — глухой звук
+                    filter.cutoffFrequency = Mathf.Lerp(
+                        filter.cutoffFrequency,
+                        targetFreq,
+                        Time.deltaTime * filterTransitionSpeed
+                    );
+                }
             }
         }
     }
@@ -78,7 +82,7 @@ public class AudioZoneController : NetworkBehaviour
             {
                 // Добавляем игрока в словарь с его фильтром
                 playerFiltersInZone[other.gameObject] = playerFilter;
-                playerFilter.enabled = true;
+                playerFilter.enabled = useAudioLowPassFilter; // Включаем фильтр только если переключатель активен
 
                 // Запускаем приглушение звуков (если ещё не запущено)
                 if (currentVolumeFadeCoroutine == null)

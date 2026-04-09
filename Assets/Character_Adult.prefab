@@ -2163,8 +2163,10 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 5cd31176296954121aa77f42ad942ebf, type: 3}
   footstepInterval: 0.4
   effectsAudioSource: {fileID: 0}
-  jumpSounds: []
-  landSounds: []
+  jumpSounds:
+  - {fileID: 8300000, guid: 068e6662be736443f8ce6438a4d7bd40, type: 3}
+  landSounds:
+  - {fileID: 8300000, guid: 39277aa6342abc4e9bbaae4324f22abd, type: 3}
   rightHandSocket: {fileID: 5571219151236678227}
   swayAmount: 0.02
   maxSway: 0.06

@@ -291,7 +291,7 @@ MonoBehaviour:
   syncInterval: 0
   drunkDuration: 15
   drunkIntensity: 2
-  drinkSound: {fileID: 0}
+  drinkSound: {fileID: 8300000, guid: 6749f4e852de18465aac2890a4c1248e, type: 3}
 --- !u!54 &5398487729010225705
 Rigidbody:
   m_ObjectHideFlags: 0

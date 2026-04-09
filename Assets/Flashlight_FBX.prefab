@@ -279,8 +279,8 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   spotLight: {fileID: 91984976121151990}
-  audioSource: {fileID: 0}
-  toggleSound: {fileID: 0}
+  audioSource: {fileID: 6819984879890158351}
+  toggleSound: {fileID: 8300000, guid: 968b16c2c06274a4d83fc6853a3278e2, type: 3}
 --- !u!54 &3634488594853144489
 Rigidbody:
   m_ObjectHideFlags: 0

@@ -132,6 +132,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   nutritionValue: 30
+  EatSound: {fileID: 8300000, guid: 693e965a6dcf2cdf59de40a492eb0d46, type: 3}
 --- !u!65 &3188254978972090333
 BoxCollider:
   m_ObjectHideFlags: 0

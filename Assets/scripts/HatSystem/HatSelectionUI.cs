@@ -1,7 +1,8 @@
-using UnityEngine;
+using Kotenkoff;
 using Mirror;
+using UnityEngine;
 
-namespace Kotenkoff
+namespace HatSystem
 {
     public class HatSelectionUI : MonoBehaviour
     {

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Kotenkoff
+namespace Kotenkoff.Monsters
 {
     /// <summary>
     /// Вешается на Canvas или на сам текст "RUN!". 

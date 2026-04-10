@@ -4,6 +4,9 @@ using UnityEngine;
 using Mirror;
 using UnityEngine.InputSystem;
 using Breakdown;
+using Kotenkoff.Weapon;
+using Kotenkoff.Weapon.Weapons;
+
 /// <summary>
 /// Центральный хаб игрока. Отвечает ТОЛЬКО за:
 /// — Mirror (SyncVar, Command, TargetRpc)
@@ -65,6 +68,7 @@ public class PlayerEntity : NetworkBehaviour
     [SerializeField] private InputActionReference useAction;
     [SerializeField] private InputActionReference toggleLightsAction;
     [SerializeField] private InputActionReference hornAction;
+    [SerializeField] private InputActionReference singleShotAction;
 
     // Делегаты для корректного unsubscribe
     private System.Action<InputAction.CallbackContext> onJumpHandler;
@@ -73,11 +77,14 @@ public class PlayerEntity : NetworkBehaviour
     private System.Action<InputAction.CallbackContext> onUseHandler;
     private System.Action<InputAction.CallbackContext> onToggleLightsHandler;
     private System.Action<InputAction.CallbackContext> onHornHandler;
+    private System.Action<InputAction.CallbackContext> onSingleShotHandler;
 
     // ─── Public Properties ────────────────────────────────────────────────────
     public bool IsSitting => isSitting;
     public PlayerJuiceAndIK PlayerJuice => playerJuice;
     public NetworkIdentity HeldItem => heldItem;
+    public PlayerMovement PublicPlayerMovement => playerMovement;
+    public Vector2 SingleShotMousePosition { get; private set; }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Awake
@@ -147,6 +154,7 @@ public class PlayerEntity : NetworkBehaviour
         Bind(interactAction, ref onInteractHandler, OnInteractPerformed);
         Bind(dropAction,     ref onDropHandler,     OnDropPerformed);
         Bind(useAction,      ref onUseHandler,      OnUsePerformed);
+        Bind(singleShotAction,ref onSingleShotHandler,OnSingleShot);
     }
 
     private void DisableBaseInput()
@@ -158,6 +166,7 @@ public class PlayerEntity : NetworkBehaviour
         Unbind(interactAction, ref onInteractHandler);
         Unbind(dropAction,     ref onDropHandler);
         Unbind(useAction,      ref onUseHandler);
+        Unbind(singleShotAction, ref onSingleShotHandler);
     }
 
     private void EnableVehicleInput()
@@ -279,6 +288,22 @@ public class PlayerEntity : NetworkBehaviour
             currentSeat.carSystem.CmdHonkHorn();
     }
 
+    private void OnSingleShot(InputAction.CallbackContext ctx)
+    {
+        if (ctx.performed)
+        {
+            SingleShotMousePosition = ctx.ReadValue<Vector2>();
+            
+            if (heldItem != null && !isSitting)
+            {
+                if (heldItem.gameObject.TryGetComponent(out Weapon weapon))
+                {
+                    weapon.Shoot();
+                }
+            }
+        }
+    }
+
     private void HandleDriving()
     {
         if (currentSeat == null || !currentSeat.isDriverSeat || currentSeat.carSystem == null) return;
@@ -313,6 +338,9 @@ public class PlayerEntity : NetworkBehaviour
         Transform cam     = playerMovement.CameraTransform;
         GameObject toDrop = heldItem.gameObject;
         inventory?.RemoveItem(toDrop);
+
+        if (heldItem.TryGetComponent(out Weapon weapon)) weapon.DropWeapon();
+        
         heldItem = null;
 
         if (cam != null && Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, maxDropDistance))

@@ -1782,6 +1782,7 @@ MonoBehaviour:
   useAction: {fileID: 630046469950047068, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   toggleLightsAction: {fileID: -451227694311455888, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   hornAction: {fileID: 2086087015865523511, guid: 289c1b55c9541489481df5cc06664110, type: 3}
+  singleShotAction: {fileID: -4136304738588593209, guid: 289c1b55c9541489481df5cc06664110, type: 3}
 --- !u!95 &5108710359567493460
 Animator:
   serializedVersion: 7

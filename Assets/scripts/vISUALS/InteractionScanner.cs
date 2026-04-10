@@ -1,37 +1,41 @@
-using UnityEngine;
+using Kotenkoff;
+using Scenes;
 using TMPro;
-using Kotenkoff; 
+using UnityEngine;
 
-public class InteractionScanner : MonoBehaviour
+namespace vISUALS
 {
-    [Header("Настройки луча")]
-    public Transform playerCamera; 
-    public float interactRange = 3f;
-    public LayerMask interactLayerMask;
-
-    [Header("UI")]
-    public TMP_Text promptText; 
-
-    void Update()
+    public class InteractionScanner : MonoBehaviour
     {
-        if (playerCamera == null || promptText == null) return;
+        [Header("Настройки луча")]
+        public Transform playerCamera; 
+        public float interactRange = 3f;
+        public LayerMask interactLayerMask;
 
-        if (Physics.Raycast(playerCamera.position, playerCamera.forward, out RaycastHit hit, interactRange, interactLayerMask))
+        [Header("UI")]
+        public TMP_Text promptText; 
+
+        void Update()
         {
-            
-            NetworkSceneChanger sceneChanger = hit.collider.GetComponentInParent<NetworkSceneChanger>();
-            
-            if (sceneChanger != null)
+            if (playerCamera == null || promptText == null) return;
+
+            if (Physics.Raycast(playerCamera.position, playerCamera.forward, out RaycastHit hit, interactRange, interactLayerMask))
             {
-                promptText.text = sceneChanger.promptMessage;
-                promptText.gameObject.SetActive(true);
-                return;
+            
+                NetworkSceneChanger sceneChanger = hit.collider.GetComponentInParent<NetworkSceneChanger>();
+            
+                if (sceneChanger != null)
+                {
+                    promptText.text = sceneChanger.promptMessage;
+                    promptText.gameObject.SetActive(true);
+                    return;
+                }
             }
-        }
 
-        if (promptText.gameObject.activeSelf)
-        {
-            promptText.gameObject.SetActive(false);
+            if (promptText.gameObject.activeSelf)
+            {
+                promptText.gameObject.SetActive(false);
+            }
         }
     }
 }

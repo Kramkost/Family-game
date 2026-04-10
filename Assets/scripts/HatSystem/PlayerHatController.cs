@@ -1,7 +1,7 @@
-using UnityEngine;
 using Mirror;
+using UnityEngine;
 
-namespace Kotenkoff
+namespace HatSystem
 {
     public class PlayerHatController : NetworkBehaviour
     {

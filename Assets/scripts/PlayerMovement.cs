@@ -54,6 +54,8 @@ public class PlayerMovement : MonoBehaviour
     {
         get { var v = cc.velocity; v.y = 0f; return v; }
     }
+    
+    public Camera PublicCamera => cameraTransform.gameObject.GetComponent<Camera>();
 
     // ─── События ──────────────────────────────────────────────────────────────
     public event System.Action OnJumped;

@@ -31,7 +31,7 @@ namespace Kotenkoff.Weapon
             if (list.Count <= 0)
             {
                 var clip = list[Random.Range(0, list.Count - 1)]; 
-                weapon.AudioSource.PlayOneShot(clip); 
+                weapon.AudioSource?.PlayOneShot(clip); 
             }
             else
             {
@@ -45,7 +45,7 @@ namespace Kotenkoff.Weapon
             if (list.Count <= 0)
             {
                 var clip = list[Random.Range(0, list.Count - 1)];
-                weapon.AudioSource.PlayOneShot(clip);
+                weapon.AudioSource?.PlayOneShot(clip);
             }
             else
             {

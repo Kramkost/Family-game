@@ -1,6 +1,8 @@
+using Health_Bar_System;
+using Kotenkoff.Monsters;
 using Mirror;
+using Mirror.Examples.Tanks;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Kotenkoff.Weapon.Weapons
 {
@@ -10,45 +12,13 @@ namespace Kotenkoff.Weapon.Weapons
         [Header("Другое:")]
         [SerializeField, Tooltip("Слои, с которыми взаимодействует raycast оружия.")]
         private LayerMask raycastLayerMask;
+        private Camera raycastCamera;
         
-        [SerializeField] InputActionReference shootAction;
-        [SerializeField] InputActionReference reloadAction;
-        
-        [SerializeField] private Camera raycastCamera;
         private Ray ray;
-        
         private ISoundSource testSoundSource;
-
-        private void OnEnable()
-        {
-            if (shootAction != null)
-            {
-                shootAction.action.performed += OnShoot;
-                shootAction.action.Enable();
-            }
-
-            if (reloadAction != null)
-            {
-                reloadAction.action.performed += OnReload;
-                reloadAction.action.Enable();
-            }
-        }
-
-        private void OnDisable()
-        {
-            if (shootAction != null)
-            {
-                shootAction.action.performed -= OnShoot;
-                shootAction.action.Disable();
-            }
-            
-            if (reloadAction != null)
-            {
-                reloadAction.action.performed -= OnReload;
-                reloadAction.action.Disable();
-            }
-        }
-
+        private GameObject targetObject;
+        private ICalculator _calculator;
+        
         private void Start()
         {
             weaponMode = WeaponModes.Single;
@@ -57,40 +27,52 @@ namespace Kotenkoff.Weapon.Weapons
             canShoot = true;
 
             SoundSource = new WeaponSoundSource(this);
+            _calculator = new PistolWeaponDamageCalculator(this);
         }
 
-        private void OnShoot(InputAction.CallbackContext ctx)
+        private void Update()
         {
-            if (ctx.performed)
-            {
-               RaySetup(ctx.ReadValue<Vector2>());
-               Shoot(); 
-            }
+            Debug.DrawRay(ray.origin, ray.direction * 10, Color.purple);
         }
 
-        private void OnReload(InputAction.CallbackContext ctx)
+        public override void ServerInteract(PlayerEntity player, PlayerInventory inventory)
         {
-            if (ctx.performed)
-            {
-                Reload();
-            }
+            base.ServerInteract(player, inventory);
+            
+            Player = player;
+            
+            RaySetup();
         }
-        
+
         public override void Shoot()
         {
             if (weaponMode != WeaponModes.Single) return;
             
-            Debug.DrawRay(ray.origin, ray.direction * 10, Color.yellow);
-
+            RaySetup(Player.SingleShotMousePosition);
+            
             if (currentAmmo > 0 && canShoot && !isReloading)
             {
+                // играть эффекты разные
+                
+                
+                
                 if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, raycastLayerMask))
                 {
-                    currentAmmo--;
-                    canShoot = false;
-                    Debug.DrawRay(hit.point, hit.normal * 10, Color.yellow);
-                    Invoke(nameof(ShootInvoke), shootingDelay);
+                    Debug.Log($"Пистолет попал в {hit.transform.name}");
+                    
+                    Debug.Log(hit.transform.name);
+                    
+                    bool isMonster = hit.collider.TryGetComponent(out Monster monster);
+                    bool isPlayer = hit.collider.TryGetComponent(out PlayerStats playerStats);
+                    
+                    
+                    if (isMonster && !isPlayer) DamageMonster(monster);
+                    else if (isPlayer && !isMonster) DamagePlayer(playerStats);
                 }
+                
+                currentAmmo--;
+                canShoot = false;
+                Invoke(nameof(ShootInvoke), shootingDelay);
             }
         }
         
@@ -111,11 +93,34 @@ namespace Kotenkoff.Weapon.Weapons
         }
         
         
-        
-
         private void RaySetup(Vector2 point = default)
         {
+            raycastCamera = Player.PublicPlayerMovement.PublicCamera;
+            
             ray = raycastCamera.ScreenPointToRay(point);
+        }
+
+        private void DamageMonster(Monster monster)
+        {
+            var calculatedDamage = _calculator.Calculate<float>("damage");
+            
+            monster.ChangeHealth(-calculatedDamage);
+        }
+
+        private void DamagePlayer(PlayerStats playerStats)
+        {
+            // Наносим игроку урон
+
+            if (playerStats.gameObject.GetComponent<PlayerEntity>() != Player)
+            {
+                var calculatedDamage = _calculator.Calculate<float>("damage");
+                
+                playerStats.TakeDamage(calculatedDamage);
+            }
+            else
+            {
+                Debug.LogWarning("Игрок стреляет сам в себя.");
+            }
         }
     }
 }

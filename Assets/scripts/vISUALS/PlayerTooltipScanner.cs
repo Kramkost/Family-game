@@ -1,8 +1,10 @@
-using UnityEngine;
 using Mirror;
-using TMPro; // Используем TextMeshPro, так как это стандарт Unity
+using TMPro;
+using UnityEngine;
 
-namespace Kotenkoff
+// Используем TextMeshPro, так как это стандарт Unity
+
+namespace vISUALS
 {
     /// <summary>
     /// Локальный сканер игрока. Ищет объекты с InteractableTooltip и выводит их текст на экран.

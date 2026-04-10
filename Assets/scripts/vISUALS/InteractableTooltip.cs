@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Kotenkoff
+namespace vISUALS
 {
     /// <summary>
     /// Информационный ярлык. Вешается на объекты вместе с коллайдером.

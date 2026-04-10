@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Kotenkoff
+namespace HatSystem
 {
     [CreateAssetMenu(fileName = "HatDatabase", menuName = "Kotenkoff/Hat Database")]
     public class HatDatabase : ScriptableObject

@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Kotenkoff.Weapon
 {
-    public abstract class Weapon : NetworkBehaviour
+    public abstract class Weapon : PickupableItem
     {
         /// <summary>
         ///  <para>Текущий режим стрельбы оружия.</para>
@@ -20,12 +20,22 @@ namespace Kotenkoff.Weapon
         [SerializeField, Tooltip("Время между выстрелами."), Space(3)]
         protected float shootingDelay;
 
+        /// <summary>
+        /// Базовый урон оружия.
+        /// </summary>
+        [SerializeField, Space(3), Tooltip("Урон оружия.")]
+        protected float damage;
+        /// <summary>
+        /// Урон оружия.
+        /// </summary>
+        public float WeaponDamage => damage;
         
         /// <summary>
         ///  <para>Может ли оружие сейчас стрелять?</para>
         /// </summary>
         [SerializeField, ReadOnly,Tooltip("Может ли оружие сейчас стрелять?"), Space(5)]
         protected bool canShoot;
+        
         
         /// <summary>
         ///  <para>Максимальное количество патронов.</para>
@@ -71,6 +81,12 @@ namespace Kotenkoff.Weapon
         /// <see cref="ISoundSource"/> </b> .
         /// </summary>
         protected ISoundSource SoundSource;
+
+        /// <summary>
+        /// Ссылка на игрока, который владеет данным оружием.
+        /// </summary>
+        [SerializeField, ReadOnly, Tooltip("Игрок, который владеет этим оружием.")]
+        protected PlayerEntity Player;
         
         /// <summary>
         ///  <para>Метод выстрела оружия.</para>
@@ -81,6 +97,14 @@ namespace Kotenkoff.Weapon
         ///  <para>Метод перезарядки оружия.</para>
         /// </summary>
         public abstract void Reload();
+
+        /// <summary>
+        /// Просто метод, который очищает ссылку на игрока у оружия.
+        /// </summary>
+        public void DropWeapon()
+        {
+            Player = null;
+        }
 
         private void Start()
         {

@@ -1,8 +1,10 @@
+using Kotenkoff;
 using Mirror;
 using UnityEngine;
-using Breakdown; // Убедись, что IInteractable находится здесь
 
-namespace Kotenkoff
+// Убедись, что IInteractable находится здесь
+
+namespace Scenes
 {
     [RequireComponent(typeof(Collider))]
     public class NetworkSceneChanger : NetworkBehaviour, IInteractable // <-- Добавили IInteractable

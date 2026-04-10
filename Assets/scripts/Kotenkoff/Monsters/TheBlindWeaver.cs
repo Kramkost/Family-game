@@ -157,13 +157,18 @@ namespace Kotenkoff.Monsters
         }
 
         [Server]
-        public void ChangeHealth(float value)
+        public override void ChangeHealth(float amount)
         {
-            health = Mathf.Clamp(health + value, 0, maxHealth);
+            health = Mathf.Clamp(health + amount, 0, maxHealth);
             if (health == 0)
             {
                 // Логика смерти
+                MonsterDeath();
             }
+        }
+
+        protected override void MonsterDeath()
+        {
         }
     }
 }

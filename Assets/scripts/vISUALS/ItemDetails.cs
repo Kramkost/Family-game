@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Kotenkoff
+namespace vISUALS
 {
     /// <summary>
     /// Хранит визуальную информацию о предмете для UI инвентаря.

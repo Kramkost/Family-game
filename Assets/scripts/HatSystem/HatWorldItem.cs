@@ -1,7 +1,7 @@
+using Kotenkoff;
 using UnityEngine;
-using Mirror;
 
-namespace Kotenkoff
+namespace HatSystem
 {
     [RequireComponent(typeof(Collider))]
     public class HatWorldItem : MonoBehaviour, IInteractable

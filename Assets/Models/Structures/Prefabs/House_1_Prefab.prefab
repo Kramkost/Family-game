@@ -238,6 +238,9 @@ MonoBehaviour:
   - prefab: {fileID: 4422552630351278712, guid: bafe2eb0d7ae29bf480b89eff5a8a609, type: 3}
     spawnWeight: 0
     spawnChance: 0.2
+  - prefab: {fileID: 5172373426951024993, guid: f63b7b4ac72b63f42b3b2bd8d9cb08f0, type: 3}
+    spawnWeight: 0
+    spawnChance: 0.4
   propContainer: {fileID: 0}
   propContainerName: Prop Container
   useWeightedSelection: 0

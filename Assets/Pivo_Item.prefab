@@ -385,7 +385,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Kotenkoff.ItemDetails
   itemName: Beer
   itemDescription: Ho-ho-ho the best product from Germany!
-  actionHint: '[LBM] Drink'
+  actionHint: '[F]Drink'
 --- !u!4 &7703605662083730022 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d062a7928e88917c0a4e3760ad8c1c49, type: 3}

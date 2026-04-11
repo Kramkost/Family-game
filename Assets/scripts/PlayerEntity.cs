@@ -79,6 +79,8 @@ public class PlayerEntity : NetworkBehaviour
     public PlayerJuiceAndIK PlayerJuice => playerJuice;
     public NetworkIdentity HeldItem => heldItem;
 
+    private Vector3 originalScale;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Awake
     // ─────────────────────────────────────────────────────────────────────────
@@ -375,6 +377,7 @@ public class PlayerEntity : NetworkBehaviour
     [TargetRpc]
     public void TargetEnterSeat(NetworkIdentity carNetId, string seatPath)
     {
+        originalScale = transform.localScale;
         EnableVehicleInput();
 
         GameObject seatObj = GameObject.Find(seatPath);
@@ -397,30 +400,43 @@ public class PlayerEntity : NetworkBehaviour
         playerMovement.ResetLookRotation();
     }
 
-    [TargetRpc]
-    public void TargetLeaveSeat()
+[TargetRpc]
+public void TargetLeaveSeat()
+{
+    DisableVehicleInput();
+    isSitting = false;
+
+    animator?.SetBool(IsSittingHash, false);
+    animator?.SetTrigger(StandTriggerHash);
+
+    transform.SetParent(null);
+    
+    // 1. Ставим новую позицию
+    transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+    transform.position = currentSeat?.exitPoint != null
+        ? currentSeat.exitPoint.position
+        : transform.position + transform.right * 1.5f;
+
+    // ФИКС КАМЕРЫ 1: Принудительно синхронизируем физику ДО включения коллайдеров.
+    // Это не даст координатам камеры улететь в бесконечность (NaN) при выходе.
+    Physics.SyncTransforms();
+
+    playerMovement.ResetLookRotation();
+    currentSeat = null;
+
+    // ФИКС КАМЕРЫ 2: Включаем всё, КРОМЕ CharacterController.
+    // Его включит только SetMovementEnabled(true) чуть ниже, чтобы избежать конфликта.
+    foreach (var col in allColliders)
     {
-        DisableVehicleInput();
-        isSitting = false;
-
-        animator?.SetBool(IsSittingHash, false);
-        animator?.SetTrigger(StandTriggerHash);
-
-        transform.SetParent(null);
-        transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
-        transform.position = currentSeat?.exitPoint != null
-            ? currentSeat.exitPoint.position
-            : transform.position + transform.right * 1.5f;
-
-        playerMovement.ResetLookRotation();
-        currentSeat = null;
-
-        foreach (var col in allColliders)
-            if (col != null) col.enabled = true;
-
-        playerMovement.SetMovementEnabled(true);
+        if (col != null && !(col is CharacterController)) 
+        {
+            col.enabled = true;
+        }
     }
 
+    // 2. Безопасно включаем движение
+    playerMovement.SetMovementEnabled(true);
+}
     [TargetRpc]
     public void TargetApplyDrunkEffect(NetworkConnection target, float duration, float intensity)
     {

@@ -260,4 +260,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Kotenkoff.ItemDetails
   itemName: Donut
   itemDescription: Food
-  actionHint: '[E] Eat'
+  actionHint: '[F] Eat'

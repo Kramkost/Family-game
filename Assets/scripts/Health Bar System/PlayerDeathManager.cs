@@ -127,5 +127,29 @@ namespace Health_Bar_System
             if (characterController != null) characterController.enabled = true;
             if (playerMovement != null) playerMovement.enabled = true;
         }
+    
+
+    /// <summary>
+        /// Выключает игру (работает как в билде, так и в редакторе Unity)
+        /// </summary>
+        public void UI_QuitGame()
+        {
+            // Если игрок является хостом/сервером, можно добавить отключение сервера
+            if (NetworkServer.active && NetworkClient.isConnected)
+            {
+                NetworkManager.singleton.StopHost();
+            }
+            else if (NetworkClient.isConnected)
+            {
+                NetworkManager.singleton.StopClient();
+            }
+
+            // Выход из приложения
+              #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+           #else
+            Application.Quit();
+            #endif
+        }
     }
 }

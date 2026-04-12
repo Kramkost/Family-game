@@ -22,59 +22,10 @@ public class RoadMonster : NetworkBehaviour
     [SerializeField] private bool useScaleSpawn = true;
     [SerializeField] private float spawnDuration = 1.5f;
 
-    [Header("Temporary Teleport Logic")]
-    [SerializeField] private bool useRandomTeleport = false;
-    [SerializeField] private float minTeleportTime = 5f;
-    [SerializeField] private float maxTeleportTime = 15f;
-    [SerializeField] private float teleportDistance = 20f;
-
     [SyncVar] private bool isTriggered = false;
     private Camera mainCamera;
     private static readonly int JumpscareTrigger = Animator.StringToHash("Jumpscare");
     private static readonly int SpawnTrigger = Animator.StringToHash("Spawn");
-
-    public override void OnStartServer()
-    {
-        base.OnStartServer();
-        if (useRandomTeleport)
-        {
-            StartCoroutine(TeleportRoutine());
-        }
-    }
-
-    private IEnumerator TeleportRoutine()
-    {
-        while (!isTriggered)
-        {
-            yield return new WaitForSeconds(Random.Range(minTeleportTime, maxTeleportTime));
-
-            if (isTriggered) yield break;
-
-            PlayerEntity[] players = FindObjectsByType<PlayerEntity>(FindObjectsSortMode.None);
-            if (players.Length > 0)
-            {
-                PlayerEntity target = players[Random.Range(0, players.Length)];
-                Vector3 spawnPos = target.transform.position + target.transform.forward * teleportDistance;
-                
-                if (Physics.Raycast(spawnPos + Vector3.up * 10f, Vector3.down, out RaycastHit hit, 20f, obstacleLayer))
-                    spawnPos.y = hit.point.y;
-
-                transform.position = spawnPos;
-                transform.rotation = Quaternion.Euler(0, target.transform.eulerAngles.y - 180f, 0); // Смотрим на игрока
-                
-                RpcTeleportVisuals();
-            }
-        }
-    }
-
-    [ClientRpc]
-    private void RpcTeleportVisuals()
-    {
-        if (useScaleSpawn && !isTriggered)
-        {
-            StartCoroutine(SpawnAnimationRoutine());
-        }
-    }
 
     public override void OnStartClient()
     {

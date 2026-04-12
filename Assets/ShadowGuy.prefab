@@ -535,6 +535,10 @@ MonoBehaviour:
   jumpscareDuration: 1
   useScaleSpawn: 1
   spawnDuration: 1.5
+  useRandomTeleport: 1
+  minTeleportTime: 5
+  maxTeleportTime: 15
+  teleportDistance: 1.62
 --- !u!95 &5532019063595855410
 Animator:
   serializedVersion: 7

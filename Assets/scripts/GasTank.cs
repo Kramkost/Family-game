@@ -31,8 +31,7 @@ public class GasTank : NetworkBehaviour, IInteractable
             return;
         }
 
-       
-        if (player.heldItem.TryGetComponent(out JerryCan can))
+               if (player.heldItem.TryGetComponent(out JerryCan can))
         {
             float oldGas = carManager.gasoline;
             carManager.Refuel(refuelAmount);

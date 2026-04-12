@@ -112,10 +112,16 @@ namespace MultiplayerGame.UI
                 PlayRandomSound(openMenuSounds);
                 rootMenuPanel.SetActive(true);
                 settingsPanel.SetActive(false);
+
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
             }
             else
             {
                 PlayRandomSound(clickSounds);
+
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
             }
 
             if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);

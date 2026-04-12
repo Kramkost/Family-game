@@ -272,13 +272,26 @@ namespace ProceduralTerrain
             }
             // END NEW
 
-            // ---- Server-only spawning ----
+            // ---- Foliage spawning (Both Server and Client) ----
+            var exclusionZones = new List<Rect>();
+            // Если есть зоны безопасности, их можно добавить сюда:
+            // exclusionZones.AddRange(_safeZoneManager.GetExclusionZones(coord));
+            
+            _foliageSpawner.SpawnFoliage(chunk.Data, chunk.UnityTerrain, exclusionZones);
+
+            // ФИКС КОЛЛИЗИИ ДЕРЕВЬЕВ: После добавления деревьев нужно "передернуть" TerrainCollider
+            // Иначе Unity не создаст для них физические капсулы.
+            var terrainCollider = chunk.GameObject.GetComponent<TerrainCollider>();
+            if (terrainCollider != null)
+            {
+                terrainCollider.enabled = false;
+                terrainCollider.enabled = true;
+            }
+            yield return null;
+
+            // ---- Server-only spawning (NetworkIdentities) ----
             if (isServer)
             {
-                var exclusionZones = new List<Rect>();
-                _foliageSpawner.SpawnFoliage(chunk.Data, chunk.UnityTerrain, exclusionZones);
-                yield return null;
-
                 _poiSpawner.SpawnPOIs(chunk.Data, _roadBuilder, _biomeProvider, _syncedSeed);
                 yield return null;
             }

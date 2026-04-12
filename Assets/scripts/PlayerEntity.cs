@@ -410,6 +410,7 @@ public void TargetLeaveSeat()
     animator?.SetTrigger(StandTriggerHash);
 
     transform.SetParent(null);
+    transform.localScale = originalScale;
     
     // 1. Ставим новую позицию
     transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);

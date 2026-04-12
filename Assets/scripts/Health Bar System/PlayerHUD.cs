@@ -80,6 +80,7 @@ namespace Health_Bar_System
             }
 
             // Логика появления / исчезновения
+
             if (Time.time - lastInteractionTime > hideDelay)
             {
                 // Скрываем и уменьшаем
@@ -87,6 +88,7 @@ namespace Health_Bar_System
                 healthRectTransform.localScale = Vector3.Lerp(healthRectTransform.localScale, Vector3.one * 0.8f, Time.deltaTime * fadeSpeed);
             }
             else
+
             {
                 // Показываем
                 healthCanvasGroup.alpha = Mathf.Lerp(healthCanvasGroup.alpha, 1f, Time.deltaTime * fadeSpeed * 1.5f);

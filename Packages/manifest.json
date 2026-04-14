@@ -2,6 +2,7 @@
   "dependencies": {
     "com.unity.ai.navigation": "2.0.12",
     "com.unity.burst": "1.8.28",
+    "com.unity.cinemachine": "3.1.6",
     "com.unity.collab-proxy": "2.11.4",
     "com.unity.feature.development": "1.0.2",
     "com.unity.inputsystem": "1.19.0",

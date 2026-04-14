@@ -1,0 +1,205 @@
+using System;
+using Mirror;
+using Unity.Cinemachine;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.Serialization;
+
+namespace MyAssets.scripts.Kotenkoff.Character
+{
+    [RequireComponent(typeof(CharacterController)), RequireComponent(typeof(NetworkIdentity))]
+    public class NewCharacterController : NetworkBehaviour
+    {
+        [Header("Параметры Передвижения:")]
+        private float MaxSpeed => sprintInput ? sprintSpeed : walkSpeed;
+        [SerializeField, Tooltip("Ускорение.")] private float acceleration = 15f;
+        
+        [SerializeField, Tooltip("Скорость ходьбы.")]
+        private float walkSpeed;
+
+        [SerializeField, Tooltip("Скорость бега.")]
+        private float sprintSpeed;
+        
+        [SerializeField, Tooltip("Насколько высоко сможет прыгнуть игрок."), Space(3)]
+        private float jumpHeight;
+
+        private bool Sprinting => sprintInput && CurrentSpeed >0.1f;
+
+
+        [SerializeField, Header("Параметры Обзора:"), Tooltip("Чувствительность обзора.")]
+        private Vector2 lookSensitivity = new Vector2(0.1f, 0.1f);
+        
+        [SerializeField, Tooltip("Ограничение угла вертикального обзора.")]
+        private float pitchLimit = 85f;
+        [SerializeField, ReadOnly, Tooltip("Текущий угол вертикального обзора.")]
+        private float currentPitch;
+
+        private float CurrentPitch
+        {
+            get => currentPitch;
+
+            set => currentPitch = Mathf.Clamp(value, -pitchLimit, pitchLimit);
+        }
+        
+        
+        [Header("Параметры Камеры:")]
+        
+        [SerializeField, Tooltip("FOV камеры при ходьбе.")] float cameraNormalFov = 60f;
+        [SerializeField, Tooltip("FOV камеры при беге.")] float cameraSprintFov = 80f;
+        [SerializeField, Tooltip("Мягкость изменения FOV.")] float cameraFovSmoothing = 1f;
+
+
+        [Header("Параметры Физики:")]
+        
+        [SerializeField, Tooltip("Гравитация.")]
+        private float gravityScale = 3f;
+        
+        [SerializeField, Tooltip("Вертикальная скорость."), ReadOnly]
+        private float verticalVelocity;
+
+        private Vector3 CurrentVelocity { get; set; }
+        private float CurrentSpeed { get; set; }
+
+        [SerializeField, Tooltip("Прыгнул ли игрок."), ReadOnly, Space(3)]
+        private bool wasJumped;
+        private bool IsGrounded => characterController.isGrounded;
+        
+        [Header("Ввод:  (Read Only)")]
+        
+        [Tooltip("Input передвижения."), ReadOnly]
+        public Vector2 moveInput;
+        [Tooltip("Input обзора."), ReadOnly]
+        public Vector2 lookInput;
+        [Tooltip("Бежит ли игрок?"), ReadOnly]
+        public bool sprintInput;
+        
+        [Header("Компоненты:")]
+        
+        [SerializeField, Tooltip("Ссылка на компонент 'CharacterController'.'")]
+        private CharacterController characterController;
+        private CinemachineCamera fpCamera;
+        
+
+
+        #region Unity Methods
+
+        private void Start()
+        {
+            if (characterController == null)
+            {
+                characterController = GetComponent<CharacterController>();
+            }
+
+            if (isLocalPlayer)
+            {
+                fpCamera = FindFirstObjectByType<CinemachineCamera>();
+                fpCamera.transform.SetParent(transform);
+                fpCamera.transform.localPosition = new Vector3(0, 1, 0);
+            }
+            
+            ExceptionsOnStart();
+        }
+
+        private void Update()
+        {
+            if (!isLocalPlayer) return;
+            
+            MoveUpdate();
+            LookUpdate();
+            CameraUpdate();
+        }
+        
+        #endregion
+
+        #region Controller Methods
+
+        /// <summary>
+        /// Прыжок игрока.
+        /// </summary>
+        public void TryJump()
+        {
+            if (!wasJumped)
+            {
+                verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * Physics.gravity.y * gravityScale);
+                wasJumped = true;
+            }
+        }
+
+        private void MoveUpdate()
+        {
+            Vector3 motion = transform.forward * moveInput.y + transform.right * moveInput.x;
+            motion.y = 0f;
+            motion.Normalize();
+
+            if (motion.sqrMagnitude > 0.01f)
+            {
+                CurrentVelocity = Vector3.MoveTowards(CurrentVelocity, motion * MaxSpeed,
+                    Time.deltaTime * acceleration);
+            }
+            else
+            {
+                CurrentVelocity = Vector3.MoveTowards(CurrentVelocity, Vector3.zero,
+                    acceleration * Time.deltaTime);
+            }
+            
+            if (IsGrounded && verticalVelocity < 0.01f)
+            {
+                verticalVelocity = -3f;
+            }
+            else
+            {
+                verticalVelocity += Physics.gravity.y * gravityScale * Time.deltaTime;
+            }
+            
+            Vector3 fullVelocity = new Vector3(CurrentVelocity.x, verticalVelocity, CurrentVelocity.z);
+            
+            CollisionFlags flags = characterController.Move(fullVelocity * Time.deltaTime);
+
+            if ((flags & CollisionFlags.Above) != 0 && verticalVelocity > 0.1f)
+            {
+                verticalVelocity = 0f;
+            }
+            
+            if (wasJumped && IsGrounded) wasJumped = false;
+            
+            //Обновляем скорость.
+            CurrentSpeed = CurrentVelocity.magnitude;
+        }
+        
+        void LookUpdate()
+        {
+            Vector3 input = new Vector2(lookInput.x * lookSensitivity.x, lookInput.y *  lookSensitivity.y);
+
+            // Обзор вверх и вниз
+            CurrentPitch -= input.y;
+            
+            fpCamera.transform.localRotation = Quaternion.Euler(CurrentPitch,  0f, 0f);
+            
+            // Обзор на лево и на право
+            transform.Rotate(Vector3.up * input.x);
+        }
+        
+        void CameraUpdate()
+        {
+            float targetFov = cameraNormalFov;
+
+            if (Sprinting)
+            {
+                float speedRatio = CurrentPitch / sprintSpeed;
+                
+                targetFov = Mathf.Lerp(cameraNormalFov, cameraSprintFov, speedRatio);
+            }
+            
+            fpCamera.Lens.FieldOfView = Mathf.Lerp(fpCamera.Lens.FieldOfView, targetFov, cameraFovSmoothing * Time.deltaTime);
+        }
+
+        private void ExceptionsOnStart()
+        {
+            if (walkSpeed <= 0) Debug.LogError($"[NewCharacterController] Скорость ходьбы игрока ({netId}) меньше или равняется нулю!");
+            
+            if (sprintSpeed <= 0) Debug.LogError($"[NewCharacterController] Скорость бега игрока ({netId}) меньше или равняется нулю!");
+        }
+        
+        #endregion
+    }
+}

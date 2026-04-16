@@ -26,6 +26,9 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         [SerializeField, Tooltip("Слоты инвентаря.")]
         private List<InventorySlot> inventorySlots;
 
+        // Ссылка на менеджер инвентаря
+        private InventoryManager inventoryManager;
+        
         private void OnObjectInHandChanged(GameObject oldValue, GameObject newValue)
         {
             if (newValue != null)
@@ -114,7 +117,16 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         private void ChangeCurrentSlot(InventorySlot slot, GameObject go)
         {
             int value = 0;
-            inventorySlots[currentSlot].CmdHideObject();
+            
+            // Скрываем объект в текущем слоте через InventoryManager
+            if (inventoryManager != null)
+            {
+                inventoryManager.CmdHideObjectInSlot(currentSlot);
+            }
+            else
+            {
+                Debug.LogWarning("[ChangeCurrentSlot] InventoryManager не инициализирован!");
+            }
 
             for (int index = 0; index < inventorySlots.Count; index++)
             {
@@ -126,10 +138,13 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
             }
             
             currentSlot = value;
-            
             objectInHand = go != null ? go : null;
             
-            slot.CmdShowObject();
+            // Показываем объект в новом слоте через InventoryManager
+            if (inventoryManager != null)
+            {
+                inventoryManager.CmdShowObjectInSlot(currentSlot);
+            }
         }
 
         /// <summary>
@@ -149,9 +164,19 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
 
         #region UnityMethods
 
+        private void Awake()
+        {
+            // Находим менеджер инвентаря при инициализации
+            inventoryManager = FindObjectOfType<InventoryManager>();
+            if (inventoryManager == null)
+            {
+                Debug.LogError("[CharacterInventory] Не найден InventoryManager в сцене!");
+            }
+        }
+        
         private void Start()
         {
-            if (inventorySlots[0] != null)
+            if (inventorySlots.Count > 0)
             {
                 currentSlot = 0;
             }

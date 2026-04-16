@@ -12,9 +12,17 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         [SerializeField]
         private GameObject objectInSlot;
         /// <summary>
-        /// Объект, находящийся в слоте (только для чтения).
+        /// Объект, находящийся в слоте.
         /// </summary>
-        public GameObject ObjectInSlot => objectInSlot;
+        public GameObject ObjectInSlot
+        {
+            get => objectInSlot;
+            set
+            {
+                objectInSlot = value;
+                isOccupied = value != null; // Автоматически обновляем флаг занятости
+            }
+        }
 
         [SerializeField]
         private bool isOccupied;

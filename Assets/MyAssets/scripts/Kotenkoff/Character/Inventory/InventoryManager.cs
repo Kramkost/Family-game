@@ -27,7 +27,7 @@ public class InventoryManager : NetworkBehaviour
 
         InventorySlot slot = inventorySlots[slotIndex];
 
-        if (slot.ObjectInSlot != null)
+        if (slot != null && slot.ObjectInSlot != null)
         {
             // Локально активируем объект
             slot.ObjectInSlot.SetActive(true);
@@ -36,7 +36,7 @@ public class InventoryManager : NetworkBehaviour
         }
         else
         {
-            Debug.LogWarning($"[CmdShowObjectInSlot] Слот {slotIndex} пуст, нечего показывать.");
+            Debug.LogWarning($"[CmdShowObjectInSlot] Слот {slotIndex} пуст или не инициализирован, нечего показывать.");
         }
     }
 
@@ -109,5 +109,47 @@ public class InventoryManager : NetworkBehaviour
             Debug.LogError($"[IsValidSlotIndex] Некорректный индекс слота: {slotIndex}. Допустимый диапазон: 0–{inventorySlots.Length - 1}");
         }
         return isValid;
+    }
+    
+    /// <summary>
+    /// Команда сервера: синхронизирует состояние указанного слота (объект внутри).
+    /// Вызывается с клиента, выполняется на сервере, транслирует состояние всем клиентам.
+    /// </summary>
+    /// <param name="slotIndex">Индекс слота.</param>
+    /// <param name="obj">Объект, находящийся в слоте (может быть null).</param>
+    [Command]
+    public void CmdSyncSlotState(int slotIndex, GameObject obj)
+    {
+        Debug.Log($"[CmdSyncSlotState] Синхронизация слота {slotIndex} с объектом {obj?.name ?? "null"}");
+
+        if (!IsValidSlotIndex(slotIndex))
+            return;
+
+        InventorySlot slot = inventorySlots[slotIndex];
+        if (slot != null)
+        {
+            slot.ObjectInSlot = obj; // Обновляем состояние слота на сервере
+            RpcSyncSlotState(slotIndex, obj); // Транслируем всем клиентам
+        }
+    }
+
+    /// <summary>
+    /// RPC: синхронизирует состояние слота для всех клиентов.
+    /// </summary>
+    /// <param name="slotIndex">Индекс слота.</param>
+    /// <param name="obj">Объект в слоте.</param>
+    [ClientRpc]
+    private void RpcSyncSlotState(int slotIndex, GameObject obj)
+    {
+        Debug.Log($"[RpcSyncSlotState] Клиент получил обновление для слота {slotIndex}: объект {obj?.name ?? "null"}");
+
+        if (!IsValidSlotIndex(slotIndex))
+            return;
+
+        InventorySlot slot = inventorySlots[slotIndex];
+        if (slot != null)
+        {
+            slot.ObjectInSlot = obj; // Используем свойство с сеттером
+        }
     }
 }

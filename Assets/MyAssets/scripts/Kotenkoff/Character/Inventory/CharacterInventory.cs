@@ -117,7 +117,7 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         private void ChangeCurrentSlot(InventorySlot slot, GameObject go)
         {
             int value = 0;
-            
+
             // Скрываем объект в текущем слоте через InventoryManager
             if (inventoryManager != null)
             {
@@ -136,13 +136,14 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
                     break;
                 }
             }
-            
+
             currentSlot = value;
             objectInHand = go != null ? go : null;
-            
-            // Показываем объект в новом слоте через InventoryManager
+
+            // Синхронизируем состояние слотов с менеджером
             if (inventoryManager != null)
             {
+                inventoryManager.CmdSyncSlotState(currentSlot, slot.ObjectInSlot);
                 inventoryManager.CmdShowObjectInSlot(currentSlot);
             }
         }

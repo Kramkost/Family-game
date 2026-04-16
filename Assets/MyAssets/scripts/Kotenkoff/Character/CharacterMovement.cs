@@ -7,8 +7,11 @@ using UnityEngine.Serialization;
 
 namespace MyAssets.scripts.Kotenkoff.Character
 {
+    /// <summary>
+    /// Класс, отвечающий за передвижения персонажа.
+    /// </summary>
     [RequireComponent(typeof(CharacterController)), RequireComponent(typeof(NetworkIdentity))]
-    public class NewCharacterController : NetworkBehaviour
+    public class CharacterMovement : NetworkBehaviour
     {
         [Header("Параметры Передвижения:")]
         private float MaxSpeed => sprintInput ? sprintSpeed : walkSpeed;
@@ -77,7 +80,8 @@ namespace MyAssets.scripts.Kotenkoff.Character
         
         [SerializeField, Tooltip("Ссылка на компонент 'CharacterController'.'")]
         private CharacterController characterController;
-        private CinemachineCamera fpCamera;
+        [SerializeField, Tooltip("Ссылка на компонент 'CharacterBase'")]
+        private CharacterBase characterBase;
         
 
 
@@ -85,17 +89,9 @@ namespace MyAssets.scripts.Kotenkoff.Character
 
         private void Start()
         {
-            if (characterController == null)
-            {
-                characterController = GetComponent<CharacterController>();
-            }
-
-            if (isLocalPlayer)
-            {
-                fpCamera = FindFirstObjectByType<CinemachineCamera>();
-                fpCamera.transform.SetParent(transform);
-                fpCamera.transform.localPosition = new Vector3(0, 1, 0);
-            }
+            if (characterController == null) characterController = gameObject.GetComponent<CharacterController>();
+            
+            if (characterBase == null) characterBase = gameObject.GetComponent<CharacterBase>();
             
             ExceptionsOnStart();
         }
@@ -114,7 +110,7 @@ namespace MyAssets.scripts.Kotenkoff.Character
         #region Controller Methods
 
         /// <summary>
-        /// Прыжок игрока.
+        /// Попытка прыжка персонажа.
         /// </summary>
         public void TryJump()
         {
@@ -166,20 +162,20 @@ namespace MyAssets.scripts.Kotenkoff.Character
             CurrentSpeed = CurrentVelocity.magnitude;
         }
         
-        void LookUpdate()
+        private void LookUpdate()
         {
             Vector3 input = new Vector2(lookInput.x * lookSensitivity.x, lookInput.y *  lookSensitivity.y);
 
             // Обзор вверх и вниз
             CurrentPitch -= input.y;
             
-            fpCamera.transform.localRotation = Quaternion.Euler(CurrentPitch,  0f, 0f);
+            characterBase.FpCamera.transform.localRotation = Quaternion.Euler(CurrentPitch,  0f, 0f);
             
             // Обзор на лево и на право
             transform.Rotate(Vector3.up * input.x);
         }
         
-        void CameraUpdate()
+        private void CameraUpdate()
         {
             float targetFov = cameraNormalFov;
 
@@ -190,14 +186,14 @@ namespace MyAssets.scripts.Kotenkoff.Character
                 targetFov = Mathf.Lerp(cameraNormalFov, cameraSprintFov, speedRatio);
             }
             
-            fpCamera.Lens.FieldOfView = Mathf.Lerp(fpCamera.Lens.FieldOfView, targetFov, cameraFovSmoothing * Time.deltaTime);
+            characterBase.FpCamera.Lens.FieldOfView = Mathf.Lerp(characterBase.FpCamera.Lens.FieldOfView, targetFov, cameraFovSmoothing * Time.deltaTime);
         }
 
         private void ExceptionsOnStart()
         {
-            if (walkSpeed <= 0) Debug.LogError($"[NewCharacterController] Скорость ходьбы игрока ({netId}) меньше или равняется нулю!");
+            if (walkSpeed <= 0) Debug.LogError($"[CharacterMovement] Скорость ходьбы игрока ({netId}) меньше или равняется нулю!");
             
-            if (sprintSpeed <= 0) Debug.LogError($"[NewCharacterController] Скорость бега игрока ({netId}) меньше или равняется нулю!");
+            if (sprintSpeed <= 0) Debug.LogError($"[CharacterMovement] Скорость бега игрока ({netId}) меньше или равняется нулю!");
         }
         
         #endregion

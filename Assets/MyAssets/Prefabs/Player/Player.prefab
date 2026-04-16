@@ -382,6 +382,7 @@ MonoBehaviour:
     isOccupied: 0
   - objectInSlot: {fileID: 0}
     isOccupied: 0
+  inventoryManager: {fileID: -1210514264585547744}
 --- !u!114 &-1210514264585547744
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -397,7 +398,13 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  inventorySlots: []
+  inventorySlots:
+  - objectInSlot: {fileID: 0}
+    isOccupied: 0
+  - objectInSlot: {fileID: 0}
+    isOccupied: 0
+  - objectInSlot: {fileID: 0}
+    isOccupied: 0
 --- !u!114 &6174494992730519192
 MonoBehaviour:
   m_ObjectHideFlags: 0

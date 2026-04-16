@@ -16,7 +16,7 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         /// </summary>
         public GameObject ObjectInHand => objectInHand;
         
-        [SerializeField, Tooltip("Выбранный слот."), ReadOnly, SyncVar]
+        [SerializeField, Tooltip("Выбранный слот."), ReadOnly, SyncVar(hook = nameof(OnCurrentSlotChanged))]
         private int currentSlot;
         /// <summary>
         /// Выбранный слот.
@@ -27,7 +27,14 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         private List<InventorySlot> inventorySlots;
 
         // Ссылка на менеджер инвентаря
-        private InventoryManager inventoryManager;
+        [SerializeField] private InventoryManager inventoryManager;
+        
+        private void OnCurrentSlotChanged(int oldValue, int newValue)
+        {
+            Debug.Log($"[OnCurrentSlotChanged] Слот изменён: {oldValue} → {newValue}");
+            // Здесь можно обновить UI, подсветить слот и т. д.
+            //UpdateUIForCurrentSlot(newValue);
+        }
         
         private void OnObjectInHandChanged(GameObject oldValue, GameObject newValue)
         {
@@ -99,14 +106,22 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         [Command]
         public void CmdChangeCurrentSlotWithVector(ChangeSlotVector vector)
         {
-            int value = vector == ChangeSlotVector.Forward ? 1 : -1;
+            if (!isOwned)
+            {
+                Debug.LogWarning("Нет прав для изменения слота.");
+                return;
+            }
             
-            if (currentSlot == inventorySlots.Count - 1 && vector == ChangeSlotVector.Forward)
+            int delta = vector == ChangeSlotVector.Forward ? 1 : -1;
+            
+            int newSlotIndex = (currentSlot + delta + inventorySlots.Count) % inventorySlots.Count;
+            ChangeCurrentSlot(inventorySlots[newSlotIndex], inventorySlots[newSlotIndex].ObjectInSlot);
+            /*if (currentSlot == inventorySlots.Count - 1 && vector == ChangeSlotVector.Forward)
                 ChangeCurrentSlot(inventorySlots[0], inventorySlots[0].ObjectInSlot);
             else if (currentSlot == 0 && vector == ChangeSlotVector.Backward)
                 ChangeCurrentSlot(inventorySlots[^1], inventorySlots[^1].ObjectInSlot);
             else
-                ChangeCurrentSlot(inventorySlots[currentSlot + value], inventorySlots[currentSlot + value].ObjectInSlot);
+                ChangeCurrentSlot(inventorySlots[currentSlot + value], inventorySlots[currentSlot + value].ObjectInSlot);*/
         }
 
         /// <summary>
@@ -167,11 +182,15 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
 
         private void Awake()
         {
-            // Находим менеджер инвентаря при инициализации
-            inventoryManager = FindObjectOfType<InventoryManager>();
             if (inventoryManager == null)
             {
-                Debug.LogError("[CharacterInventory] Не найден InventoryManager в сцене!");
+                // Находим менеджер инвентаря при инициализации
+                inventoryManager = FindObjectOfType<InventoryManager>();
+                
+                if (inventoryManager == null)
+                {
+                    Debug.LogError("[CharacterInventory] Не найден InventoryManager в сцене!");
+                }
             }
         }
         

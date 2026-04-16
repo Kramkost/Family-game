@@ -120,6 +120,7 @@ public class InventoryManager : NetworkBehaviour
     [Command]
     public void CmdSyncSlotState(int slotIndex, GameObject obj)
     {
+        if (!isServer) return;
         Debug.Log($"[CmdSyncSlotState] Синхронизация слота {slotIndex} с объектом {obj?.name ?? "null"}");
 
         if (!IsValidSlotIndex(slotIndex))

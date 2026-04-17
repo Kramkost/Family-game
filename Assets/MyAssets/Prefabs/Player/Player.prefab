@@ -172,7 +172,6 @@ GameObject:
   - component: {fileID: 4495125535019107983}
   - component: {fileID: 1316936144944312031}
   - component: {fileID: 7301854034954920575}
-  - component: {fileID: -1210514264585547744}
   - component: {fileID: 6174494992730519192}
   - component: {fileID: 4949650617561783522}
   m_Layer: 0
@@ -375,29 +374,6 @@ MonoBehaviour:
   objectsParent: {fileID: 980464516860148389}
   objectInHand: {fileID: 0}
   currentSlot: 0
-  inventorySlots:
-  - objectInSlot: {fileID: 0}
-    isOccupied: 0
-  - objectInSlot: {fileID: 0}
-    isOccupied: 0
-  - objectInSlot: {fileID: 0}
-    isOccupied: 0
-  inventoryManager: {fileID: -1210514264585547744}
---- !u!114 &-1210514264585547744
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6234447494371958179}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ae585c0ebdb6814388bc73c3deb446c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InventoryManager
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
   inventorySlots:
   - objectInSlot: {fileID: 0}
     isOccupied: 0

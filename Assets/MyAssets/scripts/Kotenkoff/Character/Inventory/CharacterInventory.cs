@@ -122,13 +122,6 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         [Command]
         public void CmdChangeCurrentSlotWithVector(ChangeSlotVector vector)
         {
-            // Проверка владения объектом
-            if (!isOwned)
-            {
-                Debug.LogWarning("Нет прав для изменения слота.isOwned: " + isOwned);
-                return;
-            }
-            
             // Критическая проверка: InventoryManager должен существовать
             if (inventoryManager == null)
             {

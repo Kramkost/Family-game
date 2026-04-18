@@ -1,4 +1,3 @@
-using System;
 using Mirror;
 using MyAssets.scripts.Kotenkoff.Character.Inventory;
 using UnityEngine;
@@ -11,18 +10,6 @@ public class InventoryManager : NetworkBehaviour
 {
     [SerializeField]
     private InventorySlot[] inventorySlots;
-
-    /// <summary>
-    /// Устанавливает слоты инвентаря для конкретного игрока.
-    /// Вызывается при создании менеджера для игрока в CharacterInventory.Awake().
-    /// Инициализирует массив слотов инвентаря, который будет использоваться
-    /// для отображения и управления содержимым инвентаря данного игрока.
-    /// </summary>
-    /// <param name="slots">Массив слотов инвентаря для установки.</param>
-    public void SetInventorySlots(InventorySlot[] slots)
-    {
-        inventorySlots = slots;
-    }
 
     /// <summary>
     /// Команда сервера: показать объект в указанном слоте.
@@ -69,7 +56,7 @@ public class InventoryManager : NetworkBehaviour
 
         InventorySlot slot = inventorySlots[slotIndex];
 
-        if (slot != null && slot.ObjectInSlot != null)
+        if (slot.ObjectInSlot != null)
         {
             // Локально деактивируем объект
             slot.ObjectInSlot.SetActive(false);
@@ -116,13 +103,6 @@ public class InventoryManager : NetworkBehaviour
     /// <returns>true, если индекс корректен, иначе false.</returns>
     private bool IsValidSlotIndex(int slotIndex)
     {
-        // Добавляем проверку на инициализацию массива
-        if (inventorySlots == null)
-        {
-            Debug.LogError("[IsValidSlotIndex] Массив слотов не инициализирован!");
-            return false;
-        }
-        
         bool isValid = slotIndex >= 0 && slotIndex < inventorySlots.Length;
         if (!isValid)
         {
@@ -149,32 +129,20 @@ public class InventoryManager : NetworkBehaviour
         InventorySlot slot = inventorySlots[slotIndex];
         if (slot != null)
         {
-            // Обновляем состояние слота на сервере
-            slot.ObjectInSlot = obj;
-            uint netId = obj != null && obj.GetComponent<NetworkIdentity>() != null
-                ? obj.GetComponent<NetworkIdentity>().netId
-                : 0;
-            // Передаём netId вместо ссылки на GameObject — это эффективнее и безопаснее
-            RpcSyncSlotState(slotIndex, obj != null ? obj.GetComponent<NetworkIdentity>().netId : 0);
+            slot.ObjectInSlot = obj; // Обновляем состояние слота на сервере
+            RpcSyncSlotState(slotIndex, obj); // Транслируем всем клиентам
         }
     }
 
     /// <summary>
-    /// RPC-метод для синхронизации состояния слота по netId.
-    /// Получает netId объекта вместо ссылки на GameObject.
-    /// Находит объект через NetworkIdentity.spawned и устанавливает в слот.
-    /// Выполняется на всех клиентах после вызова с сервера.
-    /// Логика:
-    /// 1. Проверяет валидность индекса слота.
-    /// 2. Если netId != 0, находит объект по netId в словаре NetworkIdentity.spawned.
-    /// 3. Устанавливает найденный объект в слот или null, если netId = 0.
+    /// RPC: синхронизирует состояние слота для всех клиентов.
     /// </summary>
-    /// <param name="slotIndex">Индекс слота, состояние которого нужно обновить.</param>
-    /// <param name="netId">Сетевой идентификатор (netId) объекта, который должен быть в слоте.</param>
+    /// <param name="slotIndex">Индекс слота.</param>
+    /// <param name="obj">Объект в слоте.</param>
     [ClientRpc]
-    private void RpcSyncSlotState(int slotIndex, uint netId)
+    private void RpcSyncSlotState(int slotIndex, GameObject obj)
     {
-        Debug.Log($"[RpcSyncSlotState] Клиент получил обновление для слота {slotIndex}: netId {netId}");
+        Debug.Log($"[RpcSyncSlotState] Клиент получил обновление для слота {slotIndex}: объект {obj?.name ?? "null"}");
 
         if (!IsValidSlotIndex(slotIndex))
             return;
@@ -182,23 +150,7 @@ public class InventoryManager : NetworkBehaviour
         InventorySlot slot = inventorySlots[slotIndex];
         if (slot != null)
         {
-            if (netId != 0)
-            {
-                // Находим объект по netId в словаре NetworkClient.spawned
-                if (NetworkClient.spawned.TryGetValue(netId, out NetworkIdentity identity))
-                {
-                    slot.ObjectInSlot = identity.gameObject;
-                }
-                else
-                {
-                    Debug.LogWarning($"[RpcSyncSlotState] Объект с netId {netId} не найден в NetworkClient.spawned");
-                    slot.ObjectInSlot = null;
-                }
-            }
-            else
-            {
-                slot.ObjectInSlot = null;
-            }
+            slot.ObjectInSlot = obj; // Используем свойство с сеттером
         }
     }
 }

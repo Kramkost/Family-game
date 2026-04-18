@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
@@ -44,29 +43,14 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
                 SetObject(newValue);
             }
         }
-
+        
         /// <summary>
         /// Попытка добавить указанный объект в инвентарь.
         /// </summary>
         /// <param name="go">(GameObject) Объект, который нужно добавить.</param>
-        [Command]
-        public void CmdTryAddObject(GameObject go)
-        {
-            if (!isServer)
-            {
-                Debug.LogWarning("[CmdTryAddObject] Вызов с клиента без прав сервера.");
-                return;
-            }
-            
-            if (inventoryManager == null)
-            {
-                Debug.LogError("[CmdTryAddObject] InventoryManager не инициализирован!");
-                return;
-            }
-            
-            TryAddObjectToSlot(go);
-        }
-
+        //[Command]
+        public void CmdTryAddObject(GameObject go) => TryAddObjectToSlot(go);
+        
         /// <summary>
         /// Попытка добавить указанный объект в слот инвентаря.
         /// </summary>
@@ -122,41 +106,16 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         [Command]
         public void CmdChangeCurrentSlotWithVector(ChangeSlotVector vector)
         {
-            // Критическая проверка: InventoryManager должен существовать
-            if (inventoryManager == null)
+            if (!isOwned)
             {
-                Debug.LogError("[CmdChangeCurrentSlotWithVector] InventoryManager не инициализирован!");
-                return;
-            }
-
-            // Проверка валидности списка слотов
-            if (inventorySlots == null || inventorySlots.Count == 0)
-            {
-                Debug.LogError("[CmdChangeCurrentSlotWithVector] Список слотов не инициализирован или пуст!");
+                Debug.LogWarning("Нет прав для изменения слота.");
                 return;
             }
             
             int delta = vector == ChangeSlotVector.Forward ? 1 : -1;
+            
             int newSlotIndex = (currentSlot + delta + inventorySlots.Count) % inventorySlots.Count;
-             
-            // Дополнительная проверка на валидность индекса
-            if (newSlotIndex < 0 || newSlotIndex >= inventorySlots.Count)
-            {
-                Debug.LogError($"[CmdChangeCurrentSlotWithVector] Некорректный индекс слота: {newSlotIndex}");
-                return;
-            }
-
-            // Получаем слот по индексу
-            InventorySlot newSlot = inventorySlots[newSlotIndex];
-            if (newSlot == null)
-            {
-                Debug.LogError($"[CmdChangeCurrentSlotWithVector] Слот по индексу {newSlotIndex} не инициализирован!");
-                return;
-            }
-
-            // Безопасный вызов ChangeCurrentSlot с проверкой объекта в слоте
-            GameObject slotObject = newSlot.ObjectInSlot;
-            ChangeCurrentSlot(newSlot, slotObject);
+            ChangeCurrentSlot(inventorySlots[newSlotIndex], inventorySlots[newSlotIndex].ObjectInSlot);
             /*if (currentSlot == inventorySlots.Count - 1 && vector == ChangeSlotVector.Forward)
                 ChangeCurrentSlot(inventorySlots[0], inventorySlots[0].ObjectInSlot);
             else if (currentSlot == 0 && vector == ChangeSlotVector.Backward)
@@ -172,7 +131,17 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         /// <param name="go">Объект, который игрок возьмёт в руку.</param>
         private void ChangeCurrentSlot(InventorySlot slot, GameObject go)
         {
-            int value = -1;
+            int value = 0;
+
+            // Скрываем объект в текущем слоте через InventoryManager
+            if (inventoryManager != null)
+            {
+                inventoryManager.CmdHideObjectInSlot(currentSlot);
+            }
+            else
+            {
+                Debug.LogWarning("[ChangeCurrentSlot] InventoryManager не инициализирован!");
+            }
 
             for (int index = 0; index < inventorySlots.Count; index++)
             {
@@ -182,56 +151,16 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
                     break;
                 }
             }
-            
-            if (value == -1)
-            {
-                Debug.LogError("[ChangeCurrentSlot] Слот не найден в списке!");
-                return;
-            }
 
             currentSlot = value;
             objectInHand = go != null ? go : null;
 
-            // Отправляем команду на сервер для синхронизации
-            if (isLocalPlayer && isClient)
+            // Синхронизируем состояние слотов с менеджером
+            if (inventoryManager != null)
             {
-                CmdChangeCurrentSlotOnServer(currentSlot, objectInHand);
+                inventoryManager.CmdSyncSlotState(currentSlot, slot.ObjectInSlot);
+                inventoryManager.CmdShowObjectInSlot(currentSlot);
             }
-            else if (isServer)
-            {
-                // Если мы сервер, напрямую обновляем состояние
-                if (inventoryManager != null)
-                {
-                    inventoryManager.CmdSyncSlotState(currentSlot, objectInHand);
-                    inventoryManager.CmdShowObjectInSlot(currentSlot);
-                }
-            }
-        }
-        
-        private bool IsValidSlotIndex(int slotIndex)
-        {
-            return slotIndex >= 0 && slotIndex < inventorySlots.Count;
-        }
-        
-        /// <summary>
-        /// Команда для изменения текущего слота на сервере.
-        /// Вызывается с клиента, выполняется на сервере.
-        /// Обеспечивает централизованное управление инвентарём:
-        /// 1. Устанавливает текущий слот и объект в руке.
-        /// 2. Синхронизирует состояние слота для всех клиентов через InventoryManager.
-        /// 3. Показывает объект в новом слоте.
-        /// </summary>
-        /// <param name="slotIndex">Индекс слота, который нужно сделать текущим.</param>
-        /// <param name="obj">Объект, который будет в руке после смены слота.</param>
-        [Command]
-        private void CmdChangeCurrentSlotOnServer(int slotIndex, GameObject obj)
-        {
-            currentSlot = slotIndex;
-            objectInHand = obj;
-    
-            // Синхронизируем состояние слота для всех клиентов
-            inventoryManager.CmdSyncSlotState(slotIndex, obj);
-            inventoryManager.CmdShowObjectInSlot(slotIndex);
         }
 
         /// <summary>
@@ -248,55 +177,25 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
             go.GetComponent<Rigidbody>().isKinematic = true;
         }
 
-        public override void OnStartLocalPlayer()
-        {
-            base.OnStartLocalPlayer();
-            StartCoroutine(InitializeInventoryManager());
-        }
-        
-        private IEnumerator InitializeInventoryManager()
-        {
-            yield return new WaitUntil(() => NetworkClient.isConnected && NetworkClient.ready);
-
-            if (inventoryManager == null)
-            {
-                Debug.Log($"[CharacterInventory.InitializeInventoryManager] Создаём InventoryManager для локального игрока {netId}");
-
-                GameObject managerGO = new GameObject($"InventoryManager_{netId}");
-                managerGO.transform.SetParent(transform);
-                managerGO.AddComponent<NetworkIdentity>();
-                inventoryManager = managerGO.AddComponent<InventoryManager>();
-                inventoryManager.SetInventorySlots(inventorySlots.ToArray());
-                
-                // Синхронизируем создание менеджера на сервере
-                if (isServer && connectionToClient != null)
-                {
-                    NetworkServer.Spawn(managerGO,  connectionToClient);
-                    Debug.Log($"[CharacterInventory.InitializeInventoryManager] InventoryManager создан с правами для клиента {connectionToClient.connectionId}");
-                }
-                
-                Debug.Log($"[CharacterInventory.InitializeInventoryManager] InventoryManager успешно создан и инициализирован");
-            }
-            else
-            {
-                if (inventoryManager != null)
-                    Debug.Log("[CharacterInventory.InitializeInventoryManager] InventoryManager уже существует");
-                else
-                    Debug.Log($"[CharacterInventory.InitializeInventoryManager] Не создан: isLocalPlayer = {isLocalPlayer}");
-            }
-        }
-
 
         #region UnityMethods
 
         private void Awake()
         {
-            Debug.Log($"[CharacterInventory.Awake] Начало инициализации для игрока {netId}. isLocalPlayer: {isLocalPlayer}");
+            if (inventoryManager == null)
+            {
+                // Находим менеджер инвентаря при инициализации
+                inventoryManager = FindObjectOfType<InventoryManager>();
+                
+                if (inventoryManager == null)
+                {
+                    Debug.LogError("[CharacterInventory] Не найден InventoryManager в сцене!");
+                }
+            }
         }
         
         private void Start()
         {
-            StartCoroutine(InitializeInventoryManager());
             if (inventorySlots.Count > 0)
             {
                 currentSlot = 0;

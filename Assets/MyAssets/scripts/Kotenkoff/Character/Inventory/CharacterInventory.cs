@@ -26,12 +26,12 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         [SerializeField, Tooltip("Слоты инвентаря.")]
         private List<InventorySlot> inventorySlots;
 
-        // Ссылка на менеджер инвентаря
+        // Ссылка на менеджера инвентаря
         [SerializeField] private InventoryManager inventoryManager;
         
         private void OnCurrentSlotChanged(int oldValue, int newValue)
         {
-            Debug.Log($"[OnCurrentSlotChanged] Слот изменён: {oldValue} → {newValue}");
+            Debug.Log($"[OnCurrentSlotChanged] Слот изменён: {oldValue} → {newValue} для игрока {netId}");
             // Здесь можно обновить UI, подсветить слот и т. д.
             //UpdateUIForCurrentSlot(newValue);
         }
@@ -43,20 +43,29 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
                 SetObject(newValue);
             }
         }
-        
+
         /// <summary>
-        /// Попытка добавить указанный объект в инвентарь.
+        /// Попытка добавить указанный объект в инвентарь. Метод вызывается локально с проверкой isOwned.
+        /// Если игрок владеет объектом, пытается добавить предмет в текущий слот или первый свободный слот.
         /// </summary>
-        /// <param name="go">(GameObject) Объект, который нужно добавить.</param>
-        //[Command]
-        public void CmdTryAddObject(GameObject go) => TryAddObjectToSlot(go);
-        
+        /// <param name="go">Объект, который нужно добавить в инвентарь.</param>
+        public void TryAddObject(GameObject go)
+        {
+            Debug.Log($"[TryAddObject] Попытка добавить объект {go.name} в инвентарь игрока {netId}");
+
+            TryAddObjectToSlot(go);
+        }
+
         /// <summary>
-        /// Попытка добавить указанный объект в слот инвентаря.
+        /// Внутренняя логика добавления объекта в слот инвентаря.
+        /// Сначала пытается добавить в текущий слот, если он свободен.
+        /// Если текущий слот занят, ищет первый свободный слот в инвентаре.
         /// </summary>
         /// <param name="go">Объект, который нужно добавить.</param>
         private void TryAddObjectToSlot(GameObject go)
         {
+            Debug.Log($"[TryAddObjectToSlot] Попытка добавить {go.name} в слот {currentSlot}");
+
             if (!inventorySlots[currentSlot].IsOccupied)
             {
                 inventorySlots[currentSlot].TryAddToSlot(go);
@@ -67,68 +76,39 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
                 for (int index = 0; index < inventorySlots.Count; index++)
                 {
                     var slot = inventorySlots[index];
-                
+
                     if (!slot.IsOccupied)
-                    {
-                        slot.TryAddToSlot(go);
-                        ChangeCurrentSlot(slot, go);
-                    
-                        break;
-                    }
-
-                    /*if (currentSlot == index)
-                    {
-                        for (int i = index; i < inventorySlots.Count; i++)
-                        {
-                            var newSlot = inventorySlots[i];
-
-                            if (!newSlot.IsOccupied)
-                            {
-                                slot.TryAddToSlot(go);
-                                ChangeCurrentSlot(newSlot, go);
-                            }
-                        }
-                    }*/
+            {
+                slot.TryAddToSlot(go);
+                ChangeCurrentSlot(slot, go);
+                Debug.Log($"[TryAddObjectToSlot] Объект {go.name} добавлен в слот {index}");
+                break;
+            }
                 }
             }
         }
 
         /// <summary>
-        /// Изменяет выбранный слот в указанном направление.
+        /// Изменяет выбранный слот в указанном направлении (вперёд или назад).
+        /// Использует арифметику по модулю для циклического переключения слотов.
         /// </summary>
-        /// <param name="vector">Направление изменения слота. (См.  <b> пример </b> )</param>
-        /// <example> <b> Пример: </b> <br/>
-        /// (vector нужно писать с маленькой буквы)
-        ///     <code>
-        ///         inventory.ChangeCurrentSlot(ChangeSlotVector.Forward);
-        ///     </code>
-        /// </example>
-        [Command]
-        public void CmdChangeCurrentSlotWithVector(ChangeSlotVector vector)
+        /// <param name="vector">Направление изменения слота (Forward или Backward).</param>
+        public void ChangeCurrentSlotWithVector(ChangeSlotVector vector)
         {
-            if (!isOwned)
-            {
-                Debug.LogWarning("Нет прав для изменения слота.");
-                return;
-            }
-            
+            Debug.Log($"[ChangeCurrentSlotWithVector] Изменение слота для игрока {netId}, направление: {vector}");
+
             int delta = vector == ChangeSlotVector.Forward ? 1 : -1;
-            
             int newSlotIndex = (currentSlot + delta + inventorySlots.Count) % inventorySlots.Count;
             ChangeCurrentSlot(inventorySlots[newSlotIndex], inventorySlots[newSlotIndex].ObjectInSlot);
-            /*if (currentSlot == inventorySlots.Count - 1 && vector == ChangeSlotVector.Forward)
-                ChangeCurrentSlot(inventorySlots[0], inventorySlots[0].ObjectInSlot);
-            else if (currentSlot == 0 && vector == ChangeSlotVector.Backward)
-                ChangeCurrentSlot(inventorySlots[^1], inventorySlots[^1].ObjectInSlot);
-            else
-                ChangeCurrentSlot(inventorySlots[currentSlot + value], inventorySlots[currentSlot + value].ObjectInSlot);*/
         }
 
         /// <summary>
-        /// Меняет выбранный слот на указанный.
+        /// Меняет выбранный слот на указанный и обновляет состояние инвентаря.
+        /// Скрывает объект в предыдущем слоте через InventoryManager и показывает в новом.
+        /// Обновляет SyncVar currentSlot и objectInHand.
         /// </summary>
-        /// <param name="slot">Слот, который выберется</param>
-        /// <param name="go">Объект, который игрок возьмёт в руку.</param>
+        /// <param name="slot">Слот, который будет выбран.</param>
+        /// <param name="go">Объект, который игрок возьмёт в руку (может быть null).</param>
         private void ChangeCurrentSlot(InventorySlot slot, GameObject go)
         {
             int value = 0;
@@ -136,7 +116,7 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
             // Скрываем объект в текущем слоте через InventoryManager
             if (inventoryManager != null)
             {
-                inventoryManager.CmdHideObjectInSlot(currentSlot);
+                inventoryManager.HideObjectInSlot(currentSlot);
             }
             else
             {
@@ -158,25 +138,33 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
             // Синхронизируем состояние слотов с менеджером
             if (inventoryManager != null)
             {
-                inventoryManager.CmdSyncSlotState(currentSlot, slot.ObjectInSlot);
-                inventoryManager.CmdShowObjectInSlot(currentSlot);
+                inventoryManager.SyncSlotState(currentSlot, slot.ObjectInSlot);
+                inventoryManager.ShowObjectInSlot(currentSlot);
             }
+
+            Debug.Log($"[ChangeCurrentSlot] Слот изменён на {currentSlot}, объект в руке: {objectInHand?.name ?? "null"}");
         }
 
         /// <summary>
         /// Метод, который просто телепортирует указанный объект к игроку и делает его ребёнком игрока.
+        /// Устанавливает позицию в ноль относительно родителя и отключает физику.
         /// </summary>
         /// <param name="go">Объект, который нужно телепортировать.</param>
         private void SetObject(GameObject go)
         {
             if (go == null) return;
-            
+
             go.transform.SetParent(objectsParent);
             go.transform.localPosition = Vector3.zero;
-            
-            go.GetComponent<Rigidbody>().isKinematic = true;
-        }
 
+            Rigidbody rb = go.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+            }
+
+            Debug.Log($"[SetObject] Объект {go.name} перемещён в руку игрока {netId}");
+        }
 
         #region UnityMethods
 
@@ -186,14 +174,14 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
             {
                 // Находим менеджер инвентаря при инициализации
                 inventoryManager = FindObjectOfType<InventoryManager>();
-                
+
                 if (inventoryManager == null)
                 {
                     Debug.LogError("[CharacterInventory] Не найден InventoryManager в сцене!");
                 }
             }
         }
-        
+
         private void Start()
         {
             if (inventorySlots.Count > 0)
@@ -202,7 +190,7 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
             }
             else
             {
-                Debug.LogError($"[CharacterInventory] У игрока ({netId}) в инвентаре нету слотов.");
+                Debug.LogError($"[CharacterInventory] У игрока ({netId}) в инвентаре нет слотов.");
             }
         }
 

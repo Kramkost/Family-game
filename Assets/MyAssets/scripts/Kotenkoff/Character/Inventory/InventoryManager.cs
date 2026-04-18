@@ -10,94 +10,114 @@ public class InventoryManager : NetworkBehaviour
 {
     [SerializeField]
     private InventorySlot[] inventorySlots;
+    
+    // Синхронизируемое состояние видимости слотов
+    [SyncVar]
+    private int[] visibleSlots;
 
+    private void Awake()
+    {
+        if (visibleSlots == null || visibleSlots.Length != inventorySlots.Length)
+        {
+            visibleSlots = new int[inventorySlots.Length];
+        }
+    }
+    
     /// <summary>
-    /// Команда сервера: показать объект в указанном слоте.
-    /// Вызывается с клиента, выполняется на сервере, транслируется всем клиентам через Rpc.
+    /// Показать объект в указанном слоте для всех клиентов.
+    /// Вызывается с клиента, выполняется локально.
+    /// Активирует GameObject в указанном слоте и синхронизирует состояние через SyncVar (если необходимо).
     /// </summary>
     /// <param name="slotIndex">Индекс слота в массиве inventorySlots.</param>
-    [Command]
-    public void CmdShowObjectInSlot(int slotIndex)
+    public void ShowObjectInSlot(int slotIndex)
     {
-        Debug.Log($"[CmdShowObjectInSlot] Вызвано сервером для слота {slotIndex}");
+        Debug.Log($"[ShowObjectInSlot] Попытка показать объект в слоте {slotIndex} для игрока {netId}");
 
-        // Проверка корректности индекса
         if (!IsValidSlotIndex(slotIndex))
             return;
 
         InventorySlot slot = inventorySlots[slotIndex];
-
         if (slot != null && slot.ObjectInSlot != null)
         {
-            // Локально активируем объект
             slot.ObjectInSlot.SetActive(true);
-            // Отправляем RPC всем клиентам с индексом слота вместо ссылки на GameObject
-            RpcOnOffObject(slotIndex, true);
+            visibleSlots[slotIndex] = 1; // 1 = виден
+            Debug.Log($"[ShowObjectInSlot] Объект в слоте {slotIndex} активирован.");
         }
         else
         {
-            Debug.LogWarning($"[CmdShowObjectInSlot] Слот {slotIndex} пуст или не инициализирован, нечего показывать.");
+            Debug.LogWarning($"[ShowObjectInSlot] Слот {slotIndex} пуст или не инициализирован.");
         }
     }
 
     /// <summary>
-    /// Команда сервера: скрыть объект в указанном слоте.
-    /// Вызывается с клиента, выполняется на сервере, транслируется всем клиентам через Rpc.
+    /// Скрыть объект в указанном слоте для всех клиентов.
+    /// Деактивирует GameObject в указанном слоте.
     /// </summary>
     /// <param name="slotIndex">Индекс слота в массиве inventorySlots.</param>
-    [Command]
-    public void CmdHideObjectInSlot(int slotIndex)
+    public void HideObjectInSlot(int slotIndex)
     {
-        Debug.Log($"[CmdHideObjectInSlot] Вызвано сервером для слота {slotIndex}");
+        Debug.Log($"[HideObjectInSlot] Попытка скрыть объект в слоте {slotIndex} для игрока {netId}");
 
-        // Проверка корректности индекса
         if (!IsValidSlotIndex(slotIndex))
             return;
 
         InventorySlot slot = inventorySlots[slotIndex];
-
         if (slot.ObjectInSlot != null)
         {
-            // Локально деактивируем объект
             slot.ObjectInSlot.SetActive(false);
-            // Отправляем RPC всем клиентам с индексом слота вместо ссылки на GameObject
-            RpcOnOffObject(slotIndex, false);
+            visibleSlots[slotIndex] = 0; // 0 = скрыт
+            Debug.Log($"[HideObjectInSlot] Объект в слоте {slotIndex} деактивирован.");
         }
         else
         {
-            Debug.LogWarning($"[CmdHideObjectInSlot] Слот {slotIndex} пуст, нечего скрывать.");
+            Debug.LogWarning($"[HideObjectInSlot] Слот {slotIndex} пуст.");
         }
     }
 
     /// <summary>
-    /// RPC: синхронизирует состояние видимости объекта во всех слотах для всех клиентов.
-    /// Оптимизация: передаётся индекс слота вместо ссылки на GameObject для уменьшения сетевого трафика.
+    /// Хук, вызываемый при изменении visibleSlots.
+    /// Обновляет видимость объектов на всех клиентах.
     /// </summary>
-    /// <param name="slotIndex">Индекс слота, состояние которого нужно обновить.</param>
-    /// <param name="state">Требуемое состояние активности (true — показать, false — скрыть).</param>
-    [ClientRpc]
-    private void RpcOnOffObject(int slotIndex, bool state)
+    private void OnVisibleSlotsChanged(int[] oldValue, int[] newValue)
     {
-        Debug.Log($"[RpcOnOffObject] Получено клиентом: слот {slotIndex}, state={state}");
+        Debug.Log($"[OnVisibleSlotsChanged] Обновление видимости слотов для игрока {netId}");
+        for (int i = 0; i < newValue.Length; i++)
+        {
+            if (!IsValidSlotIndex(i)) continue;
 
-        // Проверка корректности индекса на клиенте
+            InventorySlot slot = inventorySlots[i];
+            if (slot != null && slot.ObjectInSlot != null)
+            {
+                slot.ObjectInSlot.SetActive(newValue[i] == 1);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Синхронизирует состояние указанного слота (объект внутри) для всех клиентов.
+    /// Обновляет ссылку на объект в слоте и обеспечивает согласованность данных между клиентами.
+    /// </summary>
+    /// <param name="slotIndex">Индекс слота.</param>
+    /// <param name="obj">Объект, находящийся в слоте (может быть null).</param>
+    public void SyncSlotState(int slotIndex, GameObject obj)
+    {
+        Debug.Log($"[SyncSlotState] Синхронизация слота {slotIndex} с объектом {obj?.name ?? "null"} для игрока {netId}");
+
         if (!IsValidSlotIndex(slotIndex))
             return;
 
         InventorySlot slot = inventorySlots[slotIndex];
-
-        if (slot.ObjectInSlot != null)
+        if (slot != null)
         {
-            slot.ObjectInSlot.SetActive(state);
-        }
-        else
-        {
-            Debug.LogWarning($"[RpcOnOffObject] Клиент: слот {slotIndex} пуст, операция игнорируется.");
+            slot.ObjectInSlot = obj;
+            Debug.Log($"[SyncSlotState] Слот {slotIndex} обновлён.");
         }
     }
 
     /// <summary>
     /// Вспомогательный метод: проверяет, является ли индекс слота корректным.
+    /// Проверяет, что индекс находится в допустимом диапазоне (0 ≤ index < длина массива слотов).
+    /// При ошибке выводит сообщение в консоль.
     /// </summary>
     /// <param name="slotIndex">Проверяемый индекс.</param>
     /// <returns>true, если индекс корректен, иначе false.</returns>
@@ -109,48 +129,5 @@ public class InventoryManager : NetworkBehaviour
             Debug.LogError($"[IsValidSlotIndex] Некорректный индекс слота: {slotIndex}. Допустимый диапазон: 0–{inventorySlots.Length - 1}");
         }
         return isValid;
-    }
-    
-    /// <summary>
-    /// Команда сервера: синхронизирует состояние указанного слота (объект внутри).
-    /// Вызывается с клиента, выполняется на сервере, транслирует состояние всем клиентам.
-    /// </summary>
-    /// <param name="slotIndex">Индекс слота.</param>
-    /// <param name="obj">Объект, находящийся в слоте (может быть null).</param>
-    [Command]
-    public void CmdSyncSlotState(int slotIndex, GameObject obj)
-    {
-        if (!isServer) return;
-        Debug.Log($"[CmdSyncSlotState] Синхронизация слота {slotIndex} с объектом {obj?.name ?? "null"}");
-
-        if (!IsValidSlotIndex(slotIndex))
-            return;
-
-        InventorySlot slot = inventorySlots[slotIndex];
-        if (slot != null)
-        {
-            slot.ObjectInSlot = obj; // Обновляем состояние слота на сервере
-            RpcSyncSlotState(slotIndex, obj); // Транслируем всем клиентам
-        }
-    }
-
-    /// <summary>
-    /// RPC: синхронизирует состояние слота для всех клиентов.
-    /// </summary>
-    /// <param name="slotIndex">Индекс слота.</param>
-    /// <param name="obj">Объект в слоте.</param>
-    [ClientRpc]
-    private void RpcSyncSlotState(int slotIndex, GameObject obj)
-    {
-        Debug.Log($"[RpcSyncSlotState] Клиент получил обновление для слота {slotIndex}: объект {obj?.name ?? "null"}");
-
-        if (!IsValidSlotIndex(slotIndex))
-            return;
-
-        InventorySlot slot = inventorySlots[slotIndex];
-        if (slot != null)
-        {
-            slot.ObjectInSlot = obj; // Используем свойство с сеттером
-        }
     }
 }

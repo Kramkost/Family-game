@@ -75,7 +75,7 @@ namespace MyAssets.scripts.Kotenkoff.Character
             if (!isLocalPlayer) return;
             if (!isOwned) return;
             
-            characterInventory.CmdChangeCurrentSlotWithVector(ChangeSlotVector.Forward);
+            characterInventory.ChangeCurrentSlotWithVector(ChangeSlotVector.Forward);
         }
 
         private void OnPrevious(InputValue value)
@@ -84,7 +84,7 @@ namespace MyAssets.scripts.Kotenkoff.Character
             if (!isLocalPlayer) return;
             if (!isOwned) return;
             
-            characterInventory.CmdChangeCurrentSlotWithVector(ChangeSlotVector.Backward);
+            characterInventory.ChangeCurrentSlotWithVector(ChangeSlotVector.Backward);
         }
         
         #endregion

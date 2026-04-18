@@ -25,6 +25,6 @@ namespace MyAssets.scripts.Kotenkoff.Items
         protected string itemDescription;
         public string ItemDescription => itemDescription;
         
-        public void TryInteract(CharacterInventory inventory) => inventory.CmdTryAddObject(gameObject);
+        public void TryInteract(CharacterInventory inventory) => inventory.TryAddObject(gameObject);
     }
 }

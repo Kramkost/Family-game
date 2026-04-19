@@ -50,7 +50,7 @@ namespace MyAssets.scripts.Kotenkoff.Character
             
             if (characterBase.FpCamera == null)
             {
-                //TargetMessage("Ошибка: не удалось получить камеру для взаимодействия.");
+                TargetMessage("Ошибка: не удалось получить камеру для взаимодействия.");
                 return;
             }
 
@@ -63,7 +63,7 @@ namespace MyAssets.scripts.Kotenkoff.Character
             }
             else
             {
-                TargetMessage("Нет объекта для взаимодействия.");
+                TargetMessage("Нет объекта для взаимодействия. Возможно он не на слое взаимодействия.");
             }
         }
         
@@ -73,34 +73,34 @@ namespace MyAssets.scripts.Kotenkoff.Character
             // Валидация инвентаря
             if (characterInventory == null)
             {
-                //TargetMessage("Ошибка: инвентарь не инициализирован!");
+                TargetMessage("Ошибка: инвентарь не инициализирован!");
                 return;
             }
 
             // Валидация объекта
             if (targetObject == null)
             {
-                //TargetMessage("Ошибка: целевой объект не существует.");
+                TargetMessage("Ошибка: целевой объект не существует.");
                 return;
             }
 
-            float distanceToObject = Vector3.Distance(transform.position, targetObject.transform.position);
+            var distanceToObject = Vector3.Distance(transform.position, targetObject.transform.position);
             if (distanceToObject > interactionDistance)
             {
-                //TargetMessage($"Ошибка: объект слишком далеко ({distanceToObject:F2}м > {interactionDistance}м)");
+                TargetMessage($"Ошибка: объект слишком далеко ({distanceToObject:F2}м > {interactionDistance}м)");
                 return;
             }
 
             // Проверка компонента и выполнение взаимодействия
             if (targetObject.TryGetComponent(out IInteractableTest interactableTest))
             {
+                TargetMessage("На нём есть этот интерфейс.");
                 interactableTest.TryInteract(characterInventory);
-                //interactableTest.TryInteract(characterInventory);
-                //TargetMessage($"Сервер подтвердил взаимодействие игрока {netId} с '{targetObject.name}'");
+                TargetMessage($"Сервер подтвердил взаимодействие игрока {netId} с '{targetObject.name}'");
             }
             else
             {
-                //TargetMessage($"Ошибка: объект '{targetObject.name}' не поддерживает взаимодействие.");
+                TargetMessage($"Ошибка: объект '{targetObject.name}' не поддерживает взаимодействие.");
             }
         }
         
@@ -110,7 +110,7 @@ namespace MyAssets.scripts.Kotenkoff.Character
         /// При включённом drawRayForDebug визуализирует луч для отладки.
         /// </summary>
         /// <param name="hitObject">Найденный объект взаимодействия (если есть)</param>
-        /// <returns>true, если Raycast нашёл объект; false в противном случае</returns>
+        /// <returns>True, если Raycast нашёл объект; false в противном случае</returns>
         private bool ClientTryInteract(out GameObject hitObject)
         {
             hitObject = null;
@@ -126,7 +126,7 @@ namespace MyAssets.scripts.Kotenkoff.Character
             if (Physics.Raycast(localRay, out hit, interactionDistance, raycastLayerMasks))
             {
                 hitObject = hit.collider.gameObject;
-                //TargetMessage($"Клиент {netId} нашёл объект: '{hitObject.name}' на расстоянии {hit.distance:F2}м");
+                TargetMessage($"Клиент {netId} нашёл объект: '{hitObject.name}' на расстоянии {hit.distance:F2}м");
                 return true;
             }
 

@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 
 [CustomEditor(typeof(TheBlindWeaver))]
-public sealed class TheBlindWeaverEditor : Editor
+public sealed class TheBlindWeaverEditor : UnityEditor.Editor
 {
     TheBlindWeaver monster;
 

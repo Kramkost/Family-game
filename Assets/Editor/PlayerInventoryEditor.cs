@@ -3,6 +3,6 @@ using UnityEditor;
 using UnityEngine;
 
 [CustomEditor(typeof(PlayerInventory))]
-public class PlayerInventoryEditor : Editor
+public class PlayerInventoryEditor : UnityEditor.Editor
 {
 }

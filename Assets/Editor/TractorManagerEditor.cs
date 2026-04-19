@@ -3,7 +3,7 @@ using UnityEngine;
 using Kotenkoff; 
 
 [CustomEditor(typeof(TractorManager))]
-public class TractorManagerEditor : Editor
+public class TractorManagerEditor : UnityEditor.Editor
 {
     public override void OnInspectorGUI()
     {

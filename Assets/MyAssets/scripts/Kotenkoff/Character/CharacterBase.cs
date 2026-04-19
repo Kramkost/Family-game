@@ -20,11 +20,12 @@ namespace MyAssets.scripts.Kotenkoff.Character
         [Header("Компоненты:")]
         [SerializeField, Tooltip("Ссылка на компонент 'CharacterMovement'"), FormerlySerializedAs("newCharacterController")]
         private CharacterMovement characterMovement;
-        [SerializeField, Tooltip("Ссылка на компонент 'CharacterInventory'")]
+        [SerializeField, Tooltip("Ссылка на компонент 'CharacterInventory'.")]
         private CharacterInventory characterInventory;
-        [SerializeField, Tooltip("Ссылка на компонент 'CharacterInteract'")]
+        [SerializeField, Tooltip("Ссылка на компонент 'CharacterInteract'.")]
         private  CharacterInteract characterInteract;
-
+        [SerializeField, Tooltip("Ссылка на компонент 'PlayerInput'.")]
+        private PlayerInput playerInput;
         
         public CinemachineCamera FpCamera { get; set; }
         

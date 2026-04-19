@@ -3,7 +3,7 @@ using UnityEngine;
 using Kotenkoff; // Не забудь твой неймспейс, если CarInteractivePart лежит в нем!
 
 [CustomEditor(typeof(CarInteractivePart))]
-public class CarInteractivePartEditor : Editor
+public class CarInteractivePartEditor : UnityEditor.Editor
 {
     // Кэшируем переменные для оптимизации (Best Practice для инспекторов)
     SerializedProperty actionType;

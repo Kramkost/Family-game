@@ -36,6 +36,30 @@ namespace MyAssets.scripts.Kotenkoff.Character
         private float pitchLimit = 85f;
         [SerializeField, ReadOnly, Tooltip("Текущий угол вертикального обзора.")]
         private float currentPitch;
+        
+        [SerializeField, Tooltip("Может ли игрок передвигаться?"), Space(5)] private bool canMove = true;
+        /// <summary> Может ли игрок передвигаться?/// </summary>
+        public bool CanMove
+        {
+            get => canMove1;
+            set => canMove1 = value;
+        }
+
+        [SerializeField, Tooltip("Может ли игрок смотреть")] private bool canLook = true;
+        /// <summary>Может ли игрок смотреть?</summary>
+        public bool CanLook
+        {
+            get => canLook;
+            set => canLook = value;
+        }
+        
+        [SerializeField, Tooltip("Может ли игрок прыгать?")] private bool canJump = true;
+        /// <summary>Может ли игрок прыгать?</summary>
+        public bool CanJump
+        {
+            get => canJump;
+            set => canJump = value;
+        }
 
         private float CurrentPitch
         {
@@ -82,7 +106,8 @@ namespace MyAssets.scripts.Kotenkoff.Character
         private CharacterController characterController;
         [SerializeField, Tooltip("Ссылка на компонент 'CharacterBase'")]
         private CharacterBase characterBase;
-        
+
+        [SerializeField] private bool canMove1;
 
 
         #region Unity Methods
@@ -100,9 +125,9 @@ namespace MyAssets.scripts.Kotenkoff.Character
         {
             if (!isLocalPlayer) return;
             
-            MoveUpdate();
-            LookUpdate();
-            CameraUpdate();
+            if (canMove) MoveUpdate();
+            if (canLook) LookUpdate();
+            if (canLook) CameraUpdate();
         }
         
         #endregion

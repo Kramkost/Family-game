@@ -15,7 +15,10 @@ namespace MyAssets.scripts.Kotenkoff.Character
         [Header("Настройки:")]
         [SerializeField] private float scanRange = 3f;
         [SerializeField] private LayerMask scanLayerMasks;
-        private Transform cameraTransform;
+        [SerializeField] private Transform cameraTransform;
+
+        [Header("Debug:")]
+        [SerializeField] private bool visibleRay;
         
         [Header("Компоненты:")]
         [SerializeField] private CharacterBase characterBase;
@@ -34,6 +37,8 @@ namespace MyAssets.scripts.Kotenkoff.Character
         {
             if (!isLocalPlayer || cameraTransform == null || itemNameTextUI == null || descriptionTextUI == null || tooltipTextUI == null) return;
 
+            if (visibleRay) Debug.DrawRay(cameraTransform.position, cameraTransform.forward * scanRange, Color.red);
+            
             if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out var hit, scanRange,
                     scanLayerMasks))
             {

@@ -855,7 +855,9 @@ MonoBehaviour:
   scanRange: 3
   scanLayerMasks:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 8
+  cameraTransform: {fileID: 7058768724373565196}
+  visibleRay: 0
   characterBase: {fileID: 4495125535019107983}
 --- !u!1 &7667143326795065028
 GameObject:

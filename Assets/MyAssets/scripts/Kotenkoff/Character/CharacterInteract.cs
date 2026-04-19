@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Mirror;
 using MyAssets.scripts.Kotenkoff.Character.Interfaces;
 using MyAssets.scripts.Kotenkoff.Character.Inventory;
@@ -58,7 +59,13 @@ namespace MyAssets.scripts.Kotenkoff.Character
             {
                 if (isOwned)
                 {
-                    CmdTryInteractOnServer(hitObject);
+                    var rootIdentity = hitObject.GetComponentInParent<NetworkIdentity>();
+                    var interactable =  hitObject.GetComponentInParent<IInteractableTest>();
+
+                    if (interactable != null && rootIdentity != null)
+                    {
+                        CmdTryInteractOnServer(hitObject.GetComponentInParent<NetworkIdentity>(), ((Component)interactable).gameObject.name);
+                    }
                 }
             }
             else
@@ -68,7 +75,7 @@ namespace MyAssets.scripts.Kotenkoff.Character
         }
         
         [Command]
-        private void CmdTryInteractOnServer(GameObject targetObject)
+        private void CmdTryInteractOnServer(NetworkIdentity rootIdentity, string targetName)
         {
             // Валидация инвентаря
             if (characterInventory == null)
@@ -78,29 +85,32 @@ namespace MyAssets.scripts.Kotenkoff.Character
             }
 
             // Валидация объекта
-            if (targetObject == null)
+            if (rootIdentity == null)
             {
                 TargetMessage("Ошибка: целевой объект не существует.");
                 return;
             }
 
-            var distanceToObject = Vector3.Distance(transform.position, targetObject.transform.position);
+            var distanceToObject = Vector3.Distance(transform.position, rootIdentity.transform.position);
             if (distanceToObject > interactionDistance)
             {
                 TargetMessage($"Ошибка: объект слишком далеко ({distanceToObject:F2}м > {interactionDistance}м)");
                 return;
             }
+            
+            CmdInteract(rootIdentity, targetName);
+        }
+        
+        private void CmdInteract(NetworkIdentity rootIdentity, string targetName)
+        {
+            if (rootIdentity == null || string.IsNullOrEmpty(targetName)) return;
 
-            // Проверка компонента и выполнение взаимодействия
-            if (targetObject.TryGetComponent(out IInteractableTest interactableTest))
+            foreach (Transform child in rootIdentity.GetComponentsInChildren<Transform>())
             {
-                TargetMessage("На нём есть этот интерфейс.");
+                if (child.name != targetName ||
+                    !child.TryGetComponent(out IInteractableTest interactableTest)) continue;
                 interactableTest.TryInteract(characterInventory);
-                TargetMessage($"Сервер подтвердил взаимодействие игрока {netId} с '{targetObject.name}'");
-            }
-            else
-            {
-                TargetMessage($"Ошибка: объект '{targetObject.name}' не поддерживает взаимодействие.");
+                return;
             }
         }
         

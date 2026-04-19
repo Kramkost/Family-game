@@ -14,9 +14,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/BaseScene.unity
     guid: d301e04e01cb284988083c48b5454cd6
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/NewGame.unity
     guid: ee16a57ba66ba1d44a4eaae86def5e7d
+  - enabled: 1
+    path: Assets/Scenes/Vehicle.unity
+    guid: 2f3dd86f96c8b6848b6eb3ee55eaf6fa
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   m_UseUCBPForAssetBundles: 0

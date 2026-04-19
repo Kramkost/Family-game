@@ -199,6 +199,15 @@
             "id": "159e2988-f8f1-42ab-8f1e-cb845fcef24b",
             "actions": [
                 {
+                    "name": "Look",
+                    "type": "Value",
+                    "id": "e51f4e90-f82f-40bb-9dd6-57249999f251",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
                     "name": "Movement",
                     "type": "Value",
                     "id": "aadc8890-e925-40f4-9e72-f6b2aadb4fa1",
@@ -218,6 +227,17 @@
                 }
             ],
             "bindings": [
+                {
+                    "name": "",
+                    "id": "0732a728-1bb3-4499-8ce3-2015e509d113",
+                    "path": "<Pointer>/delta",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Look",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
                 {
                     "name": "2D Vector",
                     "id": "d3c66de4-9e91-41a4-bcf7-9f025aa47a45",

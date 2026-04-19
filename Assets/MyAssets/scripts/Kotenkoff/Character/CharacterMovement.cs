@@ -41,8 +41,8 @@ namespace MyAssets.scripts.Kotenkoff.Character
         /// <summary> Может ли игрок передвигаться?/// </summary>
         public bool CanMove
         {
-            get => canMove1;
-            set => canMove1 = value;
+            get => canMove;
+            set => canMove = value;
         }
 
         [SerializeField, Tooltip("Может ли игрок смотреть")] private bool canLook = true;
@@ -106,9 +106,6 @@ namespace MyAssets.scripts.Kotenkoff.Character
         private CharacterController characterController;
         [SerializeField, Tooltip("Ссылка на компонент 'CharacterBase'")]
         private CharacterBase characterBase;
-
-        [SerializeField] private bool canMove1;
-
 
         #region Unity Methods
 

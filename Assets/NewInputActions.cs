@@ -285,6 +285,15 @@ public partial class @NewInputActions: IInputActionCollection2, IDisposable
             ""id"": ""159e2988-f8f1-42ab-8f1e-cb845fcef24b"",
             ""actions"": [
                 {
+                    ""name"": ""Look"",
+                    ""type"": ""Value"",
+                    ""id"": ""e51f4e90-f82f-40bb-9dd6-57249999f251"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
                     ""name"": ""Movement"",
                     ""type"": ""Value"",
                     ""id"": ""aadc8890-e925-40f4-9e72-f6b2aadb4fa1"",
@@ -304,6 +313,17 @@ public partial class @NewInputActions: IInputActionCollection2, IDisposable
                 }
             ],
             ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""0732a728-1bb3-4499-8ce3-2015e509d113"",
+                    ""path"": ""<Pointer>/delta"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Look"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
                 {
                     ""name"": ""2D Vector"",
                     ""id"": ""d3c66de4-9e91-41a4-bcf7-9f025aa47a45"",
@@ -386,6 +406,7 @@ public partial class @NewInputActions: IInputActionCollection2, IDisposable
         m_Gameplay_Previous = m_Gameplay.FindAction("Previous", throwIfNotFound: true);
         // Vehicle
         m_Vehicle = asset.FindActionMap("Vehicle", throwIfNotFound: true);
+        m_Vehicle_Look = m_Vehicle.FindAction("Look", throwIfNotFound: true);
         m_Vehicle_Movement = m_Vehicle.FindAction("Movement", throwIfNotFound: true);
         m_Vehicle_Break = m_Vehicle.FindAction("Break", throwIfNotFound: true);
     }
@@ -631,6 +652,7 @@ public partial class @NewInputActions: IInputActionCollection2, IDisposable
     // Vehicle
     private readonly InputActionMap m_Vehicle;
     private List<IVehicleActions> m_VehicleActionsCallbackInterfaces = new List<IVehicleActions>();
+    private readonly InputAction m_Vehicle_Look;
     private readonly InputAction m_Vehicle_Movement;
     private readonly InputAction m_Vehicle_Break;
     /// <summary>
@@ -644,6 +666,10 @@ public partial class @NewInputActions: IInputActionCollection2, IDisposable
         /// Construct a new instance of the input action map wrapper class.
         /// </summary>
         public VehicleActions(@NewInputActions wrapper) { m_Wrapper = wrapper; }
+        /// <summary>
+        /// Provides access to the underlying input action "Vehicle/Look".
+        /// </summary>
+        public InputAction @Look => m_Wrapper.m_Vehicle_Look;
         /// <summary>
         /// Provides access to the underlying input action "Vehicle/Movement".
         /// </summary>
@@ -678,6 +704,9 @@ public partial class @NewInputActions: IInputActionCollection2, IDisposable
         {
             if (instance == null || m_Wrapper.m_VehicleActionsCallbackInterfaces.Contains(instance)) return;
             m_Wrapper.m_VehicleActionsCallbackInterfaces.Add(instance);
+            @Look.started += instance.OnLook;
+            @Look.performed += instance.OnLook;
+            @Look.canceled += instance.OnLook;
             @Movement.started += instance.OnMovement;
             @Movement.performed += instance.OnMovement;
             @Movement.canceled += instance.OnMovement;
@@ -695,6 +724,9 @@ public partial class @NewInputActions: IInputActionCollection2, IDisposable
         /// <seealso cref="VehicleActions" />
         private void UnregisterCallbacks(IVehicleActions instance)
         {
+            @Look.started -= instance.OnLook;
+            @Look.performed -= instance.OnLook;
+            @Look.canceled -= instance.OnLook;
             @Movement.started -= instance.OnMovement;
             @Movement.performed -= instance.OnMovement;
             @Movement.canceled -= instance.OnMovement;
@@ -798,6 +830,13 @@ public partial class @NewInputActions: IInputActionCollection2, IDisposable
     /// <seealso cref="VehicleActions.RemoveCallbacks(IVehicleActions)" />
     public interface IVehicleActions
     {
+        /// <summary>
+        /// Method invoked when associated input action "Look" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnLook(InputAction.CallbackContext context);
         /// <summary>
         /// Method invoked when associated input action "Movement" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>

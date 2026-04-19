@@ -26,26 +26,11 @@ namespace MyAssets.scripts.Kotenkoff.Vehicle
         [SerializeField, Tooltip("Привод транспорта.")]
         private Enums.VehicleActuator vehicleActuator;
         
-        
-        
-        
-        
-        [ReadOnly, SerializeField, Header("(ReadOnly):")] private Vector2 moveInput;
+        [ReadOnly, SerializeField, Header("(ReadOnly):")] public Vector2 moveInput;
         
         [SerializeField, ReadOnly, Tooltip("Крутятся ли сейчас колёса?")] private bool isMove;
-        [SerializeField, ReadOnly, Tooltip("Опущен ли ручник?")] private bool isBreak;
+        [SerializeField, ReadOnly, Tooltip("Опущен ли ручник?")] public bool isBreak;
         [SerializeField, ReadOnly, Tooltip("Поворачиваются ли сейчас колёса?")] private bool isRotate;
-
-        private void OnMovement(InputValue value)
-        {
-            moveInput = value.Get<Vector2>();
-        }
-
-        private void OnBreak(InputValue value)
-        {
-            isBreak = !isBreak;
-        }
-
 
         private void Update()
         {

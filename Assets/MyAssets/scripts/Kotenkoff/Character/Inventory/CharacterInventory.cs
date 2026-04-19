@@ -57,8 +57,8 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
         }
 
         /// <summary>
-        /// Внутренняя логика добавления объекта в слот инвентаря.
-        /// Сначала пытается добавить в текущий слот, если он свободен.
+        /// Внутренняя логика добавления объекта в слот инвентаря. <br/>
+        /// Сначала пытается добавить в текущий слот, если он свободен. <br/>
         /// Если текущий слот занят, ищет первый свободный слот в инвентаре.
         /// </summary>
         /// <param name="go">Объект, который нужно добавить.</param>
@@ -78,12 +78,12 @@ namespace MyAssets.scripts.Kotenkoff.Character.Inventory
                     var slot = inventorySlots[index];
 
                     if (!slot.IsOccupied)
-            {
-                slot.TryAddToSlot(go);
-                ChangeCurrentSlot(slot, go);
-                Debug.Log($"[TryAddObjectToSlot] Объект {go.name} добавлен в слот {index}");
-                break;
-            }
+                    {
+                        slot.TryAddToSlot(go);
+                        ChangeCurrentSlot(slot, go);
+                        Debug.Log($"[TryAddObjectToSlot] Объект {go.name} добавлен в слот {index}");
+                        break;
+                    }
                 }
             }
         }

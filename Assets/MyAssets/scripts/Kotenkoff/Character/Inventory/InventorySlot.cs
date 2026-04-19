@@ -1,67 +1,107 @@
-using System;
 using UnityEngine;
+using UnityEngine.UI;
 
-namespace MyAssets.scripts.Kotenkoff.Character.Inventory
+/// <summary>
+/// Компонент визуального слота инвентаря. <br/>
+/// Отображает иконку, количество, состояние выделения. <br/>
+/// Обрабатывает клик.
+/// </summary>
+public class InventorySlot : MonoBehaviour
 {
+    [Header("UI Элементы")]
+    [SerializeField, Tooltip("Изображение иконки предмета.")]
+    private Image itemIconImage;
+
+    [SerializeField, Tooltip("Текст для отображения количества.")]
+    private Text itemCountText;
+
+    [SerializeField, Tooltip("Объект-индикатор выделения (например, рамка).")]
+    private GameObject selectedIndicator;
+
+    private int slotIndex;
+
     /// <summary>
-    /// Класс, представляющий слот инвентаря. Хранит данные о содержимом слота без сетевой логики.
+    /// Устанавливает индекс слота.
     /// </summary>
-    [Serializable]
-    public class InventorySlot
+    /// <param name="index">Индекс слота.</param>
+    public void SetSlotIndex(int index)
     {
-        [SerializeField]
-        private GameObject objectInSlot;
-        /// <summary>
-        /// Объект, находящийся в слоте.
-        /// </summary>
-        public GameObject ObjectInSlot
+        this.slotIndex = index;
+        Debug.Log($"[InventorySlot.SetSlotIndex] Слоту {gameObject.name} присвоен индекс {index}");
+    }
+
+    /// <summary>
+    /// Обновляет визуальное состояние слота на основе ItemStack. <br/>
+    /// Получает иконку и данные через компонент Item.
+    /// </summary>
+    /// <param name="itemStack">Текущий стек в слоте.</param>
+    public void UpdateSlot(ItemStack itemStack)
+    {
+        if (itemStack.isEmpty)
         {
-            get => objectInSlot;
-            set
-            {
-                objectInSlot = value;
-                isOccupied = value != null; // Автоматически обновляем флаг занятости
-            }
+            itemIconImage.enabled = false;
+            itemCountText.text = "";
+            Debug.Log($"[InventorySlot.UpdateSlot] Слот {slotIndex} пуст");
+            return;
         }
 
-        [SerializeField]
-        private bool isOccupied;
-        /// <summary>
-        /// Флаг занятости слота (только для чтения).
-        /// </summary>
-        public bool IsOccupied => isOccupied;
+        itemIconImage.enabled = true;
 
-        /// <summary>
-        /// Попытка добавления указанного объекта в слот.
-        /// </summary>
-        /// <param name="go">Объект, который мы хотим добавить.</param>
-        public void TryAddToSlot(GameObject go)
+        // Получаем компонент Item из сетевого объекта
+        Item itemComponent = itemStack.itemNetId.GetComponent<Item>();
+        if (itemComponent != null)
         {
-            if (isOccupied)
+            Sprite icon = itemComponent.GetIcon();
+            if (icon != null)
             {
-                Debug.LogWarning($"[InventorySlot] Предупреждение! Невозможно добавить предмет в слот, т.к. он занят ({objectInSlot}).");
+                itemIconImage.sprite = icon;
+                Debug.Log($"[InventorySlot.UpdateSlot] Установлена иконка для {itemComponent.ItemName}");
             }
             else
             {
-                objectInSlot = go;
-                isOccupied = true;
+                itemIconImage.color = Color.gray;
+                Debug.LogWarning($"[InventorySlot.UpdateSlot] Иконка не найдена для {itemStack.itemNetId.name}");
             }
         }
-
-        /// <summary>
-        /// Попытка очистки слота.
-        /// </summary>
-        public void TryRemoveFromSlot()
+        else
         {
-            if (isOccupied)
-            {
-                objectInSlot = null;
-                isOccupied = false;
-            }
-            else
-            {
-                Debug.LogError($"[InventorySlot] Ошибка! Невозможно очистить слот, т.к. он пустой.");
-            }
+            itemIconImage.color = Color.magenta; // Визуальная ошибка (нет Item)
+            Debug.LogError($"[InventorySlot.UpdateSlot] У объекта {itemStack.itemNetId.name} нет компонента Item!");
+        }
+
+        // Обновляем текст количества
+        itemCountText.text = itemStack.count > 1 ? itemStack.count.ToString() : "";
+    }
+
+    /// <summary>
+    /// Устанавливает состояние выделения слота. <br/>
+    /// Активирует индикатор (например, рамку).
+    /// </summary>
+    /// <param name="selected">True — слот выбран.</param>
+    public void SetSelected(bool selected)
+    {
+        if (selectedIndicator != null)
+        {
+            selectedIndicator.SetActive(selected);
+            Debug.Log($"[InventorySlot.SetSelected] Слот {slotIndex} {(selected ? "выделен" : "снят с выделения")}");
+        }
+    }
+
+    /// <summary>
+    /// Вызывается при клике по слоту в UI. <br/>
+    /// Передаёт событие в родительский InventoryManager.
+    /// </summary>
+    public void OnClick()
+    {
+        Debug.Log($"[InventorySlot.OnClick] Клик по слоту {slotIndex}");
+        InventoryManager manager = GetComponentInParent<InventoryManager>();
+        if (manager != null)
+        {
+            manager.OnSlotClicked(slotIndex);
+        }
+        else
+        {
+            Debug.LogError($"[InventorySlot.OnClick] Не найден InventoryManager для слота {slotIndex}");
         }
     }
 }

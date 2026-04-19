@@ -446,9 +446,12 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  itemType: 1
+  itemType: 6
   itemName: 
   itemDescription: 
+  itemTooltip: "[E] \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C"
+  itemIcon: {fileID: 21300000, guid: e0676d701195425ddb653cf01555e595, type: 3}
+  spriteRenderer: {fileID: 0}
 --- !u!114 &785312757
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -823,9 +826,12 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  itemType: 1
+  itemType: 6
   itemName: 
   itemDescription: 
+  itemTooltip: "[E] \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C"
+  itemIcon: {fileID: 21300000, guid: 2ee667b12584a147780c708df1f0a4fa, type: 3}
+  spriteRenderer: {fileID: 0}
 --- !u!114 &1144025718
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1079,9 +1085,12 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  itemType: 1
+  itemType: 6
   itemName: 
   itemDescription: 
+  itemTooltip: "[E] \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C"
+  itemIcon: {fileID: 21300000, guid: 3d62dbfd8f6e438c1af384de63e5bcd2, type: 3}
+  spriteRenderer: {fileID: 0}
 --- !u!114 &1703980409
 MonoBehaviour:
   m_ObjectHideFlags: 0

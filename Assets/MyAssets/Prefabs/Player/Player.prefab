@@ -337,6 +337,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
@@ -692,7 +693,6 @@ MonoBehaviour:
   sprintInput: 0
   characterController: {fileID: 2159206030889094335}
   characterBase: {fileID: 4495125535019107983}
-  canMove1: 0
 --- !u!114 &4495125535019107983
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -708,10 +708,13 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  currentSeat: {fileID: 0}
+  isSeat: 0
   characterMovement: {fileID: 1757167434776814271}
   characterInventory: {fileID: 7301854034954920575}
   characterInteract: {fileID: 6174494992730519192}
   playerInput: {fileID: 2984295876161190274}
+  characterController: {fileID: 2159206030889094335}
 --- !u!114 &1316936144944312031
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -761,17 +764,10 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  objectsParent: {fileID: 980464516860148389}
-  objectInHand: {fileID: 0}
   currentSlot: 0
-  inventorySlots:
-  - objectInSlot: {fileID: 0}
-    isOccupied: 0
-  - objectInSlot: {fileID: 0}
-    isOccupied: 0
-  - objectInSlot: {fileID: 0}
-    isOccupied: 0
-  inventoryManager: {fileID: -1210514264585547744}
+  selectedItemId: 0
+  selectedItemAmount: 0
+  slotCount: 3
 --- !u!114 &-1210514264585547744
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -787,13 +783,10 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  inventorySlots:
-  - objectInSlot: {fileID: 0}
-    isOccupied: 0
-  - objectInSlot: {fileID: 0}
-    isOccupied: 0
-  - objectInSlot: {fileID: 0}
-    isOccupied: 0
+  inventorySlotPrefab: {fileID: 0}
+  slotsContainer: {fileID: 0}
+  dropKey: 103
+  itemCountText: {fileID: 0}
 --- !u!114 &6174494992730519192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -810,12 +803,11 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   interactionDistance: 5
-  raycastLayerMasks:
+  interactKey: 101
+  interactLayer:
     serializedVersion: 2
-    m_Bits: 8
-  drawRayForDebug: 1
-  characterInventory: {fileID: 7301854034954920575}
-  characterBase: {fileID: 4495125535019107983}
+    m_Bits: 0
+  cameraTransform: {fileID: 7058768724373565196}
 --- !u!114 &4949650617561783522
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -855,7 +847,7 @@ MonoBehaviour:
   scanRange: 3
   scanLayerMasks:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 520
   cameraTransform: {fileID: 7058768724373565196}
   visibleRay: 0
   characterBase: {fileID: 4495125535019107983}

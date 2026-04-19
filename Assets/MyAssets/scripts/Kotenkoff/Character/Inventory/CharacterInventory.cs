@@ -1,199 +1,261 @@
 using System.Collections.Generic;
 using Mirror;
+using MyAssets.scripts.Kotenkoff.Items;
 using UnityEngine;
 
-namespace MyAssets.scripts.Kotenkoff.Character.Inventory
+/// <summary>
+/// Сетевой инвентарь игрока. <br/>
+/// Хранит слоты, текущий слот, обрабатывает добавление/удаление предметов. <br/>
+/// Все изменения происходят на сервере — клиент только отправляет запросы.
+/// </summary>
+[RequireComponent(typeof(NetworkIdentity))]
+public class CharacterInventory : NetworkBehaviour
 {
-    public sealed class CharacterInventory : NetworkBehaviour
+    /// <summary>
+    /// Синхронизированная переменная: текущий активный слот. <br/>
+    /// Изменяется на сервере, обновляет UI через хук <see cref="ShowObjectInSlot"/>.
+    /// </summary>
+    [SyncVar(hook = nameof(ShowObjectInSlot))]
+    public int currentSlot = 0;
+
+    /// <summary>
+    /// Синхронизированная переменная: предыдущий слот. <br/>
+    /// Используется для снятия выделения с прошлого слота через хук <see cref="HideObjectInSlot"/>.
+    /// </summary>
+    [SyncVar(hook = nameof(HideObjectInSlot))]
+    private int previousSlot = 0;
+
+    /// <summary>
+    /// Синхронизированная переменная: сетевой ID предмета в текущем слоте. <br/>
+    /// Используется для UI (например, отображение имени).
+    /// </summary>
+    [SyncVar] public uint selectedItemId;
+
+    /// <summary>
+    /// Синхронизированная переменная: количество предметов в текущем слоте. <br/>
+    /// Используется для отображения числа в UI.
+    /// </summary>
+    [SyncVar] public int selectedItemAmount;
+
+    /// <summary>
+    /// Количество слотов инвентаря. <br/>
+    /// Настраивается в инспекторе. <br/>
+    /// Клавиши 1, 2, 3... будут соответствовать слотам от 0 до slotCount-1.
+    /// </summary>
+    [SerializeField, Tooltip("Количество слотов инвентаря (настраивается в инспекторе).")]
+    private int slotCount = 6;
+
+    /// <summary>
+    /// Синхронизированный список стеков предметов. <br/>
+    /// Автоматически синхронизируется между сервером и клиентами.
+    /// </summary>
+    public SyncList<ItemStack> slots = new SyncList<ItemStack>();
+
+    /// <summary>
+    /// Ссылка на менеджер UI инвентаря (InventoryManager). <br/>
+    /// Инициализируется на клиенте при старте.
+    /// </summary>
+    private InventoryManager uiManager;
+
+    /// <summary>
+    /// Вызывается при инициализации компонента. <br/>
+    /// Заполняет слоты пустыми значениями.
+    /// </summary>
+    private void Awake()
     {
-        [SerializeField, Tooltip("Родитель для объектов в руке.")]
-        private Transform objectsParent;
-        
-        [SerializeField, Tooltip("Объект, который персонаж держит сейчас в руке."), Space(3)]
-        [SyncVar(hook = nameof(OnObjectInHandChanged))] private GameObject objectInHand;
-        /// <summary>
-        /// Объект, который сейчас находится в руке.
-        /// </summary>
-        public GameObject ObjectInHand => objectInHand;
-        
-        [SerializeField, Tooltip("Выбранный слот."), ReadOnly, SyncVar(hook = nameof(OnCurrentSlotChanged))]
-        private int currentSlot;
-        /// <summary>
-        /// Выбранный слот.
-        /// </summary>
-        public int CurrentSlot => currentSlot;
-        
-        [SerializeField, Tooltip("Слоты инвентаря.")]
-        private List<InventorySlot> inventorySlots;
+        Debug.Log($"[CharacterInventory.Awake] Инициализация инвентаря с {slotCount} слотами");
 
-        // Ссылка на менеджера инвентаря
-        [SerializeField] private InventoryManager inventoryManager;
-        
-        private void OnCurrentSlotChanged(int oldValue, int newValue)
+        slots.Clear();
+        for (int i = 0; i < slotCount; i++)
         {
-            Debug.Log($"[OnCurrentSlotChanged] Слот изменён: {oldValue} → {newValue} для игрока {netId}");
-            // Здесь можно обновить UI, подсветить слот и т. д.
-            //UpdateUIForCurrentSlot(newValue);
+            slots.Add(ItemStack.Empty);
         }
-        
-        private void OnObjectInHandChanged(GameObject oldValue, GameObject newValue)
+    }
+
+    /// <summary>
+    /// Вызывается на клиенте при подключении к сети. <br/>
+    /// Сохраняет ссылку на <see cref="InventoryManager"/> для обновления UI.
+    /// </summary>
+    public override void OnStartClient()
+    {
+        Debug.Log($"[CharacterInventory.OnStartClient] Инвентарь инициализирован для {netId}");
+        uiManager = GetComponent<InventoryManager>();
+    }
+
+    /// <summary>
+    /// Запрашивает смену текущего слота. <br/>
+    /// Вызывается клиентом, обрабатывается на сервере через <see cref="CmdChangeCurrentSlot"/>.
+    /// </summary>
+    /// <param name="index">Индекс нового слота (0-based).</param>
+    public void ChangeCurrentSlot(int index)
+    {
+        Debug.Log($"[CharacterInventory.ChangeCurrentSlot] Запрос на смену слота: {index}");
+
+        if (index < 0 || index >= slots.Count)
         {
-            if (newValue != null)
+            Debug.LogWarning($"[CharacterInventory.ChangeCurrentSlot] Индекс {index} вне диапазона (0–{slots.Count - 1})");
+            return;
+        }
+
+        if (slots[index].isEmpty)
+        {
+            Debug.Log($"[CharacterInventory.ChangeCurrentSlot] Слот {index} пуст — смена невозможна");
+            return;
+        }
+
+        CmdChangeCurrentSlot(index);
+    }
+
+    /// <summary>
+    /// Команда: смена текущего слота на сервере. <br/>
+    /// Проверяет валидность и обновляет <see cref="currentSlot"/> и <see cref="previousSlot"/>.
+    /// </summary>
+    /// <param name="index">Индекс нового слота.</param>
+    [Command]
+    private void CmdChangeCurrentSlot(int index)
+    {
+        Debug.Log($"[CharacterInventory.CmdChangeCurrentSlot] Сервер меняет слот на {index}");
+
+        if (index >= 0 && index < slots.Count && !slots[index].isEmpty)
+        {
+            previousSlot = currentSlot;
+            currentSlot = index;
+
+            selectedItemId = slots[index].itemNetId?.netId ?? 0;
+            selectedItemAmount = slots[index].count;
+
+            Debug.Log($"[CharacterInventory.CmdChangeCurrentSlot] Активный слот изменён на {index}, предмет: {selectedItemId}, количество: {selectedItemAmount}");
+        }
+        else
+        {
+            Debug.LogWarning($"[CharacterInventory.CmdChangeCurrentSlot] Невозможно установить слот {index} — пуст или некорректный");
+        }
+    }
+
+    /// <summary>
+    /// Добавляет предмет в инвентарь на сервере. <br/>
+    /// Пытается сложить в существующий стек, иначе — в первый пустой слот.
+    /// </summary>
+    /// <param name="itemObject">Объект предмета, который нужно добавить.</param>
+    /// <returns>True — предмет успешно добавлен.</returns>
+    [Server]
+    public bool ServerAddItem(GameObject itemObject)
+    {
+        Debug.Log($"[CharacterInventory.ServerAddItem] Попытка добавить предмет: {itemObject.name}");
+
+        if (!itemObject.TryGetComponent(out NetworkIdentity itemNetId))
+        {
+            Debug.LogError($"[CharacterInventory.ServerAddItem] Объект {itemObject.name} не имеет NetworkIdentity");
+            return false;
+        }
+
+        Item itemComponent = itemNetId.GetComponent<Item>();
+        if (itemComponent == null)
+        {
+            Debug.LogError($"[CharacterInventory.ServerAddItem] Объект {itemObject.name} не имеет компонента Item");
+            return false;
+        }
+
+        // Попытка добавить в существующий стек (если предмет стекуемый)
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (!slots[i].isEmpty && slots[i].Matches(itemObject))
             {
-                SetObject(newValue);
+                slots[i] = new ItemStack(slots[i].itemNetId, slots[i].count + 1);
+                Debug.Log($"[CharacterInventory.ServerAddItem] Предмет добавлен в стек {i}, теперь: {slots[i].count}");
+                return true;
             }
         }
 
-        /// <summary>
-        /// Попытка добавить указанный объект в инвентарь. Метод вызывается локально с проверкой isOwned.
-        /// Если игрок владеет объектом, пытается добавить предмет в текущий слот или первый свободный слот.
-        /// </summary>
-        /// <param name="go">Объект, который нужно добавить в инвентарь.</param>
-        public void TryAddObject(GameObject go)
+        // Поиск первого пустого слота
+        for (int i = 0; i < slots.Count; i++)
         {
-            Debug.Log($"[TryAddObject] Попытка добавить объект {go.name} в инвентарь игрока {netId}");
-
-            TryAddObjectToSlot(go);
+            if (slots[i].isEmpty)
+            {
+                slots[i] = new ItemStack(itemNetId, 1);
+                Debug.Log($"[CharacterInventory.ServerAddItem] Предмет добавлен в слот {i}");
+                return true;
+            }
         }
 
-        /// <summary>
-        /// Внутренняя логика добавления объекта в слот инвентаря. <br/>
-        /// Сначала пытается добавить в текущий слот, если он свободен. <br/>
-        /// Если текущий слот занят, ищет первый свободный слот в инвентаре.
-        /// </summary>
-        /// <param name="go">Объект, который нужно добавить.</param>
-        private void TryAddObjectToSlot(GameObject go)
-        {
-            Debug.Log($"[TryAddObjectToSlot] Попытка добавить {go.name} в слот {currentSlot}");
+        Debug.Log("[CharacterInventory.ServerAddItem] Инвентарь полон — предмет не добавлен");
+        return false;
+    }
 
-            if (!inventorySlots[currentSlot].IsOccupied)
+    /// <summary>
+    /// Удаляет предмет из инвентаря на сервере. <br/>
+    /// Уменьшает счётчик в стеке или очищает слот.
+    /// </summary>
+    /// <param name="itemObject">Объект предмета, который нужно удалить.</param>
+    /// <returns>True — предмет успешно удалён.</returns>
+    [Server]
+    public bool ServerRemoveItem(GameObject itemObject)
+    {
+        Debug.Log($"[CharacterInventory.ServerRemoveItem] Попытка удалить предмет: {itemObject.name}");
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (!slots[i].isEmpty && slots[i].itemNetId.gameObject == itemObject)
             {
-                inventorySlots[currentSlot].TryAddToSlot(go);
-                ChangeCurrentSlot(inventorySlots[currentSlot], go);
-            }
-            else
-            {
-                for (int index = 0; index < inventorySlots.Count; index++)
+                if (slots[i].count <= 1)
                 {
-                    var slot = inventorySlots[index];
-
-                    if (!slot.IsOccupied)
-                    {
-                        slot.TryAddToSlot(go);
-                        ChangeCurrentSlot(slot, go);
-                        Debug.Log($"[TryAddObjectToSlot] Объект {go.name} добавлен в слот {index}");
-                        break;
-                    }
+                    slots[i] = ItemStack.Empty;
+                    Debug.Log($"[CharacterInventory.ServerRemoveItem] Слот {i} очищен");
                 }
-            }
-        }
-
-        /// <summary>
-        /// Изменяет выбранный слот в указанном направлении (вперёд или назад).
-        /// Использует арифметику по модулю для циклического переключения слотов.
-        /// </summary>
-        /// <param name="vector">Направление изменения слота (Forward или Backward).</param>
-        public void ChangeCurrentSlotWithVector(ChangeSlotVector vector)
-        {
-            Debug.Log($"[ChangeCurrentSlotWithVector] Изменение слота для игрока {netId}, направление: {vector}");
-
-            int delta = vector == ChangeSlotVector.Forward ? 1 : -1;
-            int newSlotIndex = (currentSlot + delta + inventorySlots.Count) % inventorySlots.Count;
-            ChangeCurrentSlot(inventorySlots[newSlotIndex], inventorySlots[newSlotIndex].ObjectInSlot);
-        }
-
-        /// <summary>
-        /// Меняет выбранный слот на указанный и обновляет состояние инвентаря.
-        /// Скрывает объект в предыдущем слоте через InventoryManager и показывает в новом.
-        /// Обновляет SyncVar currentSlot и objectInHand.
-        /// </summary>
-        /// <param name="slot">Слот, который будет выбран.</param>
-        /// <param name="go">Объект, который игрок возьмёт в руку (может быть null).</param>
-        private void ChangeCurrentSlot(InventorySlot slot, GameObject go)
-        {
-            int value = 0;
-
-            // Скрываем объект в текущем слоте через InventoryManager
-            if (inventoryManager != null)
-            {
-                inventoryManager.HideObjectInSlot(currentSlot);
-            }
-            else
-            {
-                Debug.LogWarning("[ChangeCurrentSlot] InventoryManager не инициализирован!");
-            }
-
-            for (int index = 0; index < inventorySlots.Count; index++)
-            {
-                if (inventorySlots[index] == slot)
+                else
                 {
-                    value = index;
-                    break;
+                    slots[i] = new ItemStack(slots[i].itemNetId, slots[i].count - 1);
+                    Debug.Log($"[CharacterInventory.ServerRemoveItem] Счётчик в слоте {i} уменьшен до {slots[i].count}");
                 }
+                return true;
             }
-
-            currentSlot = value;
-            objectInHand = go != null ? go : null;
-
-            // Синхронизируем состояние слотов с менеджером
-            if (inventoryManager != null)
-            {
-                inventoryManager.SyncSlotState(currentSlot, slot.ObjectInSlot);
-                inventoryManager.ShowObjectInSlot(currentSlot);
-            }
-
-            Debug.Log($"[ChangeCurrentSlot] Слот изменён на {currentSlot}, объект в руке: {objectInHand?.name ?? "null"}");
         }
 
-        /// <summary>
-        /// Метод, который просто телепортирует указанный объект к игроку и делает его ребёнком игрока.
-        /// Устанавливает позицию в ноль относительно родителя и отключает физику.
-        /// </summary>
-        /// <param name="go">Объект, который нужно телепортировать.</param>
-        private void SetObject(GameObject go)
+        Debug.LogWarning($"[CharacterInventory.ServerRemoveItem] Предмет {itemObject.name} не найден в инвентаре");
+        return false;
+    }
+
+    /// <summary>
+    /// Возвращает NetworkIdentity предмета в текущем слоте. <br/>
+    /// Используется для взаимодействия (например, выброс).
+    /// </summary>
+    /// <returns>Сетевой объект предмета или null.</returns>
+    public NetworkIdentity GetItemInCurrentSlot()
+    {
+        NetworkIdentity item = !slots[currentSlot].isEmpty ? slots[currentSlot].itemNetId : null;
+        Debug.Log($"[CharacterInventory.GetItemInCurrentSlot] Возвращён предмет: {(item ? item.name : "пусто")}");
+        return item;
+    }
+
+    /// <summary>
+    /// Хук, вызываемый при изменении <see cref="currentSlot"/>. <br/>
+    /// Обновляет UI — выделяет новый слот.
+    /// </summary>
+    /// <param name="newSlot">Новый активный слот.</param>
+    /// <param name="oldSlot">Предыдущий активный слот.</param>
+    public void ShowObjectInSlot(int newSlot, int oldSlot)
+    {
+        Debug.Log($"[CharacterInventory.ShowObjectInSlot] Слот {newSlot} выделен");
+
+        if (uiManager != null)
         {
-            if (go == null) return;
-
-            go.transform.SetParent(objectsParent);
-            go.transform.localPosition = Vector3.zero;
-
-            Rigidbody rb = go.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                rb.isKinematic = true;
-            }
-
-            Debug.Log($"[SetObject] Объект {go.name} перемещён в руку игрока {netId}");
+            uiManager.ShowObjectInSlot(newSlot, oldSlot);
         }
+    }
 
-        #region UnityMethods
+    /// <summary>
+    /// Хук, вызываемый при изменении <see cref="currentSlot"/>. <br/>
+    /// Обновляет UI — снимает выделение с предыдущего слота.
+    /// </summary>
+    /// <param name="newSlot">Новый активный слот.</param>
+    /// <param name="oldSlot">Предыдущий активный слот.</param>
+    public void HideObjectInSlot(int newSlot, int oldSlot)
+    {
+        Debug.Log($"[CharacterInventory.HideObjectInSlot] Слот {oldSlot} снят с выделения");
 
-        private void Awake()
+        if (uiManager != null)
         {
-            if (inventoryManager == null)
-            {
-                // Находим менеджер инвентаря при инициализации
-                inventoryManager = FindObjectOfType<InventoryManager>();
-
-                if (inventoryManager == null)
-                {
-                    Debug.LogError("[CharacterInventory] Не найден InventoryManager в сцене!");
-                }
-            }
+            uiManager.HideObjectInSlot(newSlot, oldSlot);
         }
-
-        private void Start()
-        {
-            if (inventorySlots.Count > 0)
-            {
-                currentSlot = 0;
-            }
-            else
-            {
-                Debug.LogError($"[CharacterInventory] У игрока ({netId}) в инвентаре нет слотов.");
-            }
-        }
-
-        #endregion
     }
 }

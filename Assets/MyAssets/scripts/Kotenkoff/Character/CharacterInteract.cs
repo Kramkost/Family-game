@@ -1,149 +1,132 @@
-using System;
-using System.Linq;
 using Mirror;
-using MyAssets.scripts.Kotenkoff.Character.Interfaces;
 using MyAssets.scripts.Kotenkoff.Character.Inventory;
-using MyAssets.scripts.Kotenkoff.Items;
-using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
-namespace MyAssets.scripts.Kotenkoff.Character
+/// <summary>
+/// Отвечает за обнаружение и взаимодействие с предметами. <br/>
+/// Например: подбор по нажатию E. <br/>
+/// Использует Raycast для определения объекта в зоне видимости.
+/// </summary>
+[RequireComponent(typeof(CharacterInventory))]
+public class CharacterInteract : NetworkBehaviour
 {
+    [Header("Настройки")]
+    [SerializeField, Tooltip("Максимальная дистанция взаимодействия.")]
+    private float interactionDistance = 3f;
+
+    [SerializeField, Tooltip("Клавиша для взаимодействия (по умолчанию E).")]
+    private KeyCode interactKey = KeyCode.E;
+
+    [SerializeField, Tooltip("Слой, содержащий предметы для взаимодействия.")]
+    private LayerMask interactLayer;
+
+    [SerializeField, Tooltip("Точка камеры для направления взаимодействия.")]
+    private Transform cameraTransform;
+
+    private CharacterInventory inventory;
+
     /// <summary>
-    /// Класс для осуществления взаимодействия.
+    /// Вызывается при старте. Получает ссылку на инвентарь.
     /// </summary>
-    public class CharacterInteract : NetworkBehaviour
+    private void Awake()
     {
-        [SerializeField, Tooltip("Дистанция взаимодействия."), Header("Взаимодействие:")]
-        private float interactionDistance;
-        [SerializeField, Tooltip("Слои, с которыми может взаимодействовать Raycast.")]
-        private LayerMask raycastLayerMasks;
-
-        [SerializeField, Tooltip("Включает raycast луч для отладки.")]
-        private bool drawRayForDebug;
-        
-        
-        [Header("Компоненты:")]
-        [SerializeField] private CharacterInventory characterInventory;
-        [SerializeField] private CharacterBase characterBase;
-
-
-
-        [SyncVar] private Ray ray;
-        private RaycastHit hit;
-
-        public override void OnStartLocalPlayer()
+        inventory = GetComponent<CharacterInventory>();
+        if (cameraTransform == null)
         {
-            if (!isLocalPlayer) return;
-            
-            if (characterBase == null) characterBase = gameObject.GetComponent<CharacterBase>();
-            if (characterInventory == null) characterInventory = gameObject.GetComponent<CharacterInventory>();
+            Debug.LogError($"[CharacterInteract.Awake] Не задана точка камеры для {gameObject.name}");
+        }
+    }
+
+    /// <summary>
+    /// Вызывается каждый кадр. <br/>
+    /// Проверяет нажатие клавиши взаимодействия и выполняет попытку подбора.
+    /// </summary>
+    private void Update()
+    {
+        if (!isLocalPlayer) return;
+
+        if (Input.GetKeyDown(interactKey))
+        {
+            TryInteract();
+        }
+    }
+
+    /// <summary>
+    /// Пытается взаимодействовать с объектом перед игроком. <br/>
+    /// Использует Raycast для поиска предмета.
+    /// </summary>
+    public void TryInteract()
+    {
+        Debug.Log($"[CharacterInteract.TryInteract] Попытка взаимодействия на расстоянии {interactionDistance}");
+
+        if (!cameraTransform)
+        {
+            Debug.LogWarning("[CharacterInteract.TryInteract] Камера не назначена — взаимодействие невозможно");
+            return;
         }
 
-        /// <summary>
-        /// Основной метод для инициирования взаимодействия. Вызывается с клиента при попытке взаимодействия (например, по нажатию клавиши). <br/>
-        /// Проверяет, что игрок локальный, обновляет ссылку на камеру и запускает клиентский Raycast.
-        /// </summary>
-        public void TryInteract()
+        Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
+        if (Physics.Raycast(ray, out RaycastHit hit, interactionDistance, interactLayer))
         {
-            if (!isLocalPlayer) return;
-            
-            if (characterBase.FpCamera == null)
-            {
-                TargetMessage("Ошибка: не удалось получить камеру для взаимодействия.");
-                return;
-            }
+            Debug.Log($"[CharacterInteract.TryInteract] Обнаружен объект: {hit.collider.name}");
 
-            if (ClientTryInteract(out GameObject hitObject))
+            if (hit.collider.TryGetComponent<Item>(out Item item))
             {
-                if (isOwned)
-                {
-                    var rootIdentity = hitObject.GetComponentInParent<NetworkIdentity>();
-                    var interactable =  hitObject.GetComponentInParent<IInteractableTest>();
-
-                    if (interactable != null && rootIdentity != null)
-                    {
-                        CmdTryInteractOnServer(hitObject.GetComponentInParent<NetworkIdentity>(), ((Component)interactable).gameObject.name);
-                    }
-                }
+                Debug.Log($"[CharacterInteract.TryInteract] Объект является предметом: {item.ItemName}");
+                item.TryInteract(inventory);
             }
             else
             {
-                TargetMessage("Нет объекта для взаимодействия. Возможно он не на слое взаимодействия.");
+                Debug.Log($"[CharacterInteract.TryInteract] Объект {hit.collider.name} не является предметом");
             }
         }
-        
-        [Command]
-        private void CmdTryInteractOnServer(NetworkIdentity rootIdentity, string targetName)
+        else
         {
-            // Валидация инвентаря
-            if (characterInventory == null)
-            {
-                TargetMessage("Ошибка: инвентарь не инициализирован!");
-                return;
-            }
-
-            // Валидация объекта
-            if (rootIdentity == null)
-            {
-                TargetMessage("Ошибка: целевой объект не существует.");
-                return;
-            }
-
-            var distanceToObject = Vector3.Distance(transform.position, rootIdentity.transform.position);
-            if (distanceToObject > interactionDistance)
-            {
-                TargetMessage($"Ошибка: объект слишком далеко ({distanceToObject:F2}м > {interactionDistance}м)");
-                return;
-            }
-            
-            CmdInteract(rootIdentity, targetName);
+            Debug.Log("[CharacterInteract.TryInteract] Нет объектов в зоне взаимодействия");
         }
-        
-        private void CmdInteract(NetworkIdentity rootIdentity, string targetName)
+    }
+    
+    /// <summary>
+    /// Отрисовывает луч взаимодействия в редакторе Unity (Scene View). <br/>
+    /// Зелёный — если объект найден, красный — если нет. <br/>
+    /// Помогает визуально настроить дистанцию и направление.
+    /// </summary>
+    private void OnDrawGizmosSelected()
+    {
+        if (cameraTransform == null) return;
+
+        Vector3 rayStart = cameraTransform.position;
+        Vector3 rayDir = cameraTransform.forward;
+
+        Ray ray = new Ray(rayStart, rayDir);
+        if (Physics.Raycast(ray, out RaycastHit hit, interactionDistance, interactLayer))
         {
-            if (rootIdentity == null || string.IsNullOrEmpty(targetName)) return;
+            // Луч до объекта — зелёный
+            Gizmos.color = Color.green;
+            Gizmos.DrawRay(rayStart, rayDir * hit.distance);
+            Gizmos.DrawSphere(hit.point, 0.1f);
 
-            foreach (Transform child in rootIdentity.GetComponentsInChildren<Transform>())
-            {
-                if (child.name != targetName ||
-                    !child.TryGetComponent(out IInteractableTest interactableTest)) continue;
-                interactableTest.TryInteract(characterInventory);
-                return;
-            }
+            // Остаток — пунктир до максимальной дистанции
+            Gizmos.color = Color.red;
+            Gizmos.DrawRay(rayStart + rayDir * hit.distance, rayDir * (interactionDistance - hit.distance));
         }
-        
-        /// <summary>
-        /// Выполняет Raycast на стороне клиента из позиции и направления активной камеры.
-        /// Если луч попадает в объект с нужным LayerMask, возвращает этот объект. <br/>
-        /// При включённом drawRayForDebug визуализирует луч для отладки.
-        /// </summary>
-        /// <param name="hitObject">Найденный объект взаимодействия (если есть)</param>
-        /// <returns>True, если Raycast нашёл объект; false в противном случае</returns>
-        private bool ClientTryInteract(out GameObject hitObject)
+        else
         {
-            hitObject = null;
-
-            Ray localRay = new Ray(characterBase.FpCamera.transform.position, characterBase.FpCamera.transform.forward);
-
-            // Визуализация луча для отладки, если включено в инспекторе
-            if (drawRayForDebug)
-            {
-                Debug.DrawRay(localRay.origin, localRay.direction * interactionDistance, Color.red, 1f);
-            }
-
-            if (Physics.Raycast(localRay, out hit, interactionDistance, raycastLayerMasks))
-            {
-                hitObject = hit.collider.gameObject;
-                TargetMessage($"Клиент {netId} нашёл объект: '{hitObject.name}' на расстоянии {hit.distance:F2}м");
-                return true;
-            }
-
-            return false;
+            // Полный луч — красный (объект не найден)
+            Gizmos.color = Color.red;
+            Gizmos.DrawRay(rayStart, rayDir * interactionDistance);
         }
-        
-        [TargetRpc]
-        private void TargetMessage(string message) => Debug.Log($"[CharacterInteract] ServerMessage: {message}.");
+
+        // Отображение дистанции (конус)
+        Vector3 left = Quaternion.AngleAxis(5f, Vector3.up) * rayDir;
+        Vector3 right = Quaternion.AngleAxis(-5f, Vector3.up) * rayDir;
+        Vector3 up = Quaternion.AngleAxis(5f, Vector3.right) * rayDir;
+        Vector3 down = Quaternion.AngleAxis(-5f, Vector3.right) * rayDir;
+
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.3f); // Оранжевый полупрозрачный
+        Gizmos.DrawLine(rayStart, rayStart + left * interactionDistance);
+        Gizmos.DrawLine(rayStart, rayStart + right * interactionDistance);
+        Gizmos.DrawLine(rayStart, rayStart + up * interactionDistance);
+        Gizmos.DrawLine(rayStart, rayStart + down * interactionDistance);
     }
 }

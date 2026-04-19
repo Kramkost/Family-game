@@ -177,7 +177,5 @@ namespace MyAssets.scripts.Kotenkoff.Character
         private void DisableDriveInput() => playerInput.SwitchCurrentActionMap("Gameplay");
         
         #endregion
-
-        
     }
 }

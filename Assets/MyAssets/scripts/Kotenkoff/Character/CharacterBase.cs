@@ -359,7 +359,7 @@ namespace MyAssets.scripts.Kotenkoff.Character
             playerInput.SwitchCurrentActionMap("Gameplay");
             Debug.Log("[CharacterBase.DisableDriveInput] Переключено на управление персонажем");
         }
-
+        
         #endregion
     }
 }
